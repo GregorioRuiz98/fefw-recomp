@@ -16,6 +16,8 @@ Select either the parent folder containing `updates/131072`, or `updates/131072`
 
 Initial preparation requires the tools listed below and compiles `fefw.exe` and the shaders on your PC. **Selecting a folder does not make a new installation immediately ready to play.** Once preparation finishes, **Save and play** starts the game. You can then open `fefw.exe` directly if **Skip setup on startup** is enabled; `fefw_setup.exe` remains available to change your settings.
 
+**First launch: allow around 30–40 minutes for initial preparation.** This is a user-reported estimate; time varies with your PC, storage, internet connection and existing caches. Dependencies, game code and shaders are prepared locally. Keep setup open and use **Open log** to follow progress. Later launches reuse the generated executable and caches; updates or missing files may require preparation again.
+
 ## Package contents
 
 - A standalone Win32 setup tool and its corresponding source code.
