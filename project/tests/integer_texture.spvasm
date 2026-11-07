@@ -1,0 +1,56 @@
+; Own fixture: two bindings share a floating image type. Only the integer one
+; must be specialized; normalized data must keep its original float semantics.
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main" %integer %normalized %output
+OpExecutionMode %main LocalSize 1 1 1
+OpName %integer "cp_t_tcb_8"
+OpName %normalized "cp_t_tcb_a"
+OpName %output "cp_s0"
+OpDecorate %integer DescriptorSet 2
+OpDecorate %integer Binding 0
+OpDecorate %normalized DescriptorSet 2
+OpDecorate %normalized Binding 1
+OpDecorate %array ArrayStride 16
+OpMemberDecorate %Output 0 Offset 0
+OpDecorate %Output Block
+OpDecorate %output DescriptorSet 1
+OpDecorate %output Binding 0
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%int = OpTypeInt 32 1
+%float = OpTypeFloat 32
+%v2i = OpTypeVector %int 2
+%v4u = OpTypeVector %uint 4
+%v4f = OpTypeVector %float 4
+%zero = OpConstant %uint 0
+%one = OpConstant %uint 1
+%izero = OpConstant %int 0
+%xy = OpConstantComposite %v2i %izero %izero
+%image = OpTypeImage %float 2D 0 0 0 1 Unknown
+%sampled = OpTypeSampledImage %image
+%ptr_tex = OpTypePointer UniformConstant %sampled
+%array = OpTypeRuntimeArray %v4u
+%Output = OpTypeStruct %array
+%storage_out = OpTypePointer StorageBuffer %Output
+%storage_v4 = OpTypePointer StorageBuffer %v4u
+%integer = OpVariable %ptr_tex UniformConstant
+%normalized = OpVariable %ptr_tex UniformConstant
+%output = OpVariable %storage_out StorageBuffer
+%main = OpFunction %void None %fn
+%label = OpLabel
+%s = OpLoad %sampled %integer
+%i = OpImage %image %s
+%f = OpImageFetch %v4f %i %xy Lod %izero
+%u = OpBitcast %v4u %f
+%dest = OpAccessChain %storage_v4 %output %zero %zero
+OpStore %dest %u
+%s2 = OpLoad %sampled %normalized
+%i2 = OpImage %image %s2
+%f2 = OpImageFetch %v4f %i2 %xy Lod %izero
+%u2 = OpBitcast %v4u %f2
+%dest2 = OpAccessChain %storage_v4 %output %zero %one
+OpStore %dest2 %u2
+OpReturn
+OpFunctionEnd

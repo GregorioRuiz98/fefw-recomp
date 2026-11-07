@@ -1,0 +1,51 @@
+; Synthetic 32-element cube descriptor array, resolved through a table of handles in uniform bank 6.
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main" %gid %textures %output
+OpExecutionMode %main LocalSize 1 1 1
+OpName %textures "cp_t_cb6_d0"
+OpName %output "cp_s0"
+OpDecorate %gid BuiltIn WorkgroupId
+OpDecorate %textures DescriptorSet 2
+OpDecorate %textures Binding 640
+OpDecorate %out_array ArrayStride 16
+OpMemberDecorate %Output 0 Offset 0
+OpDecorate %Output Block
+OpDecorate %output DescriptorSet 1
+OpDecorate %output Binding 0
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%float = OpTypeFloat 32
+%v3u = OpTypeVector %uint 3
+%v3f = OpTypeVector %float 3
+%v4f = OpTypeVector %float 4
+%zero = OpConstant %uint 0
+%length = OpConstant %uint 32
+%f0 = OpConstant %float 0
+%f1 = OpConstant %float 1
+%direction = OpConstantComposite %v3f %f1 %f0 %f0
+%image = OpTypeImage %float Cube 0 0 0 1 Unknown
+%sampled = OpTypeSampledImage %image
+%tex_array = OpTypeArray %sampled %length
+%ptr_tex_array = OpTypePointer UniformConstant %tex_array
+%ptr_sampled = OpTypePointer UniformConstant %sampled
+%out_array = OpTypeRuntimeArray %v4f
+%Output = OpTypeStruct %out_array
+%input_v3 = OpTypePointer Input %v3u
+%storage_out = OpTypePointer StorageBuffer %Output
+%storage_v4 = OpTypePointer StorageBuffer %v4f
+%gid = OpVariable %input_v3 Input
+%textures = OpVariable %ptr_tex_array UniformConstant
+%output = OpVariable %storage_out StorageBuffer
+%main = OpFunction %void None %fn
+%label = OpLabel
+%group = OpLoad %v3u %gid
+%index = OpCompositeExtract %uint %group 0
+%sample_ptr = OpAccessChain %ptr_sampled %textures %index
+%sampler = OpLoad %sampled %sample_ptr
+%result = OpImageSampleExplicitLod %v4f %sampler %direction Lod %f0
+%dest = OpAccessChain %storage_v4 %output %zero %index
+OpStore %dest %result
+OpReturn
+OpFunctionEnd

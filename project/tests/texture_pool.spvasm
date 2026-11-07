@@ -1,0 +1,92 @@
+OpCapability Shader
+OpCapability ShaderNonUniform
+OpCapability SampledImageArrayNonUniformIndexing
+OpExtension "SPV_EXT_descriptor_indexing"
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main" %gid %textures %samplers %output %table
+OpExecutionMode %main LocalSize 32 1 1
+OpName %textures "cp_t_cb0_40000000"
+OpName %samplers "cp_s_cb0_40000000"
+OpName %output "cp_s0"
+OpName %table "cp_c6"
+OpDecorate %gid BuiltIn GlobalInvocationId
+OpDecorate %textures DescriptorSet 2
+OpDecorate %textures Binding 640
+OpDecorate %samplers DescriptorSet 2
+OpDecorate %samplers Binding 641
+OpDecorate %table DescriptorSet 0
+OpDecorate %table Binding 7
+OpDecorate %table_array ArrayStride 16
+OpMemberDecorate %Table 0 Offset 0
+OpDecorate %Table Block
+OpDecorate %out_array ArrayStride 16
+OpMemberDecorate %Output 0 Offset 0
+OpDecorate %Output Block
+OpDecorate %output DescriptorSet 1
+OpDecorate %output Binding 0
+OpDecorate %image_loaded NonUniform
+OpDecorate %sampler_loaded NonUniform
+OpDecorate %sampled_loaded NonUniform
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%float = OpTypeFloat 32
+%v3u = OpTypeVector %uint 3
+%v4u = OpTypeVector %uint 4
+%v3f = OpTypeVector %float 3
+%v4f = OpTypeVector %float 4
+%zero = OpConstant %uint 0
+%one = OpConstant %uint 1
+%twenty = OpConstant %uint 20
+%texture_mask = OpConstant %uint 1048575
+%texture_count = OpConstant %uint 32768
+%sampler_count = OpConstant %uint 512
+%table_count = OpConstant %uint 16
+%f0 = OpConstant %float 0
+%f1 = OpConstant %float 1
+%direction = OpConstantComposite %v3f %f1 %f0 %f0
+%image = OpTypeImage %float Cube 0 0 0 1 Unknown
+%sampler_type = OpTypeSampler
+%sampled = OpTypeSampledImage %image
+%tex_array = OpTypeArray %image %texture_count
+%smp_array = OpTypeArray %sampler_type %sampler_count
+%ptr_tex_array = OpTypePointer UniformConstant %tex_array
+%ptr_smp_array = OpTypePointer UniformConstant %smp_array
+%ptr_image = OpTypePointer UniformConstant %image
+%ptr_sampler = OpTypePointer UniformConstant %sampler_type
+%table_array = OpTypeArray %v4u %table_count
+%Table = OpTypeStruct %table_array
+%ptr_table = OpTypePointer Uniform %Table
+%ptr_uniform_v4u = OpTypePointer Uniform %v4u
+%out_array = OpTypeRuntimeArray %v4f
+%Output = OpTypeStruct %out_array
+%input_v3 = OpTypePointer Input %v3u
+%storage_out = OpTypePointer StorageBuffer %Output
+%storage_v4 = OpTypePointer StorageBuffer %v4f
+%gid = OpVariable %input_v3 Input
+%textures = OpVariable %ptr_tex_array UniformConstant
+%samplers = OpVariable %ptr_smp_array UniformConstant
+%table = OpVariable %ptr_table Uniform
+%output = OpVariable %storage_out StorageBuffer
+%main = OpFunction %void None %fn
+%label = OpLabel
+%global = OpLoad %v3u %gid
+%index = OpCompositeExtract %uint %global 0
+%vector_index = OpShiftRightLogical %uint %index %one
+%component_low = OpBitwiseAnd %uint %index %one
+%component_index = OpShiftLeftLogical %uint %component_low %one
+%handle_ptr = OpAccessChain %ptr_uniform_v4u %table %zero %vector_index
+%handle_vector = OpLoad %v4u %handle_ptr
+%handle = OpVectorExtractDynamic %uint %handle_vector %component_index
+%texture_index = OpBitwiseAnd %uint %handle %texture_mask
+%sampler_index = OpShiftRightLogical %uint %handle %twenty
+%image_ptr = OpAccessChain %ptr_image %textures %texture_index
+%sampler_ptr = OpAccessChain %ptr_sampler %samplers %sampler_index
+%image_loaded = OpLoad %image %image_ptr
+%sampler_loaded = OpLoad %sampler_type %sampler_ptr
+%sampled_loaded = OpSampledImage %sampled %image_loaded %sampler_loaded
+%result = OpImageSampleExplicitLod %v4f %sampled_loaded %direction Lod %f0
+%dest = OpAccessChain %storage_v4 %output %zero %index
+OpStore %dest %result
+OpReturn
+OpFunctionEnd

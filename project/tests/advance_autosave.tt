@@ -1,0 +1,9 @@
+# Runs on the runtime's tick source after graphics initialization.
+@sleep 14000
+@log Press A to leave autosave screen
+hold A
+@sleep 700
+release all
+@sleep 12000
+@shot after-next
+@sleep 600000

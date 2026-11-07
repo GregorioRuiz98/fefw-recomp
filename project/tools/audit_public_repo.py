@@ -1,0 +1,124 @@
+"""Audit the staged public source snapshot and reachable Git history, without game data."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import re
+import subprocess
+from package_public import audit_name, audit_payload
+
+REPO_FILES = {'.gitattributes', 'source-manifest.json', '.github/workflows/public-audit.yml'}
+SECRETS = [re.compile(r'gh[pousr]_[A-Za-z0-9]{30,255}'),
+           re.compile(r'github_pat_[A-Za-z0-9_]{30,255}'),
+           re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----')]
+MAX_SOURCE_BYTES = 2 * 1024 * 1024
+
+
+def git(repo, *args):
+    return subprocess.check_output(['git', '-C', str(repo), *args], stderr=subprocess.PIPE)
+
+
+def check_name(name):
+    if not name or any(ord(c) < 32 for c in name):
+        raise ValueError('Invalid source filename')
+    if name == 'fefw_setup.exe':
+        raise ValueError('The Git repository is source-only; keep the configurator in its reviewed release ZIP')
+    if name not in REPO_FILES:
+        audit_name(name)
+    if name == 'public-manifest.json':
+        raise ValueError('Use the source-only manifest for the Git repository')
+
+
+def check_content(name, data):
+    check_name(name)
+    if len(data) > MAX_SOURCE_BYTES or b'\x00' in data or data.startswith(b'MZ'):
+        raise ValueError('Binary or oversized content in public source: ' + name)
+    if name in REPO_FILES:
+        text = data.decode('utf-8-sig')
+    else:
+        audit_payload(name, data)
+        text = data.decode('utf-8-sig')
+    if re.search(r'[A-Za-z]:[\\/]+Users[\\/]+[^\s/\\]+', text, re.I):
+        raise ValueError('Personal home path in public source: ' + name)
+    if any(pattern.search(text) for pattern in SECRETS):
+        raise ValueError('Credential-like content in public source: ' + name)
+    if any(ord(c) < 32 and c not in '\n\r\t' for c in text):
+        raise ValueError('Unexpected control character in source: ' + name)
+
+
+def index_files(repo):
+    result = {}
+    for entry in git(repo, 'ls-files', '--stage', '-z').split(b'\0'):
+        if not entry:
+            continue
+        metadata, raw_name = entry.split(b'\t', 1)
+        mode, sha, stage = metadata.decode().split()
+        name = raw_name.decode('utf-8')
+        check_name(name)
+        if mode not in {'100644', '100755'} or stage != '0':
+            raise ValueError('Symlink, submodule or unresolved index entry: ' + name)
+        data = git(repo, 'cat-file', 'blob', sha)
+        check_content(name, data)
+        result[name] = data
+    if not result:
+        raise ValueError('The staged public snapshot is empty')
+    return result
+
+
+def make_manifest(files):
+    return {'kind': 'public-source-only', 'game_content_included': False,
+            'files': [{'path': name, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+                      for name, data in sorted(files.items()) if name != 'source-manifest.json']}
+
+
+def audit(repo, history=False, write_manifest=False):
+    repo = Path(repo).resolve()
+    files = index_files(repo)
+    expected = make_manifest(files)
+    if write_manifest:
+        (repo / 'source-manifest.json').write_text(json.dumps(expected, indent=2) + '\n', encoding='utf-8')
+    else:
+        if 'source-manifest.json' not in files or json.loads(files['source-manifest.json']) != expected:
+            raise ValueError('The staged source manifest is missing or does not match the staged files')
+    commits = []
+    seen = set()
+    if history:
+        commits = git(repo, 'rev-list', '--all').decode().splitlines()
+        for commit in commits:
+            for entry in git(repo, 'ls-tree', '-r', '-z', commit).split(b'\0'):
+                if not entry:
+                    continue
+                metadata, raw_name = entry.split(b'\t', 1)
+                mode, kind, sha = metadata.decode().split()
+                name = raw_name.decode('utf-8')
+                check_name(name)
+                if kind != 'blob' or mode not in {'100644', '100755'}:
+                    raise ValueError('Unsupported historical Git entry: ' + name)
+                if sha not in seen:
+                    check_content(name, git(repo, 'cat-file', 'blob', sha))
+                    seen.add(sha)
+    return {'verdict': 'PASS', 'staged_files': len(files), 'source_bytes': sum(map(len, files.values())),
+            'reachable_commits_checked': len(commits), 'historical_blobs_checked': len(seen),
+            'unreadable_count': 0, 'game_content_included': False,
+            'scope': 'Index and reachable Git objects; provenance and legal review remain separate'}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--repo', type=Path, required=True)
+    parser.add_argument('--history', action='store_true')
+    parser.add_argument('--write-manifest', action='store_true')
+    parser.add_argument('--report', type=Path)
+    args = parser.parse_args()
+    try:
+        report = audit(args.repo, args.history, args.write_manifest)
+    except (OSError, ValueError, UnicodeError, subprocess.CalledProcessError) as error:
+        report = {'verdict': 'FAIL', 'error': str(error), 'unreadable_count': 'unknown'}
+    if args.report:
+        args.report.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps(report))
+    raise SystemExit(0 if report['verdict'] == 'PASS' else 1)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+build/
+.venv/
+local.json
+*.log
+# Never add dumps, shader blobs, generated game C++, or object files here.
+exefs/
+romfs/
+lift/
+shader_cache/

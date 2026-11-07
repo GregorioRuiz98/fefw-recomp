@@ -1,0 +1,56 @@
+; Synthetic shader, no game code. Flatten WorkgroupId using the c0 dimensions and report all three counts.
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main" %gid %c0 %output
+OpExecutionMode %main LocalSize 1 1 1
+OpDecorate %gid BuiltIn WorkgroupId
+OpDecorate %const_array ArrayStride 16
+OpMemberDecorate %C0 0 Offset 0
+OpDecorate %C0 Block
+OpDecorate %c0 DescriptorSet 0
+OpDecorate %c0 Binding 0
+OpDecorate %out_array ArrayStride 16
+OpMemberDecorate %Output 0 Offset 0
+OpDecorate %Output Block
+OpDecorate %output DescriptorSet 0
+OpDecorate %output Binding 1
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%v3 = OpTypeVector %uint 3
+%v4 = OpTypeVector %uint 4
+%zero = OpConstant %uint 0
+%row = OpConstant %uint 0
+%length = OpConstant %uint 4096
+%const_array = OpTypeArray %v4 %length
+%C0 = OpTypeStruct %const_array
+%out_array = OpTypeRuntimeArray %v4
+%Output = OpTypeStruct %out_array
+%input_v3 = OpTypePointer Input %v3
+%uniform_c0 = OpTypePointer Uniform %C0
+%uniform_v4 = OpTypePointer Uniform %v4
+%storage_out = OpTypePointer StorageBuffer %Output
+%storage_v4 = OpTypePointer StorageBuffer %v4
+%gid = OpVariable %input_v3 Input
+%c0 = OpVariable %uniform_c0 Uniform
+%output = OpVariable %storage_out StorageBuffer
+%main = OpFunction %void None %fn
+%label = OpLabel
+%counts_ptr = OpAccessChain %uniform_v4 %c0 %zero %row
+%counts = OpLoad %v4 %counts_ptr
+%nx = OpCompositeExtract %uint %counts 1
+%ny = OpCompositeExtract %uint %counts 2
+%nz = OpCompositeExtract %uint %counts 3
+%group = OpLoad %v3 %gid
+%x = OpCompositeExtract %uint %group 0
+%y = OpCompositeExtract %uint %group 1
+%z = OpCompositeExtract %uint %group 2
+%z_rows = OpIMul %uint %z %ny
+%zy = OpIAdd %uint %z_rows %y
+%zy_columns = OpIMul %uint %zy %nx
+%index = OpIAdd %uint %zy_columns %x
+%result = OpCompositeConstruct %v4 %nx %ny %nz %index
+%dest = OpAccessChain %storage_v4 %output %zero %index
+OpStore %dest %result
+OpReturn
+OpFunctionEnd

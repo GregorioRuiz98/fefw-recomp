@@ -1,0 +1,105 @@
+﻿param([Parameter(Mandatory)][string]$Work, [Parameter(Mandatory)][string]$Project)
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+$Work = [IO.Path]::GetFullPath($Work)
+$temporary = Join-Path $Work 'tmp'
+New-Item -ItemType Directory -Path $temporary -Force | Out-Null
+$env:TEMP = $temporary; $env:TMP = $temporary
+$engine = Join-Path $Work 'engine'
+function Run([string]$Exe, [string[]]$Arguments) {
+    & $Exe @Arguments
+    if ($LASTEXITCODE -ne 0) { throw "$Exe fallo con codigo $LASTEXITCODE" }
+}
+function Checkout([string]$Url, [string]$Pin, [string]$Path) {
+    if (!(Test-Path -LiteralPath $Path)) {
+        Run 'git' @('-c', 'core.longpaths=true', 'clone', '--filter=blob:none', '--no-checkout', $Url, $Path)
+        Run 'git' @('-C', $Path, '-c', 'core.longpaths=true', 'checkout', '--detach', $Pin)
+    }
+    $head = & git -C $Path rev-parse HEAD
+    if ($LASTEXITCODE -or $head -ne $Pin) { throw "La dependencia $Path no coincide con $Pin. Se conserva sin cambios." }
+}
+. (Join-Path $Project 'tools/Initialize-BuildEnv.ps1')
+$python = Join-Path $Work 'venv/Scripts/python.exe'
+if (!(Test-Path -LiteralPath $python)) { throw 'Falta preparar el entorno Python.' }
+$textures = Join-Path $engine 'tools/textures'
+if (!(Test-Path -LiteralPath (Join-Path $textures 'build/release/astc2bc7.lib'))) {
+    Checkout 'https://github.com/ARM-software/astc-encoder.git' 'baff485b0ff36d2f95d28961605106502c653966' (Join-Path $textures 'third_party/astc-encoder')
+    Checkout 'https://github.com/richgel999/bc7enc_rdo.git' 'b9438627eef73a1157e84201b6fa6eb2ffd6d9f0' (Join-Path $textures 'third_party/bc7enc_rdo')
+    $ispcDir = Join-Path $textures 'third_party/ispc'
+    if (!(Test-Path -LiteralPath (Join-Path $ispcDir 'ispc-v1.32.0-windows/bin/ispc.exe'))) {
+        $archiveDir = Join-Path $Work 'downloads'
+        New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
+        $zip = Join-Path $archiveDir 'ispc-v1.32.0-windows.zip'
+        Invoke-WebRequest 'https://github.com/ispc/ispc/releases/download/v1.32.0/ispc-v1.32.0-windows.zip' -OutFile $zip -UseBasicParsing
+        if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne '148D5CD96ABE7501C730D5FBD00F1F0C893B96BFEADA38D1811C9B6251E86A5C') { throw 'ISPC: SHA-256 incorrecto.' }
+        Expand-Archive -LiteralPath $zip -DestinationPath $ispcDir -Force
+    }
+    Run 'cmake' @('-S', $textures, '-B', (Join-Path $textures 'build/release'), '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_C_COMPILER=clang-cl', '-DCMAKE_CXX_COMPILER=clang-cl')
+    Run 'cmake' @('--build', (Join-Path $textures 'build/release'), '--target', 'astc2bc7_cli', '--parallel', '1')
+}
+$validator = Join-Path $Work 'build/spirv-tools/tools/spirv-val.exe'
+if (!(Test-Path -LiteralPath $validator)) {
+    $spv = Join-Path $Work 'refs/spirv-tools'
+    Checkout 'https://github.com/KhronosGroup/SPIRV-Tools.git' 'ef96ed763b43b59b33b31b362f09a02b729fa1c9' $spv
+    Checkout 'https://github.com/KhronosGroup/SPIRV-Headers.git' '496543121ce6419f23d6fa5d7194ba66c36212d2' (Join-Path $spv 'external/spirv-headers')
+    Run 'cmake' @('-S', $spv, '-B', (Join-Path $Work 'build/spirv-tools'), '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_C_COMPILER=clang-cl', '-DCMAKE_CXX_COMPILER=clang-cl', '-DSPIRV_SKIP_TESTS=ON', '-DSPIRV_WERROR=OFF', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded')
+    Run 'cmake' @('--build', (Join-Path $Work 'build/spirv-tools'), '--target', 'spirv-val', 'spirv-as', 'spirv-dis', '--parallel', '1')
+}
+$vcpkg = Join-Path $Work 'toolchains/vcpkg'
+if (!(Test-Path -LiteralPath (Join-Path $vcpkg 'installed/x64-windows-static/lib/dav1d.lib')) -or
+    !(Test-Path -LiteralPath (Join-Path $vcpkg 'installed/x64-windows-static/lib/vpx.lib'))) {
+    Checkout 'https://github.com/microsoft/vcpkg.git' '661e42cd1600603016ced1d76a15359e7dade9f5' $vcpkg
+    Run (Join-Path $vcpkg 'bootstrap-vcpkg.bat') @('-disableMetrics')
+    Run (Join-Path $vcpkg 'vcpkg.exe') @('install', 'libvpx:x64-windows-static', 'dav1d:x64-windows-static', '--disable-metrics')
+}
+$dotnet = Join-Path $Work 'toolchains/dotnet/dotnet.exe'
+if (!(Test-Path -LiteralPath $dotnet)) {
+    $found = Get-Command dotnet.exe -ErrorAction SilentlyContinue
+    if ($found -and ((& $found.Source --list-sdks) -match '^10\.')) {
+        $dotnet = $found.Source
+    } else {
+        # A private, pinned SDK also supports machines whose system SDK is older.
+        # Nothing is installed into Program Files and PATH is not changed.
+        $archiveDir = Join-Path $Work 'downloads'
+        New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
+        $sdkZip = Join-Path $archiveDir 'dotnet-sdk-10.0.403-win-x64.zip'
+        $sdkHash = '7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48'
+        if (!(Test-Path -LiteralPath $sdkZip) -or (Get-FileHash -LiteralPath $sdkZip -Algorithm SHA512).Hash -ne $sdkHash) {
+            Invoke-WebRequest 'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip' -OutFile $sdkZip -UseBasicParsing
+        }
+        if ((Get-FileHash -LiteralPath $sdkZip -Algorithm SHA512).Hash -ne $sdkHash) { throw '.NET SDK: SHA-512 incorrecto.' }
+        $sdkDirectory = [IO.Path]::GetFullPath((Join-Path $Work 'toolchains/dotnet'))
+        $sdkStage = [IO.Path]::GetFullPath((Join-Path $Work 'toolchains/dotnet-10.0.403.preparing'))
+        $sdkBoundary = $Work.TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
+        if (!$sdkDirectory.StartsWith($sdkBoundary, [StringComparison]::OrdinalIgnoreCase) -or
+            !$sdkStage.StartsWith($sdkBoundary, [StringComparison]::OrdinalIgnoreCase)) { throw 'Destino SDK fuera del espacio de trabajo.' }
+        if (Test-Path -LiteralPath $sdkDirectory) { throw 'La carpeta privada .NET ya existe pero esta incompleta. Se conserva sin cambios.' }
+        Expand-Archive -LiteralPath $sdkZip -DestinationPath $sdkStage -Force
+        $stagedDotnet = Join-Path $sdkStage 'dotnet.exe'
+        if (!((& $stagedDotnet --list-sdks) -match '^10\.0\.403 ')) { throw 'No se pudo verificar el SDK privado.' }
+        [IO.Directory]::Move($sdkStage, $sdkDirectory)
+    }
+}
+if (!((& $dotnet --list-sdks) -match '^10\.')) { throw 'Se necesita .NET SDK 10 para traducir los shaders.' }
+# Legacy translator checks use the private runtime path. A junction reuses the
+# installed SDK read-only instead of duplicating its files or changing PATH.
+if (!(Test-Path -LiteralPath (Join-Path $Work 'toolchains/dotnet/dotnet.exe'))) {
+    New-Item -ItemType Directory -Path (Join-Path $Work 'toolchains') -Force | Out-Null
+    New-Item -ItemType Junction -Path (Join-Path $Work 'toolchains/dotnet') -Target (Split-Path -Parent $dotnet) | Out-Null
+}
+$staged = Join-Path $engine 'tools/shaders/third_party/ryubing'
+if (!(Test-Path -LiteralPath (Join-Path $staged 'src/Ryujinx.Graphics.Shader/Ryujinx.Graphics.Shader.csproj'))) {
+    $ryu = Join-Path $Work 'refs/ryubing'
+    Checkout 'https://git.ryujinx.app/projects/Ryubing.git' 'a82350bb774f70fcbd41c9987bf67a3775409963' $ryu
+    New-Item -ItemType Directory -Path (Join-Path $staged 'src') -Force | Out-Null
+    foreach ($name in @('Ryujinx.Common','Spv.Generator','Ryujinx.Graphics.Shader')) {
+        Copy-Item -LiteralPath (Join-Path $ryu "src/$name") -Destination (Join-Path $staged "src/$name") -Recurse -Force
+    }
+    foreach ($name in @('Directory.Build.props','Directory.Packages.props','global.json','nuget.config','LICENSE.txt')) {
+        Copy-Item -LiteralPath (Join-Path $ryu $name) -Destination (Join-Path $staged $name) -Force
+    }
+}
+$env:DOTNET_CLI_HOME = Join-Path $Work 'dotnet-home'
+$env:NUGET_PACKAGES = Join-Path $Work 'nuget'
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
+Run $dotnet @('restore', (Join-Path $engine 'tools/shaders/harness/SpirvHarness.csproj'), "-p:PatchPython=$python", '-p:Platform=AnyCPU', '--disable-parallel', '-m:1', '-nodeReuse:false', '--source', 'https://api.nuget.org/v3/index.json')

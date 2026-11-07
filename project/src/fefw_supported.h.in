@@ -1,0 +1,9 @@
+// Build identity metadata only: no game code or data.
+#pragma once
+namespace fefw::setup {
+struct ModuleIdentity { const char* name; const char* sha; const char* build; };
+inline constexpr ModuleIdentity kModules[] = {
+@FEFW_SUPPORTED_MODULES@
+};
+inline constexpr unsigned long long kTitleId = 0x@FEFW_SUPPORTED_TITLE@ull;
+}

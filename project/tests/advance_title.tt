@@ -1,0 +1,20 @@
+# Leave the autosave notice, allow the movie to start, then request its skip UI.
+@sleep 14000
+@log Press A at autosave notice
+hold A
+@sleep 700
+release all
+@sleep 5000
+@shot before-skip
+@log Request movie skip with PLUS
+hold PLUS
+@sleep 500
+release all
+@sleep 2000
+@shot skip-prompt
+hold A
+@sleep 500
+release all
+@sleep 12000
+@shot after-skip
+@sleep 600000

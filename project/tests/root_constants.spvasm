@@ -1,0 +1,50 @@
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint GLCompute %main "main" %root %driver %output
+OpExecutionMode %main LocalSize 1 1 1
+OpName %root "cp_c24"
+OpName %driver "cp_c0"
+OpName %output "cp_s0"
+OpDecorate %root DescriptorSet 0
+OpDecorate %root Binding 25
+OpDecorate %driver DescriptorSet 0
+OpDecorate %driver Binding 1
+OpDecorate %output DescriptorSet 1
+OpDecorate %output Binding 0
+OpDecorate %arr ArrayStride 16
+OpDecorate %outarr ArrayStride 16
+OpMemberDecorate %block 0 Offset 0
+OpDecorate %block Block
+OpMemberDecorate %outblock 0 Offset 0
+OpDecorate %outblock Block
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%zero = OpConstant %uint 0
+%one = OpConstant %uint 1
+%two = OpConstant %uint 2
+%count = OpConstant %uint 4096
+%v4 = OpTypeVector %uint 4
+%arr = OpTypeArray %v4 %count
+%block = OpTypeStruct %arr
+%outarr = OpTypeRuntimeArray %v4
+%outblock = OpTypeStruct %outarr
+%ub = OpTypePointer Uniform %block
+%up = OpTypePointer Uniform %v4
+%sb = OpTypePointer StorageBuffer %outblock
+%sp = OpTypePointer StorageBuffer %v4
+%root = OpVariable %ub Uniform
+%driver = OpVariable %ub Uniform
+%output = OpVariable %sb StorageBuffer
+%main = OpFunction %void None %fn
+%entry = OpLabel
+%rp = OpAccessChain %up %root %zero %one
+%dp = OpAccessChain %up %driver %zero %two
+%r = OpLoad %v4 %rp
+%d = OpLoad %v4 %dp
+%a = OpAccessChain %sp %output %zero %zero
+%b = OpAccessChain %sp %output %zero %one
+OpStore %a %r
+OpStore %b %d
+OpReturn
+OpFunctionEnd
