@@ -32,11 +32,11 @@ std::string hex(const unsigned char* p, size_t n) {
 }
 std::string sha(const fs::path& path, uint64_t offset = 0, uint64_t size = ~0ull) {
     std::ifstream in(path, std::ios::binary);
-    if (!in) throw std::runtime_error("No se puede leer: " + path_text(path));
+    if (!in) throw std::runtime_error("Cannot read: " + path_text(path));
     in.seekg(static_cast<std::streamoff>(offset));
     BCRYPT_ALG_HANDLE alg{}; BCRYPT_HASH_HANDLE hash{};
-    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0) throw std::runtime_error("SHA-256 no disponible");
-    if (BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0) < 0) { BCryptCloseAlgorithmProvider(alg, 0); throw std::runtime_error("SHA-256 no disponible"); }
+    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0) throw std::runtime_error("SHA-256 is unavailable");
+    if (BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0) < 0) { BCryptCloseAlgorithmProvider(alg, 0); throw std::runtime_error("SHA-256 is unavailable"); }
     std::array<unsigned char, 65536> block{}; bool ok = true;
     while (in && size) {
         const auto n = static_cast<std::streamsize>(std::min<uint64_t>(size, block.size()));
@@ -48,7 +48,7 @@ std::string sha(const fs::path& path, uint64_t offset = 0, uint64_t size = ~0ull
     unsigned char digest[32]{};
     ok = ok && BCryptFinishHash(hash, digest, sizeof digest, 0) >= 0;
     BCryptDestroyHash(hash); BCryptCloseAlgorithmProvider(alg, 0);
-    if (!ok) throw std::runtime_error("No se pudo verificar " + path_text(path));
+    if (!ok) throw std::runtime_error("Could not verify " + path_text(path));
     return hex(digest, sizeof digest);
 }
 std::vector<unsigned char> header(const fs::path& path, size_t n) {
@@ -71,13 +71,13 @@ void backup(const fs::path& p) {
 std::string utf8(const std::wstring& s) {
     if (s.empty()) return {};
     const int n = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, s.data(), static_cast<int>(s.size()), nullptr, 0, nullptr, nullptr);
-    if (!n) throw std::runtime_error("Texto Unicode no válido");
+    if (!n) throw std::runtime_error("Invalid Unicode text");
     std::string out(n, '\0'); WideCharToMultiByte(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), n, nullptr, nullptr); return out;
 }
 std::wstring wide(const std::string& s) {
     if (s.empty()) return {};
     const int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.data(), static_cast<int>(s.size()), nullptr, 0);
-    if (!n) throw std::runtime_error("Texto UTF-8 no válido");
+    if (!n) throw std::runtime_error("Invalid UTF-8 text");
     std::wstring out(n, L'\0'); MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), out.data(), n); return out;
 }
 std::string path_text(const fs::path& p) { return utf8(p.wstring()); }
@@ -92,12 +92,12 @@ std::wstring quote_arg(const std::wstring& v) {
 }
 fs::path executable_dir() {
     std::wstring p(32768, L'\0'); const DWORD n = GetModuleFileNameW(nullptr, p.data(), static_cast<DWORD>(p.size()));
-    if (!n || n == p.size()) throw std::runtime_error("No se puede localizar el ejecutable");
+    if (!n || n == p.size()) throw std::runtime_error("Cannot locate the executable");
     p.resize(n); return fs::path(p).parent_path();
 }
 std::wstring game_mutex_name(const fs::path& dir) {
     std::wstring p(32768, L'\0'); const DWORD n = GetFullPathNameW(dir.c_str(), static_cast<DWORD>(p.size()), p.data(), nullptr);
-    if (!n || n >= p.size()) throw std::runtime_error("Ruta demasiado larga");
+    if (!n || n >= p.size()) throw std::runtime_error("Path is too long");
     p.resize(n); unsigned long long h = 1469598103934665603ull;
     for (wchar_t c : p) h = (h ^ static_cast<unsigned long long>(std::towlower(c))) * 1099511628211ull;
     return L"Local\\FireEmblemRecomp_" + std::to_wstring(h);
@@ -108,7 +108,7 @@ bool game_running(const fs::path& dir) {
 }
 Ini::Ini(const fs::path& p) {
     if (!fs::exists(p)) return;
-    std::ifstream in(p, std::ios::binary); if (!in) throw std::runtime_error("No se puede leer " + path_text(p));
+    std::ifstream in(p, std::ios::binary); if (!in) throw std::runtime_error("Cannot read " + path_text(p));
     std::string line; bool first = true;
     while (std::getline(in, line)) {
         if (first && line.compare(0, 3, "\xef\xbb\xbf") == 0) line.erase(0, 3);
@@ -126,7 +126,7 @@ std::string Ini::get(const std::string& sec, const std::string& key, const std::
     return out;
 }
 void Ini::set(const std::string& sec, const std::string& key, const std::string& value) {
-    if (value.find_first_of("\r\n") != std::string::npos) throw std::runtime_error("Valor de configuración no válido");
+    if (value.find_first_of("\r\n") != std::string::npos) throw std::runtime_error("Invalid configuration value");
     std::string current; size_t insert = lines_.size(); bool have = false, found = false;
     for (size_t i = 0; i < lines_.size(); ++i) {
         const auto s = section(lines_[i]);
@@ -146,20 +146,20 @@ void Ini::save(const fs::path& p) const {
     const fs::path tmp(p.wstring() + L".tmp-" + std::to_wstring(GetCurrentProcessId()));
     { std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
       for (const auto& line : lines_) out << line << '\n';
-      out.close(); if (!out) throw std::runtime_error("No se puede guardar " + path_text(p)); }
+      out.close(); if (!out) throw std::runtime_error("Cannot save " + path_text(p)); }
     if (!MoveFileExW(tmp.c_str(), p.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
         const DWORD error = GetLastError();
-        DeleteFileW(tmp.c_str()); throw std::runtime_error("No se puede sustituir " + path_text(p) + " (Windows " + std::to_string(error) + ")");
+        DeleteFileW(tmp.c_str()); throw std::runtime_error("Cannot replace " + path_text(p) + " (Windows " + std::to_string(error) + ")");
     }
 }
 const std::vector<Language>& languages() {
     static const std::vector<Language> ls = {
-        {"Spanish", L"Español (España)", L"EUes"}, {"LatinAmericanSpanish", L"Español (Latinoamérica)", L"USes"},
+        {"Spanish", L"Spanish (Spain)", L"EUes"}, {"LatinAmericanSpanish", L"Spanish (Latin America)", L"USes"},
         {"AmericanEnglish", L"English (US)", L"USen"}, {"BritishEnglish", L"English (UK)", L"EUen"},
-        {"French", L"Français", L"EUfr"}, {"CanadianFrench", L"Français (Canada)", L"USfr"},
-        {"German", L"Deutsch", L"EUde"}, {"Italian", L"Italiano", L"EUit"},
-        {"Japanese", L"日本語", L"JPja"}, {"Korean", L"한국어", L"KRko"},
-        {"SimplifiedChinese", L"简体中文", L"CNzh"}, {"TraditionalChinese", L"繁體中文", L"TWzh"}
+        {"French", L"French (France)", L"EUfr"}, {"CanadianFrench", L"French (Canada)", L"USfr"},
+        {"German", L"German", L"EUde"}, {"Italian", L"Italian", L"EUit"},
+        {"Japanese", L"Japanese", L"JPja"}, {"Korean", L"Korean", L"KRko"},
+        {"SimplifiedChinese", L"Simplified Chinese", L"CNzh"}, {"TraditionalChinese", L"Traditional Chinese", L"TWzh"}
     }; return ls;
 }
 std::vector<Language> available_languages(const fs::path& source) {
@@ -200,22 +200,22 @@ std::vector<fs::path> candidates(const fs::path& selected) {
 }
 Validation validate_source(const fs::path& source, bool hashes) {
     try {
-        if (!fs::is_directory(source / L"romfs")) return invalid("Falta la carpeta romfs en la versión seleccionada.");
+        if (!fs::is_directory(source / L"romfs")) return invalid("The selected version is missing its romfs folder.");
         auto npdm = header(source / L"exefs/main.npdm", 0x80);
-        if (npdm.empty() || std::memcmp(npdm.data(), "META", 4)) return invalid("Falta main.npdm o su cabecera no es válida.");
+        if (npdm.empty() || std::memcmp(npdm.data(), "META", 4)) return invalid("main.npdm is missing or its header is invalid.");
         const uint32_t aci = u32(npdm.data() + 0x70);
-        if (aci < 0x80 || aci > 16 * 1024 * 1024) return invalid("main.npdm contiene un rango ACI0 no válido.");
+        if (aci < 0x80 || aci > 16 * 1024 * 1024) return invalid("main.npdm contains an invalid ACI0 range.");
         npdm = header(source / L"exefs/main.npdm", static_cast<size_t>(aci) + 0x38);
         if (npdm.empty() || std::memcmp(npdm.data() + aci, "ACI0", 4) || u64(npdm.data() + aci + 0x10) != kTitleId)
-            return invalid("La carpeta no corresponde al Fire Emblem compatible.");
+            return invalid("This folder does not match the supported Fire Emblem title.");
         for (const auto& m : kModules) {
             const fs::path path = source / L"exefs" / m.name;
             const auto h = header(path, 0x100);
-            if (h.empty() || std::memcmp(h.data(), "NSO0", 4)) return invalid(std::string("Falta un módulo NSO válido: ") + m.name);
-            if (hex(h.data() + 0x40, 32) != lower(m.build)) return invalid(std::string(m.name) + ": versión incompatible. Se requiere el build DB93B012 / actualización 131072.");
-            if (hashes && sha(path) != lower(m.sha)) return invalid(std::string(m.name) + ": el contenido no coincide con la versión compatible.");
+            if (h.empty() || std::memcmp(h.data(), "NSO0", 4)) return invalid(std::string("Missing a valid NSO module: ") + m.name);
+            if (hex(h.data() + 0x40, 32) != lower(m.build)) return invalid(std::string(m.name) + ": unsupported version. Build DB93B012 / update 131072 is required.");
+            if (hashes && sha(path) != lower(m.sha)) return invalid(std::string(m.name) + ": content does not match the supported build.");
         }
-        if (available_languages(source).empty()) return invalid("No se encuentran los recursos de idioma en romfs/Msg. Comprueba que base y actualización estén completos.");
+        if (available_languages(source).empty()) return invalid("Language resources were not found in romfs/Msg. Check that the base game and update are complete.");
         return {true, {}};
     } catch (const std::exception& e) { return invalid(e.what()); }
 }
@@ -224,34 +224,34 @@ Validation validate_prepared(const fs::path& exefs) {
         for (const auto& m : kModules) {
             const auto path = exefs / m.name; const auto h = header(path, 0x100);
             if (h.empty() || std::memcmp(h.data(), "NSO0", 4) || (u32(h.data() + 12) & 0x87) || hex(h.data() + 0x40, 32) != lower(m.build))
-                return invalid(std::string("Falta preparar el módulo ") + m.name);
+                return invalid(std::string("Module has not been prepared: ") + m.name);
             const auto bytes = fs::file_size(path);
             for (int i = 0; i < 3; ++i) {
                 const uint64_t offset = u32(h.data() + 0x10 + 0x10 * i), size = u32(h.data() + 0x18 + 0x10 * i);
                 if (offset > bytes || size > bytes - offset || sha(path, offset, size) != hex(h.data() + 0xa0 + i * 32, 32))
-                    return invalid(std::string("La copia preparada está dañada: ") + m.name);
+                    return invalid(std::string("The prepared copy is damaged: ") + m.name);
             }
         }
         return {true, {}};
     } catch (const std::exception& e) { return invalid(e.what()); }
 }
 Validation validate_ready(const fs::path& dir, const Settings& s, bool hashes) {
-    if (!s.completed) return invalid("Completa la configuración inicial.");
+    if (!s.completed) return invalid("Complete the initial setup.");
     if (const auto v = validate_source(s.source, hashes); !v.ok) return v;
     std::error_code path_error;
     if (!fs::is_directory(s.romfs, path_error) || !fs::equivalent(s.romfs, s.source / L"romfs", path_error))
-        return invalid("La ubicación de romfs ha cambiado. Vuelve a seleccionar la carpeta del juego.");
-    if (s.width < 640 || s.height < 360 || s.width > 7680 || s.height > 4320) return invalid("La resolución seleccionada no es válida.");
+        return invalid("The romfs location has changed. Select the game folder again.");
+    if (s.width < 640 || s.height < 360 || s.width > 7680 || s.height > 4320) return invalid("The selected resolution is invalid.");
     const auto ls = available_languages(s.source);
-    if (std::none_of(ls.begin(), ls.end(), [&](const auto& l) { return s.language == l.value; })) return invalid("El idioma elegido no está presente en esta copia.");
-    if (!fs::is_regular_file(dir / L"fefw.exe")) return invalid("Falta generar el ejecutable local desde tu copia del juego.");
+    if (std::none_of(ls.begin(), ls.end(), [&](const auto& l) { return s.language == l.value; })) return invalid("The selected language is not available in this copy.");
+    if (!fs::is_regular_file(dir / L"fefw.exe")) return invalid("The local executable must be generated from your copy of the game.");
     std::ifstream features(dir / L"fefw.features"); std::string revision;
     std::getline(features, revision);
-    if (revision != fefw::mods::kFeatures) return invalid("Actualiza la preparacion local para detectar mandos y habilitar el parche opcional de 60 FPS.");
+    if (revision != fefw::mods::kFeatures) return invalid("Update local preparation to use the current controller support and optional 60 FPS patch.");
     if (const auto v = validate_prepared(s.exefs); !v.ok) return v;
     size_t count = 0; std::error_code ec;
     if (fs::is_directory(s.shaders, ec)) for (const auto& p : fs::directory_iterator(s.shaders)) if (p.is_regular_file() && p.path().extension() == L".spv") ++count;
-    if (count != 11977) return invalid("Falta preparar la caché completa de shaders de esta copia.");
+    if (count != 11977) return invalid("The complete shader cache for this copy must be prepared.");
     return {true, {}};
 }
 bool needs_setup(const fs::path& dir) {
@@ -283,7 +283,7 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     if (s.fps60) controls.set("display", "fps_limit", "60");
 }
 void save(const fs::path& dir, const Settings& s) {
-    if (game_running(dir)) throw std::runtime_error("Cierra el juego antes de guardar la configuración.");
+    if (game_running(dir)) throw std::runtime_error("Close the game before saving settings.");
     if (const auto v = validate_ready(dir, s, true); !v.ok) throw std::runtime_error(v.error);
     Ini ini(dir / L"fefw.ini"), controls(dir / L"controls.ini");
     edit_settings(s, ini, controls);

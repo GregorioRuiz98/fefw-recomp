@@ -29,7 +29,7 @@ def main():
     project = Path(__file__).resolve().parents[1]
     proof = json.loads((project / 'reports/texture-arrays-gpu.json').read_text())
     if proof['exit_code'] != 0 or proof['passed'] != 1:
-        raise SystemExit('Ejecuta ArrayTest y corrige sus fallos antes de admitir estos shaders.')
+        raise SystemExit('Run ArrayTest and fix failures before accepting these shaders.')
     corpus = work / 'shaders/corpus-expanded'
     selected = {'bb2933bb746192a8', 'e8d644717c8e4c1e'}
     small = work / 'shaders/corpus-lighting-arrays'

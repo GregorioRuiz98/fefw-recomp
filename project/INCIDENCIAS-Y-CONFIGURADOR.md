@@ -1,38 +1,40 @@
-# Incidencias y configuración — 7 de noviembre de 2026
+# Issues and setup — November 7, 2026
 
-Se han implementado el configurador y el empaquetado solicitado. Las correcciones gráficas pasan sus regresiones y el prólogo funciona con validación Vulkan activa. La eliminación del parpadeo intenso en la escena concreta del usuario todavía requiere su comprobación.
+This historical implementation report records the initial setup and graphics delivery before the first GitHub release. Counts below refer to that validation run. See the main README and release notes for later controller, 60 FPS and interface updates.
 
-## Corregido
+The setup tool and packaging have been implemented. Graphics corrections pass their regressions and the prologue runs with Vulkan validation enabled. Resolving the severe flicker in the user’s specific scene still requires their confirmation.
 
-- El escalado espacial conservaba solo rectángulos enteros e ignoraba el desplazamiento fraccionario de cámara. Ahora utiliza los parámetros NVN2 registrados por valor y un shader propio con muestreo bilineal. La regresión falla antes de la corrección y pasa después. La primera configuración activa sincronización vertical.
-- Se liberaban imágenes y vistas que la GPU todavía utilizaba al presentar la pantalla. El retiro de estas imágenes espera también las entregas del presentador. Una prueba con la cola bloqueada reproduce el error anterior y pasa con la corrección.
-- Un shader de cálculo declaraba lectura flotante sobre una textura de enteros de ocho bits. Se especializa su tipo y se conservan los bits extendidos del resultado. Se comprueban enteros con y sin signo, cambio de textura y otra lectura normalizada que comparte el tipo original.
-- Las vistas 2D de imágenes 3D se utilizaban sin habilitar la capacidad y las banderas necesarias. Ahora se consulta y habilita el soporte real del dispositivo y se crea la imagen con las banderas correspondientes.
-- Al cerrar el backend quedaban dos buffers temporales sin liberar. La prueba comprueba que el contador de asignaciones vuelve a cero.
-- La preparación local podía depender de un SDK .NET 10 ya instalado, generar rutas C++ con barras incorrectas o buscar el traductor en una ruta distinta de la creada por el entorno x64. El SDK se prepara localmente cuando falta y las rutas y plataforma de compilación quedan fijadas. La preparación rechaza una caché incompleta de shaders.
+## Fixed
 
-## Configuración implementada
+- Spatial scaling retained only whole-pixel rectangles and ignored fractional camera offsets. It now uses NVN2 parameters recorded by value and an original shader with bilinear sampling. The regression fails before the correction and passes afterward. Initial setup enables vertical synchronization.
+- Images and views could be released while still in use by the GPU for presentation. Retirement now also waits for presenter submissions. A blocked-queue test reproduces the old error and passes with the correction.
+- A compute shader declared floating-point reads from an eight-bit integer texture. Its type is specialized and the extended result bits are retained. Checks cover signed/unsigned integers, texture changes and a normalized read sharing the original type.
+- 2D views of 3D images were used without enabling the required capability and flags. Actual device support is now queried and enabled, and images use the corresponding flags.
+- Two temporary buffers remained allocated when shutting down the backend. A test checks that the allocation counter returns to zero.
+- Local preparation could depend on an existing .NET 10 SDK, generate C++ paths with incorrect separators or search for the translator somewhere other than the x64 build output. The SDK is prepared locally when missing, with fixed paths and build platform. Preparation rejects an incomplete shader cache.
 
-`fefw.exe` abre el asistente cuando falta una configuración válida. `fefw_setup.exe` permite abrirlo siempre y comparte los mismos ajustes.
+## Setup behavior
 
-El asistente selecciona la carpeta con `exefs` y `romfs`, reconoce las actualizaciones compatibles, verifica las huellas de los seis módulos y ofrece únicamente idiomas presentes en la copia. Permite elegir resolución de salida, ventana o pantalla completa, idioma y sincronización vertical. La resolución interna del juego conserva su valor original; pantalla completa utiliza el escritorio.
+`fefw.exe` opens the wizard when a valid configuration is missing. `fefw_setup.exe` always opens it and shares the same settings.
 
-«No mostrar la configuración al iniciar» solo se aplica después de guardar una configuración válida. Si faltan recursos o se mueve la carpeta, se vuelve al asistente. Se conservan asignaciones de mando y teclado, otros ajustes y partidas. Cancelar una preparación detiene sus procesos sin marcarla como terminada.
+The wizard selects a folder containing `exefs` and `romfs`, recognizes supported updates, verifies all six module fingerprints and offers only languages present in the copy. It supports output resolution, windowed/fullscreen mode, language and vertical synchronization. Internal game resolution keeps its original value; fullscreen uses the desktop.
 
-## Comprobado
+**Skip setup on startup** takes effect only after saving a valid configuration. Missing resources or a moved folder reopen the wizard. Controller/keyboard bindings, other settings and saves are preserved. Canceling preparation stops its processes without marking it complete.
 
-Pasan los 15 checks ejecutables, 32 pruebas Python, 32 comprobaciones nativas de configuración, siete grupos CTest, cuatro casos GPU de constantes/escalado y tres regresiones gráficas adicionales. La integración del configurador pasa 14 comprobaciones, incluido arranque en español a 1600 × 900 y sincronización vertical.
+## Validation recorded for the initial delivery
 
-En el recorrido de 160 segundos, la validación Vulkan pasa de 32 mensajes de error de cinco tipos a cero. Se conservan 157 fotogramas consecutivos válidos de dos intervalos del diálogo 3D, sin destellos aislados según el detector utilizado. Un PNG vacío corresponde al corte del diagnóstico mientras se escribía; no se trata como imagen negra. Estas mediciones no demuestran equivalencia completa con la consola ni ausencia de todo temblor temporal.
+The 15 executable checks, 32 Python tests, 32 native configuration checks, seven CTest groups, four GPU constant/scaling cases and three additional graphics regressions passed. Setup integration passed 14 checks, including a Spanish-language boot at 1600 × 900 with vertical synchronization.
 
-La preparación completa desde una carpeta de trabajo vacía genera el código de los seis módulos y los 11.977 shaders; los 85 códigos con varios perfiles pasan la comparación de salidas validadas. Las herramientas del sistema estaban instaladas y vcpkg reutilizó su caché de bibliotecas. Las regresiones gráficas también pasan en esa compilación.
+In a 160-second run, Vulkan validation dropped from 32 errors across five categories to zero. There were 157 valid consecutive frames across two intervals of 3D dialogue, with no isolated flashes detected by the tool used. One empty PNG resulted from stopping the diagnostic while it was being written and was not counted as a black frame. These measurements do not establish full console equivalence or the absence of every temporal artifact.
 
-## Distribución
+Preparation from an empty workspace generated code for all six modules and all 11,977 shaders. The 85 shader codes with multiple profiles passed comparison of validated outputs. System tools were already installed, and vcpkg reused its library cache. Graphics regressions also passed in that build.
 
-El paquete privado del usuario contiene el ejecutable nativo y datos generados a partir de su copia. El ZIP público incluye únicamente el configurador independiente, fuentes, parches, herramientas y licencias. Cada usuario aporta su carpeta original y genera sus componentes localmente.
+## Distribution
 
-Se excluyen originales, ExeFS/ROMFS normalizados, claves, texturas, audio, vídeos, shaders comerciales extraídos o traducidos, C++ generado y el EXE privado. Publicar esos datos en formato carpeta también sería publicar contenido del juego. Se revisan carpeta y ZIP mediante una lista explícita de archivos permitidos y hashes. No se ha subido nada a GitHub.
+The user’s private package contains the native executable and data generated from their copy. The public ZIP contains only the standalone setup tool, source, patches, tools and licenses. Each user supplies their own original folder and generates components locally.
 
-## Límites pendientes
+Original files, normalized ExeFS/ROMFS, keys, textures, audio, video, extracted/translated commercial shaders, generated game C++ and the private executable are excluded. Distributing those files as a folder would still distribute game content. Folder and ZIP contents are checked against an explicit allowlist and hashes. Nothing had been uploaded to GitHub at the time of this initial report.
 
-Confirmar el parpadeo en el recorrido del usuario, probar mando físico, combate, guardar/cargar y estabilidad prolongada. El audio REV16 sigue siendo experimental. El sustituto espacial de DLSS no realiza reconstrucción temporal. El reporte detallado y las huellas de los binarios están en `reports/setup-and-flicker.md` y `reports/setup-delivery.json`.
+## Outstanding limitations
+
+Confirm flicker behavior in the user’s sequence, test a physical controller, combat, saving/loading and extended stability. REV16 audio remains experimental. The spatial DLSS substitute does not perform temporal reconstruction. Detailed private reports and binary fingerprints are generated locally as `reports/setup-and-flicker.md` and `reports/setup-delivery.json`; they are not included in the public repository.

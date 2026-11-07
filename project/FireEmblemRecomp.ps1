@@ -25,14 +25,14 @@ if (!(Test-Path -LiteralPath $dotnetExe)) {
 
 function Invoke-Checked([string]$Program, [string[]]$Arguments) {
     & $Program @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "La operación falló con código $LASTEXITCODE. Revisa la salida anterior." }
+    if ($LASTEXITCODE -ne 0) { throw "The operation failed with exit code $LASTEXITCODE. Check the output above." }
 }
 
 if ($Action -eq 'Bootstrap') {
     Invoke-Checked 'python' @((Join-Path $PSScriptRoot 'tools/bootstrap.py'), '--work', $Work)
     exit 0
 }
-if (!(Test-Path -LiteralPath $python)) { throw 'Falta el entorno privado. Ejecuta primero -Action Bootstrap.' }
+if (!(Test-Path -LiteralPath $python)) { throw 'The private environment is missing. Run -Action Bootstrap first.' }
 if (!$Dump -and (Test-Path -LiteralPath $local)) {
     $Dump = (Get-Content -LiteralPath $local -Raw | ConvertFrom-Json).dump_root
 }
@@ -41,7 +41,7 @@ if ($Dump) {
     if (!(Test-Path -LiteralPath (Join-Path $Dump 'exefs/main'))) {
         $versions = @(Get-ChildItem -LiteralPath (Join-Path $Dump 'updates') -Directory |
             Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'exefs/main') })
-        if ($versions.Count -ne 1) { throw 'Indica una versión concreta con exefs/main y romfs.' }
+        if ($versions.Count -ne 1) { throw 'Specify a particular version containing exefs/main and romfs.' }
         $Dump = $versions[0].FullName
     }
     @{ dump_root = $Dump } | ConvertTo-Json | Set-Content -LiteralPath $local -Encoding utf8
@@ -72,12 +72,12 @@ switch ($Action) {
         if ($failedChecks.Count) { throw 'Hay checks fallidos. Consulta reports/checks.json.' }
     }
     'Inspect' {
-        if (!$Dump) { throw 'Indica -Dump con la carpeta extraída.' }
+        if (!$Dump) { throw 'Provide the extracted folder with -Dump.' }
         Invoke-Checked $python @((Join-Path $PSScriptRoot 'tools/inspect_dump.py'), '--dump', $Dump, '--engine', $engine,
             '--out', (Join-Path $reports 'dump-inventory.json'))
     }
     'Prepare' {
-        if (!$Dump) { throw 'Indica -Dump con la carpeta extraída.' }
+        if (!$Dump) { throw 'Provide the extracted folder with -Dump.' }
         Invoke-Checked $python @((Join-Path $PSScriptRoot 'tools/prepare.py'), '--dump', $Dump, '--engine', $engine, '--out', $exefs)
     }
     'Cover' {
@@ -89,12 +89,12 @@ switch ($Action) {
             '--out', (Join-Path $Work 'lift'))
     }
     'ExtractShaders' {
-        if (!$Dump) { throw 'Indica -Dump con la carpeta extraída.' }
+        if (!$Dump) { throw 'Provide the extracted folder with -Dump.' }
         Invoke-Checked $python @((Join-Path $PSScriptRoot 'tools/extract_shaders.py'), '--romfs', (Join-Path $Dump 'romfs'),
             '--exefs', $exefs, '--engine', $engine, '--out', (Join-Path $Work 'shaders/corpus'), '--report', (Join-Path $reports 'shaders.json'))
     }
     'ExtractAllShaders' {
-        if (!$Dump) { throw 'Indica -Dump con la carpeta extraída.' }
+        if (!$Dump) { throw 'Provide the extracted folder with -Dump.' }
         Invoke-Checked $python @((Join-Path $PSScriptRoot 'tools/extract_shaders.py'), '--romfs', (Join-Path $Dump 'romfs'),
             '--exefs', $exefs, '--engine', $engine, '--include-extra-containers',
             '--out', (Join-Path $Work 'shaders/corpus-expanded'), '--report', (Join-Path $reports 'shaders-expanded.json'))
@@ -131,7 +131,7 @@ switch ($Action) {
         $translated = Join-Path $Work $(if ($expanded) { 'shaders/translated-sdk22' } else { 'shaders/translated' })
         $dotnet = $dotnetExe
         $harness = Join-Path $engine 'tools/shaders/build/bin/Release/net10.0/spirv_harness.dll'
-        if (!(Test-Path $dotnet) -or !(Test-Path $harness)) { throw 'Falta preparar .NET 10 y el traductor de shaders. Consulta README.md.' }
+        if (!(Test-Path $dotnet) -or !(Test-Path $harness)) { throw '.NET 10 and the shader translator must be prepared. See README.md.' }
         $env:DOTNET_CLI_HOME = Join-Path $Work 'dotnet-home'
         $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
         $poolProofPath = Join-Path $reports 'texture-pools-gpu.json'
@@ -150,7 +150,7 @@ switch ($Action) {
         $validationReport = Join-Path $reports $(if ($expanded) { 'shader-validation-sdk22.json' } else { 'shader-validation.json' })
         $variantReport = Join-Path $reports $(if ($expanded) { 'shader-variants-sdk22.json' } else { 'shader-variants.json' })
         $validator = Join-Path $Work 'build/spirv-tools/tools/spirv-val.exe'
-        if (!(Test-Path $validator)) { throw 'Falta spirv-val. Consulta README.md.' }
+        if (!(Test-Path $validator)) { throw 'spirv-val is missing. See README.md.' }
         $arrayArguments = @()
         if ($expanded) { $arrayArguments = @('--verified-uniform-array-hash', 'bb2933bb746192a8', '--verified-uniform-array-hash', 'e8d644717c8e4c1e') }
         $matrixReport = Join-Path $reports 'texture-arrays-gpu.json'
@@ -177,7 +177,7 @@ switch ($Action) {
             '--validator', $validator, '--report', $variantReport, '--runtime-single-descriptors') + $variantArrayArguments)
     }
     'VideoTest' {
-        if (!$Dump) { throw 'VideoTest requiere el volcado local para su fixture privado.' }
+        if (!$Dump) { throw 'VideoTest requires the local dump for its private fixture.' }
         . (Join-Path $PSScriptRoot 'tools/Initialize-BuildEnv.ps1')
         Invoke-Checked $python @((Join-Path $PSScriptRoot 'tests/check_av1.py'), '--work', $Work,
             '--movie', (Join-Path $Dump 'romfs/Movie/Product/MV00_00.webm'),
@@ -268,8 +268,8 @@ switch ($Action) {
     }
     'Run' {
         $exe = Join-Path $Work 'build/fefw/fefw.exe'
-        if (!(Test-Path -LiteralPath $exe)) { throw 'No existe fefw.exe. La compilación nativa todavía no se ha completado.' }
-        if (!$Dump) { throw 'Indica -Dump con la carpeta extraída.' }
+        if (!(Test-Path -LiteralPath $exe)) { throw 'fefw.exe does not exist. The native build has not completed yet.' }
+        if (!$Dump) { throw 'Provide the extracted folder with -Dump.' }
         $runDir = Join-Path $Work 'run'
         New-Item -ItemType Directory -Force -Path $runDir | Out-Null
         $ini = Join-Path $runDir 'fefw.ini'

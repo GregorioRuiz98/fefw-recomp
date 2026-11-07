@@ -8,7 +8,7 @@ $env:TEMP = $temporary; $env:TMP = $temporary
 $engine = Join-Path $Work 'engine'
 function Run([string]$Exe, [string[]]$Arguments) {
     & $Exe @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Exe fallo con codigo $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "$Exe failed with exit code $LASTEXITCODE" }
 }
 function Checkout([string]$Url, [string]$Pin, [string]$Path) {
     if (!(Test-Path -LiteralPath $Path)) {
@@ -16,11 +16,11 @@ function Checkout([string]$Url, [string]$Pin, [string]$Path) {
         Run 'git' @('-C', $Path, '-c', 'core.longpaths=true', 'checkout', '--detach', $Pin)
     }
     $head = & git -C $Path rev-parse HEAD
-    if ($LASTEXITCODE -or $head -ne $Pin) { throw "La dependencia $Path no coincide con $Pin. Se conserva sin cambios." }
+    if ($LASTEXITCODE -or $head -ne $Pin) { throw "Dependency $Path does not match $Pin. Existing files are preserved." }
 }
 . (Join-Path $Project 'tools/Initialize-BuildEnv.ps1')
 $python = Join-Path $Work 'venv/Scripts/python.exe'
-if (!(Test-Path -LiteralPath $python)) { throw 'Falta preparar el entorno Python.' }
+if (!(Test-Path -LiteralPath $python)) { throw 'The Python environment must be prepared.' }
 $textures = Join-Path $engine 'tools/textures'
 if (!(Test-Path -LiteralPath (Join-Path $textures 'build/release/astc2bc7.lib'))) {
     Checkout 'https://github.com/ARM-software/astc-encoder.git' 'baff485b0ff36d2f95d28961605106502c653966' (Join-Path $textures 'third_party/astc-encoder')
@@ -67,20 +67,20 @@ if (!(Test-Path -LiteralPath $dotnet)) {
         if (!(Test-Path -LiteralPath $sdkZip) -or (Get-FileHash -LiteralPath $sdkZip -Algorithm SHA512).Hash -ne $sdkHash) {
             Invoke-WebRequest 'https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip' -OutFile $sdkZip -UseBasicParsing
         }
-        if ((Get-FileHash -LiteralPath $sdkZip -Algorithm SHA512).Hash -ne $sdkHash) { throw '.NET SDK: SHA-512 incorrecto.' }
+        if ((Get-FileHash -LiteralPath $sdkZip -Algorithm SHA512).Hash -ne $sdkHash) { throw '.NET SDK: SHA-512 mismatch.' }
         $sdkDirectory = [IO.Path]::GetFullPath((Join-Path $Work 'toolchains/dotnet'))
         $sdkStage = [IO.Path]::GetFullPath((Join-Path $Work 'toolchains/dotnet-10.0.403.preparing'))
         $sdkBoundary = $Work.TrimEnd('\','/') + [IO.Path]::DirectorySeparatorChar
         if (!$sdkDirectory.StartsWith($sdkBoundary, [StringComparison]::OrdinalIgnoreCase) -or
-            !$sdkStage.StartsWith($sdkBoundary, [StringComparison]::OrdinalIgnoreCase)) { throw 'Destino SDK fuera del espacio de trabajo.' }
-        if (Test-Path -LiteralPath $sdkDirectory) { throw 'La carpeta privada .NET ya existe pero esta incompleta. Se conserva sin cambios.' }
+            !$sdkStage.StartsWith($sdkBoundary, [StringComparison]::OrdinalIgnoreCase)) { throw 'SDK destination is outside the workspace.' }
+        if (Test-Path -LiteralPath $sdkDirectory) { throw 'The private .NET folder already exists but is incomplete. Existing files are preserved.' }
         Expand-Archive -LiteralPath $sdkZip -DestinationPath $sdkStage -Force
         $stagedDotnet = Join-Path $sdkStage 'dotnet.exe'
-        if (!((& $stagedDotnet --list-sdks) -match '^10\.0\.403 ')) { throw 'No se pudo verificar el SDK privado.' }
+        if (!((& $stagedDotnet --list-sdks) -match '^10\.0\.403 ')) { throw 'Could not verify the private SDK.' }
         [IO.Directory]::Move($sdkStage, $sdkDirectory)
     }
 }
-if (!((& $dotnet --list-sdks) -match '^10\.')) { throw 'Se necesita .NET SDK 10 para traducir los shaders.' }
+if (!((& $dotnet --list-sdks) -match '^10\.')) { throw '.NET SDK 10 is required to translate shaders.' }
 # Legacy translator checks use the private runtime path. A junction reuses the
 # installed SDK read-only instead of duplicating its files or changing PATH.
 if (!(Test-Path -LiteralPath (Join-Path $Work 'toolchains/dotnet/dotnet.exe'))) {

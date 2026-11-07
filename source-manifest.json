@@ -19,18 +19,18 @@
     },
     {
       "path": "CONTRIBUTING.md",
-      "bytes": 1277,
-      "sha256": "45cb9c6a29f0f1b45decf413148672338bef54bea993ece828167e46e38a4964"
+      "bytes": 1197,
+      "sha256": "7524641c297ec6f25e2fd486c8de0ec58bc2c19e4b701081bbe98ccc8e463343"
     },
     {
       "path": "GITHUB-PUBLISH.md",
-      "bytes": 1333,
-      "sha256": "f70c3102b861cc28029cc7d3ea4232e708f67488cf83fb6d7c7d4184c0689ce4"
+      "bytes": 1277,
+      "sha256": "54b623188a91b4e427c29029692e71e65ab5a9fb909ad239fb706773c6f436a8"
     },
     {
       "path": "LEGAL.md",
-      "bytes": 3710,
-      "sha256": "3e34df9f47bedc612c64f7b637b490e4ebf93be033eddd5a9a7d5aed9916c487"
+      "bytes": 3438,
+      "sha256": "7db29fc0005a61def70bedb6a0e3418699e15e6dfb10faaffdf8e13d9bfee68e"
     },
     {
       "path": "LICENSE",
@@ -39,18 +39,18 @@
     },
     {
       "path": "NOTICE.md",
-      "bytes": 1255,
-      "sha256": "541124f94f1fab1cf4ea6ae7b6bf0c13f772b957f3032f49897400f1061212b0"
+      "bytes": 1181,
+      "sha256": "3a84af828b5d461f0e5fe8a0fc7568dc3da9fd297782d130ec21f7555c0f5241"
     },
     {
       "path": "README.md",
-      "bytes": 9307,
-      "sha256": "6a328ae99d452b4342c52fe9e404f5bea2703cd7fec03e456c2b81fdbc679dac"
+      "bytes": 9026,
+      "sha256": "2f905ef7005c5545e2404022f7577597b5738f066dd1b39f0d03b3956c27e626"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 2812,
-      "sha256": "902fc0f0a187e1855297cefce3bf5c2397ad084b4450428d75bf5b9c64d2c205"
+      "bytes": 2710,
+      "sha256": "c62edcb90fd99113033e7de74599271f568ba1f3342018d985b226bf8dc113dc"
     },
     {
       "path": "project/.gitignore",
@@ -64,38 +64,38 @@
     },
     {
       "path": "project/CONTRIBUTING.md",
-      "bytes": 1277,
-      "sha256": "45cb9c6a29f0f1b45decf413148672338bef54bea993ece828167e46e38a4964"
+      "bytes": 1197,
+      "sha256": "7524641c297ec6f25e2fd486c8de0ec58bc2c19e4b701081bbe98ccc8e463343"
     },
     {
       "path": "project/CONTROLES-MANDO.md",
-      "bytes": 2681,
-      "sha256": "09602072ee3857e17d2a25bc1a3b8d4afcd466a0055f938b5919537ee25a35c7"
+      "bytes": 2458,
+      "sha256": "d2f7af962a5a580df9935ad60df72829da86c4869861e710b783d5b3f95b1031"
     },
     {
       "path": "project/DEPENDENCIAS.md",
-      "bytes": 3654,
-      "sha256": "831a3710784353e5fd6ad7e6fe281acfc5733c093d12b93c23bbf9d6dfcb71b2"
+      "bytes": 3485,
+      "sha256": "a0f9287245a7b08e460822d16730d0a9fdef4964ce7d6a03c70a04b9b28fdd28"
     },
     {
       "path": "project/FireEmblemRecomp.ps1",
-      "bytes": 18743,
-      "sha256": "e3eefaaec2e4ceb35c1aa1593580932e37174a835b2a24d7606bba2a01071c2c"
+      "bytes": 18753,
+      "sha256": "5f84b1586e50e21e5a59417facc842b66f8c319adea6faba612b6e736ce6d72c"
     },
     {
       "path": "project/GITHUB-PUBLISH.md",
-      "bytes": 1333,
-      "sha256": "f70c3102b861cc28029cc7d3ea4232e708f67488cf83fb6d7c7d4184c0689ce4"
+      "bytes": 1277,
+      "sha256": "54b623188a91b4e427c29029692e71e65ab5a9fb909ad239fb706773c6f436a8"
     },
     {
       "path": "project/INCIDENCIAS-Y-CONFIGURADOR.md",
-      "bytes": 5025,
-      "sha256": "6d208bf04d1987c64b7080d37a327c83ca8543042cefc380b16f2092e5343f71"
+      "bytes": 4931,
+      "sha256": "776539662986e0e0bf27d04dc11aa33a8c38438f753a4e10d148f518fc169283"
     },
     {
       "path": "project/LEGAL.md",
-      "bytes": 3710,
-      "sha256": "3e34df9f47bedc612c64f7b637b490e4ebf93be033eddd5a9a7d5aed9916c487"
+      "bytes": 3438,
+      "sha256": "7db29fc0005a61def70bedb6a0e3418699e15e6dfb10faaffdf8e13d9bfee68e"
     },
     {
       "path": "project/LICENSE",
@@ -104,18 +104,18 @@
     },
     {
       "path": "project/NOTICE.md",
-      "bytes": 1255,
-      "sha256": "541124f94f1fab1cf4ea6ae7b6bf0c13f772b957f3032f49897400f1061212b0"
+      "bytes": 1181,
+      "sha256": "3a84af828b5d461f0e5fe8a0fc7568dc3da9fd297782d130ec21f7555c0f5241"
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 9307,
-      "sha256": "6a328ae99d452b4342c52fe9e404f5bea2703cd7fec03e456c2b81fdbc679dac"
+      "bytes": 9026,
+      "sha256": "2f905ef7005c5545e2404022f7577597b5738f066dd1b39f0d03b3956c27e626"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
-      "bytes": 2812,
-      "sha256": "902fc0f0a187e1855297cefce3bf5c2397ad084b4450428d75bf5b9c64d2c205"
+      "bytes": 2710,
+      "sha256": "c62edcb90fd99113033e7de74599271f568ba1f3342018d985b226bf8dc113dc"
     },
     {
       "path": "project/config.py",
@@ -178,9 +178,14 @@
       "sha256": "4759dc4e37c3c5826821ed4c45319ceff6f76875fe04f74598ca50fe7d12a768"
     },
     {
-      "path": "project/patches/engine.patch",
+      "path": "project/patches/engine-preview2.patch",
       "bytes": 215740,
       "sha256": "d0eb2d4cc3f9786e4377f51689abf7415b55be448b3ad63c618296363b3d0d49"
+    },
+    {
+      "path": "project/patches/engine.patch",
+      "bytes": 215722,
+      "sha256": "39a13854d308d97bd8ed9ddd69b7d2d571d45a1c30997e484fe4a2207c2002ef"
     },
     {
       "path": "project/requirements.txt",
@@ -189,8 +194,8 @@
     },
     {
       "path": "project/src/fefw_config.cpp",
-      "bytes": 18758,
-      "sha256": "f0960b5f6a17d415c3fe6bdf82279b4c13aee5f418f5ad83f9aa0b7fabfe4844"
+      "bytes": 18638,
+      "sha256": "228323edbbffe3de9bc10640c56cc8f0bbdb7400e63bc0a77150562f36313c73"
     },
     {
       "path": "project/src/fefw_config.h",
@@ -209,23 +214,23 @@
     },
     {
       "path": "project/src/fefw_main.cpp",
-      "bytes": 29124,
-      "sha256": "1e995534660c8f988881952a4ac4bc7f4c917beb4dbc9dbb99e06198ed433735"
+      "bytes": 29104,
+      "sha256": "2eeb1d089dfbd7d2d09cf70875c8c81d4bfbdfba4f73f9ce6a4213e0b89b85d8"
     },
     {
       "path": "project/src/fefw_mods.cpp",
-      "bytes": 1816,
-      "sha256": "ab1402d95781895dfb9990a0fb03463493333954872e31556e051719107cf030"
+      "bytes": 1805,
+      "sha256": "1b50a45ec472db34a7a6bd5d02bc71d16bc29860b6ad09aff889946d4cc02769"
     },
     {
       "path": "project/src/fefw_mods.h",
       "bytes": 718,
-      "sha256": "7b61b89a31b72b9947c9f0ac2e324df0b711cfeff826f4c4cf6ee9b4be57be7a"
+      "sha256": "432b22799337befd4c3083589cea16b286e739304551a4447742be276f1fc762"
     },
     {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 21977,
-      "sha256": "e49d6b44664f379ec7a3396d6927fbae78d78efb0296160b4c3af7588c756e48"
+      "bytes": 21734,
+      "sha256": "3e6db40e5184f27f89a2baa2554c280b4c2b56e5699ada34c5457a99dbf98d4d"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -234,8 +239,8 @@
     },
     {
       "path": "project/src/fefw_setup.rc",
-      "bytes": 482,
-      "sha256": "5323cad71e11261489502b52cda87ca6c135256e193000fdd8e8b4031006d85d"
+      "bytes": 474,
+      "sha256": "1c29b0bde08ca232e4347b38b294f5a1247eddfaafe16b7c397ede72ab8bcb80"
     },
     {
       "path": "project/src/fefw_supported.h.in",
@@ -300,7 +305,7 @@
     {
       "path": "project/tests/check_setup.py",
       "bytes": 7454,
-      "sha256": "c7fcb85b5e11c1405df00c8f0db7762b698c5041bd709d9ef61cdfc68208307b"
+      "sha256": "fc5579af224f746a512415a658ab466e5056f98ee1bf8bb6c3e3e786a30b7aef"
     },
     {
       "path": "project/tests/check_shader_textures.py",
@@ -439,28 +444,28 @@
     },
     {
       "path": "project/tools/Initialize-BuildEnv.ps1",
-      "bytes": 1342,
-      "sha256": "9335955872587b6ff926e4b60ffd351b7cf3c1fbcb770de8172a9aaf64b55d86"
+      "bytes": 1344,
+      "sha256": "97cbca3047fd383cc38059872484f5bb60113a2c135554e68439752f36051746"
     },
     {
       "path": "project/tools/New-LocalPackage.ps1",
-      "bytes": 7941,
-      "sha256": "8d33daf1caa5a14f2f4bdd853c0cc693b54873df1ce30cb1ffad0f2c9c25901a"
+      "bytes": 8064,
+      "sha256": "4f285fedca6fcf394c4156c8763ff94e740b79c7359e8e4df3feca66920141a7"
     },
     {
       "path": "project/tools/New-PublicPackage.ps1",
-      "bytes": 1462,
-      "sha256": "46bc09dc934b19c66845b1abfa9954ea25412fad16f9c82fa93c2b6ff7045e37"
+      "bytes": 1466,
+      "sha256": "ad89a8dd924c8cd56e8a6a00e02d36355a3d63d85923eeade273f04290bce8e2"
     },
     {
       "path": "project/tools/Prepare-Dependencies.ps1",
-      "bytes": 8012,
-      "sha256": "b1e3b9dd3d5542797dbe3de0541a3c921ab75792dc2c268993cfcd92b9a02e47"
+      "bytes": 8021,
+      "sha256": "8bb3a88b9ed2e7a926791f933b01a4a0c2e5aef13c7455b7be8f5b960fbbe74b"
     },
     {
       "path": "project/tools/Prepare-Game.ps1",
-      "bytes": 7285,
-      "sha256": "46ac2535aeac5d98dc3e032a59c37a38e22346f958f09693a7adf3065fdb78e4"
+      "bytes": 7218,
+      "sha256": "c2bdac14b6e73e94572896761fdf686485fb606d2fdbe51f19d73ca27ac7beb6"
     },
     {
       "path": "project/tools/audit_public_repo.py",
@@ -469,8 +474,8 @@
     },
     {
       "path": "project/tools/bootstrap.py",
-      "bytes": 3398,
-      "sha256": "e549d535e80f18be2c2312044ed987182612b32b3b532aa9ef87ed69241c36b3"
+      "bytes": 3617,
+      "sha256": "40e1a681127b53c7bc63b7118f5ec116ec29170db11cde51ca44ca0826c9debc"
     },
     {
       "path": "project/tools/check_shader_variants.py",
@@ -524,13 +529,13 @@
     },
     {
       "path": "project/tools/refresh_compute_shaders.py",
-      "bytes": 3599,
-      "sha256": "0698dc9a0cda2e7892e8159eb51b02383447df274a56682a860a301d9b9277da"
+      "bytes": 3595,
+      "sha256": "82fb3b5e500a8347798de931d5c22d07bbe6f971159a28331b401546e32d820d"
     },
     {
       "path": "project/tools/refresh_lighting_arrays.py",
-      "bytes": 3396,
-      "sha256": "84000ae1b9e250d9d5240b21e9ec9de7110c40d0c316326ecc9530e8a9fb5a6f"
+      "bytes": 3388,
+      "sha256": "69fb79e9a28e99639ebd0b64b5be60a089d8854f6a6bed768736d5e3cea76a68"
     },
     {
       "path": "project/tools/refresh_literal_handles.py",
@@ -539,8 +544,8 @@
     },
     {
       "path": "project/tools/refresh_pool_shaders.py",
-      "bytes": 4108,
-      "sha256": "0575cddb349e8d2f948a375e2f622dec4ed7e96d7771d81d194bef822e3c246c"
+      "bytes": 4111,
+      "sha256": "c0023d19da5a8be3860bd3b0bfe278beda892d5eb84328d2d07b217e8da0bb12"
     },
     {
       "path": "project/tools/refresh_runtime_patches.py",
@@ -549,8 +554,8 @@
     },
     {
       "path": "project/tools/refresh_uniform_arrays.py",
-      "bytes": 3801,
-      "sha256": "e9f79bbf8a283f59a879ba21709cf0e4813086d0aba3efa11624ee7840ad58e2"
+      "bytes": 3793,
+      "sha256": "f1aa341c25883eb061d960655622b6d577476ad2123c39d8a54940a7ab02bfd3"
     },
     {
       "path": "project/tools/translate.py",
@@ -564,13 +569,13 @@
     },
     {
       "path": "tools/Prepare-Dependencies.ps1",
-      "bytes": 8012,
-      "sha256": "b1e3b9dd3d5542797dbe3de0541a3c921ab75792dc2c268993cfcd92b9a02e47"
+      "bytes": 8021,
+      "sha256": "8bb3a88b9ed2e7a926791f933b01a4a0c2e5aef13c7455b7be8f5b960fbbe74b"
     },
     {
       "path": "tools/Prepare-Game.ps1",
-      "bytes": 7285,
-      "sha256": "46ac2535aeac5d98dc3e032a59c37a38e22346f958f09693a7adf3065fdb78e4"
+      "bytes": 7218,
+      "sha256": "c2bdac14b6e73e94572896761fdf686485fb606d2fdbe51f19d73ca27ac7beb6"
     }
   ]
 }

@@ -2,7 +2,7 @@
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 if (!(Test-Path -LiteralPath $vswhere)) { throw 'No se encuentra Visual C++ Build Tools (vswhere).' }
 $vsInstall = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-if (!$vsInstall) { throw 'Falta el componente C++ x64 de Visual Studio Build Tools.' }
+if (!$vsInstall) { throw 'The Visual Studio Build Tools x64 C++ component is missing.' }
 $vcvars = Join-Path $vsInstall 'VC/Auxiliary/Build/vcvars64.bat'
 if (!(Test-Path -LiteralPath $vcvars)) { throw 'No se encuentra vcvars64.bat.' }
 if ($env:FEFW_BUILD_ENV_READY -ne $vsInstall) {

@@ -24,14 +24,14 @@ std::string nso_build_id(const std::filesystem::path& path) {
 }
 bool apply_fps60(std::span<std::byte> image, std::string_view build, bool enabled, std::string& error) {
     error.clear();
-    if (build != kBuild) { error = "El parche de 60 FPS no corresponde al Build ID de main."; return false; }
+    if (build != kBuild) { error = "The 60 FPS patch does not match the main Build ID."; return false; }
     for (const auto& site : kSites) {
         if (site.offset > image.size() || image.size() - site.offset < sizeof(uint32_t)) {
-            error = "El modulo main no contiene los puntos del parche de 60 FPS."; return false;
+            error = "The main module does not contain the 60 FPS patch locations."; return false;
         }
         uint32_t word; std::memcpy(&word, image.data() + site.offset, sizeof word);
         if (word != site.original && word != site.replacement) {
-            error = "Las instrucciones originales del parche de 60 FPS no coinciden."; return false;
+            error = "The original instructions do not match the 60 FPS patch."; return false;
         }
     }
     for (const auto& site : kSites) {

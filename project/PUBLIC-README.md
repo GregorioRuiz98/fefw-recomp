@@ -1,71 +1,71 @@
-# FE: Fortune’s Weave Recomp — herramientas de preparación local
+# FE: Fortune’s Weave Recomp — local preparation tools
 
-Proyecto experimental de recompilación estática para Windows x64, basado en [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7). Las herramientas traducen y compilan localmente código y shaders a partir de una carpeta aportada por el usuario.
+An experimental static recompilation project for Windows x64, based on [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7). These tools translate and compile code and shaders locally from a folder supplied by the user.
 
-**Aquí se distribuyen herramientas, fuentes y parches; el juego no está incluido.** Necesitas una copia obtenida legítimamente y los derechos necesarios para los actos de copia, extracción, transformación y uso que realices. Poseer el juego no garantiza que todos esos actos estén permitidos en tu jurisdicción. Consulta [LEGAL.md](LEGAL.md).
+**This distribution includes tools, source code and patches. It does not include the game.** You need a lawfully obtained copy and the rights required for the copying, extraction, transformation and use you perform. Owning the game does not guarantee that every such activity is permitted in your jurisdiction. See [LEGAL.md](LEGAL.md).
 
-Este proyecto no está afiliado, patrocinado ni aprobado por Nintendo, Intelligent Systems ni otros titulares. Fire Emblem y Nintendo se mencionan para identificar compatibilidad; sus marcas y derechos pertenecen a sus respectivos titulares.
+This project is not affiliated with, sponsored by or approved by Nintendo, Intelligent Systems or any other rights holder. Fire Emblem and Nintendo are named to identify compatibility; their trademarks and other rights belong to their respective holders.
 
-## Descargar y abrir el configurador
+## Download and open the setup tool
 
-**[Descargar FEFW Recomp para Windows x64 — v0.1.0-preview.2](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.2/FEFW-Recomp-Windows-x64-v0.1.0-preview.2.zip)** · [Notas y archivos del release](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.2)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.3](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.3/FEFW-Recomp-Windows-x64-v0.1.0-preview.3.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.3)
 
-Extrae **todo el ZIP** y abre `fefw_setup.exe`. El configurador está dentro de esa descarga; las opciones **Code → Download ZIP** y **Source code** de GitHub solo contienen fuentes, sin el ejecutable del configurador. Mientras el repositorio sea privado, necesitas acceso e iniciar sesión para descargarlo.
+Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only. While the repository is private, you must sign in with an account that has access to download the release.
 
-Puedes elegir la carpeta superior que contiene `updates/131072`, o directamente `updates/131072` si esta contiene `exefs` y `romfs`. El selector detecta la actualización compatible y los idiomas presentes. No cambies ni muevas tus archivos originales para ajustarlos al paquete.
+Select either the parent folder containing `updates/131072`, or `updates/131072` itself if it contains `exefs` and `romfs`. The selector detects the supported update and available languages. You do not need to move or rename the original game files to match the package.
 
-La primera preparación requiere las herramientas indicadas abajo y compila en tu PC el ejecutable `fefw.exe` y los shaders. **Seleccionar la carpeta no equivale a iniciar inmediatamente una instalación nueva.** Cuando termine, **Guardar y jugar** abre el juego. Después podrás abrir `fefw.exe` directamente si activaste **No mostrar la configuración al iniciar**; `fefw_setup.exe` seguirá disponible para cambiar idioma y pantalla.
+Initial preparation requires the tools listed below and compiles `fefw.exe` and the shaders on your PC. **Selecting a folder does not make a new installation immediately ready to play.** Once preparation finishes, **Save and play** starts the game. You can then open `fefw.exe` directly if **Skip setup on startup** is enabled; `fefw_setup.exe` remains available to change your settings.
 
-## Contenido de la entrega
+## Package contents
 
-- Configurador Win32 independiente y sus fuentes correspondientes.
-- Configuración del título, scripts de preparación y parche contra una revisión fijada del motor abierto.
-- Pruebas sintéticas propias, comprobaciones de publicación y avisos de licencia.
+- A standalone Win32 setup tool and its corresponding source code.
+- Title configuration, preparation scripts and a patch for a pinned revision of the open-source engine.
+- Original synthetic tests, publication checks and license notices.
 
-No se distribuyen ROM, claves, firmware, SDK propietario, actualizaciones, recursos audiovisuales, shaders comerciales, C++ generado ni el ejecutable recompilado del juego. No se proporcionan enlaces a descargas del juego ni instrucciones para eludir medidas técnicas de protección. Las herramientas reciben una carpeta ya extraída; solo descargan las dependencias de desarrollo declaradas.
+The package does not distribute ROMs, keys, firmware, proprietary SDKs, game updates, audiovisual assets, commercial shaders, generated game C++ or the recompiled game executable. It provides no game download links or instructions for circumventing technical protection measures. The tools accept an already extracted folder and download only the declared development dependencies.
 
-## Estado
+## Status
 
-Se han comprobado el configurador, la preparación desde una carpeta de trabajo vacía y escenas 3D del prólogo. En la revisión preparada pasan 15 comprobaciones ejecutables; un recorrido de 160 segundos termina sin errores Vulkan y una muestra de 157 fotogramas consecutivos no muestra destellos aislados. Las bibliotecas de vídeo pudieron reutilizar la caché vcpkg del equipo de prueba.
+The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. The previously validated runtime passed 15 executable checks. A 160-second run finished without Vulkan errors, and a sample of 157 consecutive frames showed no isolated flashes. Video libraries were able to reuse the test machine’s vcpkg cache.
 
-Esto no demuestra jugabilidad completa ni equivalencia con la consola. Combate, guardar/cargar, estabilidad prolongada y mando físico siguen pendientes. El audio REV16 y el sustituto espacial de DLSS son experimentales; este último no implementa reconstrucción temporal. Confirmar la desaparición del parpadeo intenso en otros recorridos sigue pendiente.
+These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio and the spatial DLSS substitute are experimental; the latter does not implement temporal reconstruction. The severe flicker reported by the user still needs confirmation in other gameplay sequences.
 
-## Requisitos
+## Requirements
 
-- Windows x64 y GPU/controlador compatibles con Vulkan 1.3.
-- Python 3.12 o posterior, Git, CMake, Ninja y LLVM con clang-cl.
-- Visual C++ Build Tools y Windows SDK instalados previamente.
-- Conexión para preparar las dependencias y espacio para código generado, objetos y cachés.
-- Tu carpeta compatible, ya extraída con los derechos necesarios, con `exefs` y `romfs`.
+- Windows x64 and a GPU/driver supporting Vulkan 1.3.
+- Python 3.12 or later, Git, CMake, Ninja and LLVM with clang-cl.
+- Visual C++ Build Tools and the Windows SDK installed beforehand.
+- A connection for preparing dependencies and space for generated code, objects and caches.
+- A compatible folder already extracted with the necessary rights, containing `exefs` and `romfs`.
 
-Si falta .NET SDK 10, se prepara la versión 10.0.403 localmente y se verifica su SHA-512. No se instalan servicios ni se modifica el PATH permanente. La preparación inicial puede tardar bastante.
+If .NET SDK 10 is unavailable, version 10.0.403 is prepared locally and its SHA-512 is verified. No services are installed and the permanent PATH is not changed. Initial preparation can take a considerable amount of time.
 
-Se reconoce el Title ID `04007EF01F8AE000`, main Build ID `DB93B0125F4850601D61C3EDDE012F8EB2ECFE77`. Las huellas están en `project/supported-build.json`; un nombre de carpeta no demuestra compatibilidad. Una actualización aislada puede necesitar recursos de la base, que estas herramientas no descargan.
+The supported Title ID is `04007EF01F8AE000`, with main Build ID `DB93B0125F4850601D61C3EDDE012F8EB2ECFE77`. Fingerprints are recorded in `project/supported-build.json`; a folder name alone does not establish compatibility. An update-only folder may require base-game resources, which these tools do not download.
 
-## Usar el ZIP del configurador
+## Using the setup ZIP
 
-1. Extrae la entrega pública en una carpeta local.
-2. Abre `fefw_setup.exe` y selecciona tu carpeta con `exefs` y `romfs`, o su carpeta superior con actualizaciones compatibles.
-3. Elige idioma, resolución de salida, ventana o pantalla completa y sincronización vertical. Solo se ofrecen idiomas encontrados en tu copia.
-4. Deja terminar la preparación y pulsa **Guardar y jugar**. Puedes cancelar y reanudar; `preparation.log` conserva el detalle.
+1. Extract the release into a local folder.
+2. Open `fefw_setup.exe` and select the folder containing `exefs` and `romfs`, or its parent folder containing supported updates.
+3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Only languages found in your copy are offered.
+4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; details are saved in `preparation.log`.
 
-**No mostrar la configuración al iniciar** permite abrir después `fefw.exe` directamente. El configurador permanece disponible y se vuelve a él si faltan archivos. Se conservan partidas locales en `save` y mapeos existentes.
+**Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
-La resolución de salida es el tamaño de la ventana; la resolución interna conserva su valor original. Pantalla completa utiliza el escritorio. La primera configuración activa sincronización vertical. Consulta [los controles de mando y teclado](project/CONTROLES-MANDO.md).
+Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller and keyboard guide](project/CONTROLES-MANDO.md).
 
-La versión preview.2 busca mandos al arrancar y vuelve a comprobarlos cada segundo. Para recuperar un DualShock 4 u otro dispositivo puedes usar **F1 → Settings → Controls → Gamepad → Detectar mandos**. Mando y teclado funcionan simultáneamente; cierra F1 para devolver el control al juego.
+The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Controller and keyboard input work together; close F1 to return input to the game.
 
-## Parche opcional de 60 FPS
+## Optional 60 FPS patch
 
-En `fefw_setup.exe`, activa **60 FPS (Kompas9, experimental)**, guarda y reinicia el juego. Está desactivado inicialmente y se puede desactivar desde el mismo configurador. La integración reproduce los dos cambios del [parche 60FPS v1.0 de Kompas9](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave): intervalo de presentación y tasa de temporización. Se comprueban el Build ID y las dos instrucciones antes de aplicar nada.
+In `fefw_setup.exe`, enable **60 FPS (Kompas9, experimental)**, save and restart the game. It is disabled by default and can be turned off in the same setup tool. The integration reproduces both changes from [Kompas9’s 60FPS v1.0 patch](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave): presentation interval and timing rate. The Build ID and both original instructions are checked before anything is applied.
 
-Ambas variantes están compiladas de forma nativa. La opción actúa sobre la imagen privada en memoria, sin modificar tu carpeta original ni exigir un emulador o copiar un IPS a la carpeta del programa. El ajuste se conserva como `[mods] fps60` en `fefw.ini` y fija el límite del host en 60 al activarlo. No garantiza rendimiento sostenido de 60 FPS ni equivalencia temporal en todo el juego; combate y cinemáticas prolongadas requieren validación adicional.
+Both instruction variants are compiled natively. The option acts on the private image in memory without modifying the original game folder or requiring an emulator or an IPS file in the program folder. It is stored as `[mods] fps60` in `fefw.ini` and sets the host frame limit to 60 when enabled. It does not guarantee sustained 60 FPS or correct timing throughout the game; combat and longer cinematics need further validation.
 
-Para actualizar desde preview.1, extrae el nuevo ZIP sobre la misma carpeta y abre el configurador con el juego cerrado. Al guardar se actualizará la preparación local y se reutilizarán los shaders ya preparados. Se conservan ajustes y partidas. No basta con cambiar un número en el INI de un ejecutable antiguo: la nueva versión tiene que compilarse.
+To upgrade from preview.1 or preview.2, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation and reuses existing shaders. Settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
 
-## Construir el configurador desde las fuentes
+## Building the setup tool from source
 
-No necesitas archivos del juego para construir el configurador. Desde la raíz, en PowerShell:
+Building the standalone setup tool does not require game files. From the repository root, in PowerShell:
 
 ```powershell
 . .\project\tools\Initialize-BuildEnv.ps1
@@ -76,14 +76,14 @@ Copy-Item work/setup/fefw_setup.exe ./fefw_setup.exe
 .\fefw_setup.exe
 ```
 
-Continúa al siguiente paso solo si el anterior termina correctamente. Las fuentes y recursos están en `project/src/`; la construcción se define en `project/CMakeLists.txt`. Este configurador no enlaza el runtime ni código traducido del juego.
+Continue to the next step only after the previous one succeeds. Sources and resources are in `project/src/`, and the build is defined in `project/CMakeLists.txt`. The standalone setup tool does not link the runtime or translated game code.
 
-El ejecutable del juego y sus cachés se generan posteriormente en tu equipo. No los adjuntes a incidencias, repositorios, releases ni artefactos de CI.
+The game executable and its caches are generated later on your own machine. Do not attach them to issues, repositories, releases or CI artifacts.
 
-## Licencias, créditos y contribuciones
+## Licenses, credits and contributions
 
-Se conserva [GNU GPL v3](LICENSE) de la base y las indicaciones de cada archivo, incluida la opción de versiones posteriores donde corresponda. Los componentes ajenos mantienen sus licencias: [procedencia](NOTICE.md) y [atribuciones](THIRD_PARTY_NOTICES.md). Estas licencias cubren el software indicado y no conceden derechos sobre el juego.
+The base project’s [GNU GPL v3](LICENSE) and each file’s license notices are retained, including the later-version option where applicable. Third-party components retain their licenses: see [provenance](NOTICE.md) and [attributions](THIRD_PARTY_NOTICES.md). These licenses cover the identified software and do not grant rights to the game.
 
-Para comunicar un problema, describe el comportamiento, sistema, GPU y revisión sin adjuntar material del juego. Retira de cualquier mensaje rutas personales, identificadores y credenciales. Consulta [CONTRIBUTING.md](CONTRIBUTING.md).
+When reporting an issue, describe the behavior, system, GPU and revision without attaching game material. Remove personal paths, identifiers and credentials from shared messages. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-El repositorio preparado contiene solo fuentes y tiene un manifiesto y un auditor de archivos e historial. El ZIP público añade el configurador independiente con sus fuentes. [Preparación de la subida](GITHUB-PUBLISH.md). Estos controles reducen riesgos de distribución accidental; no certifican la legalidad de todos los usos ni sustituyen una valoración jurídica.
+The repository contains source files only, with a manifest and an auditor for files and Git history. The release ZIP adds the standalone setup binary alongside its corresponding source. See [publication instructions](GITHUB-PUBLISH.md). These checks reduce the risk of accidental disclosure; they do not certify the legality of every use or replace legal advice.

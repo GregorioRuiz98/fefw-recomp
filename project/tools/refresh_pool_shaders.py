@@ -36,9 +36,9 @@ def main():
         raise SystemExit('Ejecuta PoolTest antes de admitir shaders con pools dinamicos.')
     for name, expected in proof.get('source_sha256', {}).items():
         if hashlib.sha256((work / name).read_bytes()).hexdigest() != expected:
-            raise SystemExit('El runtime cambio despues de PoolTest; repite la prueba GPU.')
+            raise SystemExit('The runtime changed after PoolTest; run the GPU test again.')
     if len(proof.get('source_sha256', {})) != 6:
-        raise SystemExit('Falta la huella del runtime en PoolTest.')
+        raise SystemExit('PoolTest is missing the runtime fingerprint.')
     corpus = work / 'shaders/corpus-expanded'
     _, current = read_rows(work / 'shaders/translated-sdk22/results.tsv')
     selected = {r['hash'] for r in current if r['status'] == 'unresolved-resource' or 'poolSize' in r.get('draw_time_queries', '')}

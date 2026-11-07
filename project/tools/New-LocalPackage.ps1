@@ -16,12 +16,12 @@ $exefs = Join-Path $Work 'prepared/exefs'
 $shaders = Join-Path $Work 'shaders/validated-sdk22'
 $source = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 foreach ($required in @((Join-Path $build 'fefw.exe'), (Join-Path $exefs 'main'), $romfs, $shaders)) {
-    if (!(Test-Path -LiteralPath $required)) { throw "Falta el recurso local: $required" }
+    if (!(Test-Path -LiteralPath $required)) { throw "Missing local resource: $required" }
 }
 $shaderFiles = @(Get-ChildItem -LiteralPath $shaders -Filter '*.spv' -File)
 if ($shaderFiles.Count -ne 11977) { throw "La cache no contiene los 11977 shaders esperados: $($shaderFiles.Count)" }
 New-Item -ItemType Directory -Path $Out -Force | Out-Null
-if (Get-Process fefw -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $Out 'fefw.exe') }) { throw 'Cierra el juego antes de actualizar el paquete.' }
+if (Get-Process fefw -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $Out 'fefw.exe') }) { throw 'Close the game before updating the package.' }
 foreach ($name in @('exefs', 'shader_cache/spirv', 'fonts', 'save', 'licenses', 'tools')) {
     New-Item -ItemType Directory -Path (Join-Path $Out $name) -Force | Out-Null
 }
@@ -61,7 +61,7 @@ foreach ($dir in @('sdl3-src', 'imgui-src')) {
     }
 }
 $ini = @"
-; Configuracion local experimental. No modifica el volcado original.
+; Experimental local configuration. Does not modify the original dump.
 [fs]
 exefs = exefs
 romfs = $romfs
@@ -92,56 +92,60 @@ watchdog_seconds = -1
 "@
 # Keep the player's settings and saves when refreshing the executable.
 $iniPath = Join-Path $Out 'fefw.ini'
-[IO.File]::WriteAllText((Join-Path $Out 'fefw.features'), 'fefw-runtime-2', [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText((Join-Path $Out 'fefw.features'), 'fefw-runtime-3', [Text.UTF8Encoding]::new($false))
 if (!(Test-Path -LiteralPath $iniPath)) {
     [IO.File]::WriteAllText($iniPath, $ini, [Text.UTF8Encoding]::new($false))
 }
 $readme = @"
-FIRE EMBLEM RECOMP - PROTOTIPO NATIVO EXPERIMENTAL
+FIRE EMBLEM RECOMP - EXPERIMENTAL NATIVE PROTOTYPE
 
-Abre fefw.exe con doble clic. La primera vez muestra el configurador.
-Elige carpeta del juego, resolucion de ventana, pantalla completa e idioma.
-Activa "No mostrar la configuracion al iniciar" para abrir luego el juego directamente.
-fefw_setup.exe permite cambiar los ajustes cuando quieras, incluso con esa opcion activa.
-El paquete local ya preparado no necesita herramientas de compilacion para cambiar sus ajustes.
-El juego abre sin consola, sin limite de tiempo y sin pulsaciones automaticas.
-El primer arranque puede tardar mientras el controlador prepara las tuberias graficas.
+Double-click fefw.exe. On the first launch it opens the setup tool.
+Choose the game folder, window resolution, fullscreen mode and game language.
+Enable "Skip setup on startup" to open the game directly afterward.
+fefw_setup.exe always lets you change settings, even with that option enabled.
+The prepared local package needs no build tools for settings changes.
+The game opens without a console, time limit or automatic button presses.
+The first launch may take time while the driver prepares graphics pipelines.
 
-CONTROLES
-Enter o Espacio: A (confirmar / avanzar)
-Escape: B (volver)
-X, Y: botones X e Y
-P: PLUS (pausa / saltar video cuando el juego lo permite)
+CONTROLS
+Enter or Space: A (confirm / advance)
+Escape: B (back)
+X, Y: X and Y buttons
+P: PLUS (pause / skip video when supported by the game)
 Tab: MINUS
-Flechas: cruceta; WASD: stick izquierdo; IJKL: stick derecho
-Q / E: L / R; 1 / 3: ZL / ZR; C / V: pulsar sticks
-F1: ajustes del runtime; F2: contador de FPS; Alt+Enter: pantalla completa
-Mando: deteccion automatica, incluso al conectarlo con el juego abierto.
-Xbox: A confirma, B vuelve, Menu/Start es PLUS; LB/RB y LT/RT son L/R y ZL/ZR.
-PlayStation: Cruz confirma, Circulo vuelve, Options es PLUS.
-Nintendo Pro: A confirma, B vuelve, + es PLUS.
-Ambos sticks, sus pulsaciones y la cruceta estan mapeados. Detalles en CONTROLES-MANDO.md.
-Cierra con la X de la ventana o Alt+F4.
-Los controles y la ventana se pueden ajustar en controls.ini, creado al primer arranque.
+Arrow keys: D-pad; WASD: left stick; IJKL: right stick
+Q / E: L / R; 1 / 3: ZL / ZR; C / V: stick clicks
+F1: runtime settings; F2: FPS counter; Alt+Enter: fullscreen
+Controller: automatic detection, including when connected during gameplay.
+Xbox: A confirms, B goes back, Menu/Start is PLUS; LB/RB and LT/RT are L/R and ZL/ZR.
+PlayStation: Cross confirms, Circle goes back, Options is PLUS.
+Nintendo Pro: A confirms, B goes back, + is PLUS.
+Both sticks, stick clicks and the D-pad are mapped. See CONTROLES-MANDO.md.
+Use F1 > Settings > Controls > Gamepad > Rescan controllers if needed.
+Close the settings overlay to return controller input to the game.
+Close the game with the window X or Alt+F4.
+Bindings and window options are stored in controls.ini after the first launch.
 
-OPCIONES ACTIVAS
-Audio REV16 experimental, sustituto espacial de DLSS y guardado local aislado de 64 MiB.
-Los guardados quedan en la subcarpeta save; el diagnostico queda en fefw.log.
-No se ha comprobado todavia guardar/cargar una partida ni el combate completo.
-Se ha observado una perdida de dispositivo Vulkan durante un video largo.
-No contiene reconstruccion DLSS temporal ni garantiza estabilidad o fidelidad completa.
+OPTIONS
+Experimental REV16 audio, spatial DLSS substitute and an isolated 64 MiB local save.
+Optional 60 FPS (Kompas9, experimental) is available in fefw_setup.exe.
+Save and restart to apply it. It is disabled by default and does not guarantee 60 FPS.
+Saves are stored in the save subfolder; diagnostics are in fefw.log.
+Saving/loading and complete combat have not yet been verified.
+A Vulkan device loss has been observed during extended video playback.
+Temporal DLSS reconstruction, complete stability and fidelity are not guaranteed.
 
-ARCHIVOS
-Manten fefw.exe, fefw.ini, las DLL, exefs, fonts y shader_cache juntos.
-La carpeta romfs original sigue siendo necesaria en:
+FILES
+Keep fefw.exe, fefw.ini, fefw.features, DLLs, exefs, fonts and shader_cache together.
+The original romfs folder is still required at:
 $romfs
-El resto de los datos necesarios esta copiado en esta carpeta privada.
-Requiere Windows x64 y un controlador grafico compatible con Vulkan 1.3.
-No es un paquete publicado: contiene datos derivados de tu copia local del juego.
-Codigo y modificaciones utilizados: $source
-Motor base: drakolordx7/pokopia-recomp, commit 2c29515b23a6d78d967775fd7e9f24f50402cca7.
+The other required data is copied into this private folder.
+Requires Windows x64 and a graphics driver supporting Vulkan 1.3.
+This is a private package containing data derived from your local game copy.
+Source and modifications used: $source
+Base engine: drakolordx7/pokopia-recomp, commit 2c29515b23a6d78d967775fd7e9f24f50402cca7.
 "@
-[IO.File]::WriteAllText((Join-Path $Out 'LEEME.txt'), $readme, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText((Join-Path $Out 'README.txt'), $readme, [Text.UTF8Encoding]::new($false))
 $manifest = [ordered]@{
     created_utc = [DateTime]::UtcNow.ToString('o')
     executable = 'fefw.exe'
@@ -157,4 +161,4 @@ $manifest = [ordered]@{
     gameplay_verified = $false
 }
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Out 'package.json') -Encoding utf8
-Write-Host "Paquete local listo: $(Join-Path $Out 'fefw.exe')"
+Write-Host "Local package ready: $(Join-Path $Out 'fefw.exe')"

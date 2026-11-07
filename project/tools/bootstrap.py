@@ -40,11 +40,16 @@ def main():
     else:
         reverse = subprocess.run(['git', '-C', str(engine), 'apply', '--reverse', '--check', str(patch)], capture_output=True)
         if reverse.returncode:
-            previous = PROJECT / 'patches/engine-preview1.patch'
-            old_check = subprocess.run(['git', '-C', str(engine), 'apply', '--reverse', '--check', str(previous)], capture_output=True)
+            previous = None
+            for name in ('engine-preview2.patch', 'engine-preview1.patch'):
+                candidate = PROJECT / 'patches' / name
+                if candidate.is_file() and subprocess.run(
+                        ['git', '-C', str(engine), 'apply', '--reverse', '--check', str(candidate)], capture_output=True).returncode == 0:
+                    previous = candidate
+                    break
             clean_index = subprocess.run(['git', '-C', str(engine), 'diff', '--cached', '--quiet'], capture_output=True)
             new_check = subprocess.run(['git', '-C', str(engine), 'apply', '--cached', '--check', str(patch)], capture_output=True)
-            if old_check.returncode or clean_index.returncode or new_check.returncode:
+            if previous is None or clean_index.returncode or new_check.returncode:
                 raise RuntimeError('Engine changes conflict with engine.patch; no changes were overwritten')
             run('git', '-C', engine, 'apply', '--reverse', previous)
             try:

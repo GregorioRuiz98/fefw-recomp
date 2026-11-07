@@ -1964,15 +1964,15 @@ index f3ee20d..cfd7092 100644
      if (const GamePlay* gp = game_play(); gp && gp->remove) gp->remove();
      if (st.hook_update) hook_remove(st.hook_update);
 diff --git a/runtime/src/gfx/play/play_ui.cpp b/runtime/src/gfx/play/play_ui.cpp
-index 8910fcc..23f4e6a 100644
+index 8910fcc..a1e8567 100644
 --- a/runtime/src/gfx/play/play_ui.cpp
 +++ b/runtime/src/gfx/play/play_ui.cpp
 @@ -454,6 +454,8 @@ void pad_tab(const LiveStatus& live, Page& p) {   // the Gamepad tab of the Cont
      ImGui::SeparatorText("Gamepad");
      if (live.pads == 0) ImGui::TextUnformatted("No gamepad open.");
      else ImGui::Text("%d open: %s", live.pads, live.pad_name.c_str());
-+    if (ImGui::Button("Detectar mandos / Rescan controllers")) platform::rescan_gamepads();
-+    ImGui::TextWrapped("Mando y teclado funcionan a la vez. Pulsa un boton del mando; no necesitas cambiar de modo.");
++    if (ImGui::Button("Rescan controllers")) platform::rescan_gamepads();
++    ImGui::TextWrapped("Controller and keyboard work together. Press a controller button; no mode change is needed.");
      ImGui::Text("Gyro available: %s    Rumble available: %s", yes_no(live.pad_gyro), yes_no(live.pad_rumble));
  }
  

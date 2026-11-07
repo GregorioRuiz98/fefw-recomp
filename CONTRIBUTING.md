@@ -1,12 +1,12 @@
-# Contribuir
+# Contributing
 
-Revisa [LEGAL.md](LEGAL.md), conserva cabeceras de licencia y documenta la procedencia de código ajeno. Aporta solo material para el que dispongas de derechos suficientes; las licencias del software existente no cubren archivos del juego.
+Read [LEGAL.md](LEGAL.md), retain license headers and document the origin of third-party code. Contribute only material for which you have sufficient rights; existing software licenses do not cover game files.
 
-No adjuntes ROM, claves, recursos, shaders comerciales, C++ generado, ejecutables locales ni fixtures extraídos. Las pruebas públicas deben usar datos sintéticos propios. Describe los problemas visuales con texto y retira rutas personales, identificadores y credenciales de los mensajes que compartas.
+Do not attach ROMs, keys, assets, commercial shaders, generated game C++, local executables or extracted fixtures. Public tests must use original synthetic data. Describe visual issues in words and remove personal paths, identifiers and credentials from shared messages.
 
-Explica qué cambia, cómo lo comprobaste y qué queda pendiente. Las pruebas privadas con una copia local no deben adjuntar sus datos al repositorio o a GitHub Actions.
+Explain what changed, how you checked it and what remains unverified. Private tests with a local copy must not attach their data to the repository or GitHub Actions.
 
-Desde la carpeta preparada para GitHub, revisa lo que vas a añadir y actualiza el manifiesto:
+From the source folder prepared for GitHub, review the files being added and refresh the manifest:
 
 ```powershell
 git add --all
@@ -15,4 +15,4 @@ git add source-manifest.json
 python project/tools/audit_public_repo.py --repo . --history
 ```
 
-El auditor comprueba el índice de Git, el manifiesto y, con `--history`, los objetos alcanzables por sus referencias. No sustituye la revisión de procedencia o licencias. Eliminar un archivo del último commit no elimina sus copias ni el historial remoto.
+The auditor checks the Git index, the manifest and, with `--history`, objects reachable from Git references. It does not replace provenance or license review. Removing a file from the latest commit does not remove copies or remote history.

@@ -35,7 +35,7 @@ def main():
     if (proof['exit_code'] != 0 or proof['passed'] != 1 or
         {c['name'] for c in cases} != expected or len(cases) != len(expected) or
         any(c['exit_code'] != 0 or c['passed'] != 1 for c in cases)):
-        raise SystemExit('Ejecuta ArrayTest y corrige sus fallos antes de admitir estos shaders.')
+        raise SystemExit('Run ArrayTest and fix failures before accepting these shaders.')
     corpus = work / 'shaders/corpus-expanded'
     _, current = read_rows(work / 'shaders/translated-sdk22/results.tsv')
     selected = {r['hash'] for r in current if r['status'] == 'ok' and re.search(r'tex\S+x32\]', r['resources'])}

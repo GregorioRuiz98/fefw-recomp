@@ -40,11 +40,11 @@ function Stage([string]$Message) {
 }
 function Checked([string]$Exe, [string[]]$Arguments) {
     & $Exe @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "La preparacion fallo ($LASTEXITCODE). Revisa preparation.log." }
+    if ($LASTEXITCODE -ne 0) { throw "Preparation failed ($LASTEXITCODE). Check preparation.log." }
 }
 function Action([string]$Name) {
     & (Join-Path $Project 'FireEmblemRecomp.ps1') -Action $Name -Work $Work -Dump $Source
-    if ($LASTEXITCODE -ne 0) { throw "Fallo la fase $Name ($LASTEXITCODE)." }
+    if ($LASTEXITCODE -ne 0) { throw "Stage $Name failed ($LASTEXITCODE)." }
 }
 function Copy-Local([string]$SourceFile, [string]$Target) {
     $temporary = $Target + '.preparing'
@@ -55,23 +55,23 @@ function Copy-Local([string]$SourceFile, [string]$Target) {
     [IO.File]::SetLastWriteTimeUtc($Target, [IO.File]::GetLastWriteTimeUtc($SourceFile))
 }
 try {
-    if (Get-Process fefw -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $GameDirectory 'fefw.exe') }) { throw 'Cierra el juego antes de prepararlo.' }
+    if (Get-Process fefw -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $GameDirectory 'fefw.exe') }) { throw 'Close the game before preparing it.' }
     New-Item -ItemType Directory -Path $GameDirectory -Force | Out-Null
     Start-Transcript -LiteralPath $log -Force | Out-Null
     foreach ($tool in @('git','cmake','ninja','python')) {
-        if (!(Get-Command $tool -ErrorAction SilentlyContinue)) { throw "Falta $tool. Consulta los requisitos de README.md y vuelve a preparar." }
+        if (!(Get-Command $tool -ErrorAction SilentlyContinue)) { throw "$tool is missing. See README.md requirements, then retry preparation." }
     }
-    if (!(Test-Path -LiteralPath (Join-Path $Project 'FireEmblemRecomp.ps1'))) { throw 'Faltan los archivos project del paquete publico.' }
+    if (!(Test-Path -LiteralPath (Join-Path $Project 'FireEmblemRecomp.ps1'))) { throw 'The public package project files are missing.' }
     . (Join-Path $Project 'tools/Initialize-BuildEnv.ps1')
-    if ($CheckOnly) { Stage 'Herramientas principales disponibles.'; Stop-Transcript | Out-Null; exit 0 }
-    Stage 'Preparando las herramientas locales…'
+    if ($CheckOnly) { Stage 'Main development tools are available.'; Stop-Transcript | Out-Null; exit 0 }
+    Stage 'Preparing local tools…'
     if (!(Test-Path -LiteralPath (Join-Path $Work 'venv/Scripts/python.exe'))) { Action 'Bootstrap' }
     else { Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/bootstrap.py'), '--work', $Work, '--engine-only') }
-    Stage 'Verificando y normalizando tu copia del juego…'
+    Stage 'Verifying and normalizing your game copy…'
     Action 'Prepare'
-    Stage 'Preparando las bibliotecas y el traductor de shaders…'
+    Stage 'Preparing libraries and the shader translator…'
     & (Join-Path $Project 'tools/Prepare-Dependencies.ps1') -Work $Work -Project $Project
-    Stage 'Traduciendo el codigo del juego para este PC…'
+    Stage 'Translating game code for this PC…'
     & (Join-Path $Work 'venv/Scripts/python.exe') (Join-Path $Project 'tools/local_preparation.py') --work $Work
     if ($LASTEXITCODE -ne 0) { Action 'Cover'; Action 'Lift' }
     Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_runtime_patches.py'), '--work', $Work)
@@ -79,17 +79,17 @@ try {
     $cache = Join-Path $Work 'shaders/validated-sdk22'
     if (!(Test-Path -LiteralPath (Join-Path $cache 'results.tsv')) -or
         @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count -ne 11977) {
-        Stage 'Extrayendo y comprobando los shaders de tu copia…'
+        Stage 'Extracting and checking shaders from your copy…'
         Action 'ExtractAllShaders'; Action 'BuildShaders'
         foreach ($check in @('ShaderTest','ComputeTest','NumericTest','ArrayTest','LiteralHandleTest','PoolTest','RootConstantsTest','GpuValidationTest')) { Action $check }
-        Stage 'Traduciendo y validando la cache completa de shaders…'
+        Stage 'Translating and validating the complete shader cache…'
         Action 'TranslateAllShaders'; Action 'ValidateAllShaders'
     }
     $validatedCount = @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count
     if ($validatedCount -ne 11977) {
-        throw "La cache contiene $validatedCount de 11977 shaders. Consulta los informes shader-validation y shader-variants de project/reports antes de iniciar el juego."
+        throw "The cache contains $validatedCount of 11977 shaders. Check shader-validation and shader-variants reports in project/reports before starting the game."
     }
-    Stage 'Terminando el paquete local…'
+    Stage 'Finishing the local package…'
     $build = Join-Path $Work 'build/fefw'
     foreach ($name in @('fefw.exe','fefw.map','fefw.pdb','astcdec-avx2-shared.dll','astcdec-sse2-shared.dll','astcdec-sse4.1-shared.dll')) {
         Copy-Local (Join-Path $build $name) (Join-Path $GameDirectory $name)
@@ -113,8 +113,8 @@ try {
     Copy-Item -LiteralPath (Join-Path $Work 'engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
-    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-2', [Text.UTF8Encoding]::new($false))
-    Stage 'Copia local preparada. Guardando la configuracion…'
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-3', [Text.UTF8Encoding]::new($false))
+    Stage 'Local copy prepared. Saving settings…'
     Stop-Transcript | Out-Null
     exit 0
 } catch {

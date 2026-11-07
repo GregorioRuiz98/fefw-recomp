@@ -1,8 +1,8 @@
-# Preparar la subida
+# Preparing a GitHub upload
 
-Usa solo la carpeta de fuentes preparada para GitHub. El ZIP público es un artefacto separado con configurador independiente, fuentes correspondientes y licencias. El paquete local que ejecuta el juego no debe usarse como release.
+Use only the source folder prepared for GitHub. The public ZIP is a separate artifact containing the standalone setup tool, corresponding source and licenses. The local package that runs the game must not be used as a release.
 
-Desde la carpeta del repositorio:
+From the repository folder:
 
 ```powershell
 python project/tools/audit_public_repo.py --repo . --history
@@ -10,17 +10,17 @@ git status --short
 git log --oneline --all
 ```
 
-Si hay cambios posteriores a la revisión, actualiza el manifiesto y vuelve a comprobarlos según `CONTRIBUTING.md`. `.gitignore` no elimina archivos ya versionados.
+If anything changes after review, update the manifest and repeat the checks described in `CONTRIBUTING.md`. `.gitignore` does not remove already tracked files.
 
-Para un repositorio de GitHub vacío, sustituye `OWNER/REPO` por el destino elegido:
+For an empty GitHub repository, replace `OWNER/REPO` with the chosen destination:
 
 ```powershell
 git remote add origin https://github.com/OWNER/REPO.git
 git push -u origin codex/public-release
 ```
 
-Si ya contiene trabajo, integra mediante una rama y revisa el diff. No fuerces la subida ni guardes tokens en URLs o archivos.
+If the destination already contains work, integrate through a branch and review the diff. Do not force-push or store tokens in URLs or files.
 
-Publica como release únicamente el ZIP público auditado con el configurador y sus fuentes correspondientes. Mantén `LICENSE`, avisos y construcción junto al binario. No adjuntes `fefw.exe`, ExeFS/ROMFS, cachés, guardados, capturas o resultados de compilación del juego.
+Publish only the audited public ZIP containing the setup tool and corresponding source. Keep `LICENSE`, notices and build instructions alongside the binary. Do not attach `fefw.exe`, ExeFS/ROMFS, caches, saves, screenshots or game build outputs.
 
-Estas comprobaciones no constituyen una autorización de sus titulares ni un dictamen sobre la legalidad del proyecto en todas las jurisdicciones.
+These checks do not constitute permission from rights holders or a legal opinion on the project in every jurisdiction.

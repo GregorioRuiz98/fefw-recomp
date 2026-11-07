@@ -1,35 +1,35 @@
-# Alcance de esta distribución
+# Scope of this distribution
 
-Esta distribución contiene herramientas y modificaciones para preparar una recompilación local. No concede derechos sobre el juego, su SDK, su firmware ni sus recursos.
+This distribution contains tools and modifications for preparing a local recompilation. It grants no rights to the game, its SDK, firmware or assets.
 
-## Copia aportada por el usuario
+## User-supplied copy
 
-Debes disponer de una copia obtenida legítimamente y de los derechos necesarios para los actos concretos de copia, extracción, transformación y uso que realices en tu jurisdicción. Comprar o poseer un juego no constituye una autorización general para cualquier extracción, elusión de medidas técnicas o redistribución. El proyecto no determina si un volcado concreto cumple esos requisitos.
+You must have a lawfully obtained copy and the rights required for the specific copying, extraction, transformation and use you perform in your jurisdiction. Buying or owning a game is not a blanket authorization for extraction, circumvention of technical measures or redistribution. The project does not determine whether a particular dump meets those requirements.
 
-Las herramientas reciben una carpeta ya extraída con `exefs` y `romfs`. No proporcionan ROM, claves, firmware, SDK propietario, actualizaciones, enlaces a descargas del juego ni instrucciones para eludir medidas técnicas de protección.
+The tools accept an already extracted folder containing `exefs` and `romfs`. They provide no ROMs, keys, firmware, proprietary SDKs, game updates, game download links or instructions for circumventing technical protection measures.
 
-No se incorporarán al repositorio, sus releases, incidencias o artefactos de CI:
+The repository, releases, issues and CI artifacts must not include:
 
-- Archivos originales o normalizados del juego, incluso descomprimidos en una carpeta.
-- C++ generado del juego, sus objetos, bibliotecas y ejecutables recompilados.
-- Shaders comerciales extraídos, traducidos o compilados y sus cachés.
-- Texturas, modelos, audio, vídeos, capturas o fixtures extraídos del juego.
-- Claves, credenciales, datos de cuentas, partidas o logs privados sin revisar.
+- Original or normalized game files, including files decompressed into a folder.
+- Generated game C++, object files, libraries or recompiled executables.
+- Extracted, translated or compiled commercial shaders and their caches.
+- Game-derived textures, models, audio, video, screenshots or test fixtures.
+- Keys, credentials, account data, saves or unreviewed private logs.
 
-Mantener los resultados localmente no sustituye la necesidad de contar con derechos aplicables. Estos criterios delimitan el contenido aceptado por el proyecto; no añaden restricciones a las licencias libres ni eliminan derechos reconocidos por la ley.
+Keeping results locally does not replace the need to hold the applicable rights. These criteria define the content accepted by the project; they do not add restrictions to free-software licenses or remove rights provided by law.
 
-## Licencias y marcas
+## Licenses and trademarks
 
-Se conserva GNU GPL v3 de la base en [LICENSE](LICENSE). Los archivos con cabecera `GPL-3.0-or-later` mantienen esa indicación; los componentes ajenos conservan sus licencias. Consulta [NOTICE.md](NOTICE.md) y [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The base project’s GNU GPL v3 is retained in [LICENSE](LICENSE). Files marked `GPL-3.0-or-later` retain that notice, and third-party components retain their own licenses. See [NOTICE.md](NOTICE.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-El configurador público se construye de manera independiente, sin enlazar runtime ni código del juego. Sus fuentes, recursos propios y archivos de construcción se incluyen en `project/`. La licencia del software no se extiende al juego y no se ofrece aquí permiso para redistribuir el ejecutable generado a partir de él.
+The public setup tool is built independently, without linking the runtime or game code. Its source, original resources and build files are included in `project/`. The software license does not extend to the game, and no permission to redistribute a game-derived executable is offered here.
 
-Fire Emblem y Nintendo se mencionan para identificar compatibilidad. Sus marcas y derechos corresponden a sus titulares. El proyecto no está afiliado, patrocinado ni aprobado por Nintendo, Intelligent Systems ni otros titulares. No se utilizan recursos oficiales como identidad gráfica del proyecto.
+Fire Emblem and Nintendo are named to identify compatibility. Their trademarks and other rights belong to their respective holders. The project is not affiliated with, sponsored by or approved by Nintendo, Intelligent Systems or other rights holders. Official assets are not used as the project’s visual identity.
 
-## Referencias y límites
+## References and limitations
 
-Las excepciones para observación, copia de seguridad e interoperabilidad tienen condiciones y no equivalen a una autorización general. Para España y la Unión Europea pueden consultarse el [artículo 100 de la Ley de Propiedad Intelectual](https://www.boe.es/buscar/act.php?id=BOE-A-1996-8930#a100) y los [artículos 5 y 6 de la Directiva 2009/24/CE](https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32009L0024). Su aplicabilidad a una operación requiere analizar sus circunstancias.
+Exceptions for observation, backup copies and interoperability have conditions and do not amount to general authorization. For Spain and the European Union, see [Article 100 of Spain’s Intellectual Property Law](https://www.boe.es/buscar/act.php?id=BOE-A-1996-8930#a100) and [Articles 5 and 6 of Directive 2009/24/EC](https://eur-lex.europa.eu/legal-content/ES/TXT/?uri=CELEX:32009L0024). Whether they apply to a particular activity depends on its circumstances.
 
-GitHub mantiene procedimientos para reclamaciones de derechos de autor y elusión de medidas técnicas en su [política DMCA](https://docs.github.com/en/site-policy/content-removal-policies/dmca-takedown-policy). Un README, una licencia libre o excluir los archivos del juego no garantiza inmunidad frente a reclamaciones ni certifica la legalidad de todas las herramientas o usos.
+GitHub maintains procedures for copyright and anti-circumvention claims in its [DMCA policy](https://docs.github.com/en/site-policy/content-removal-policies/dmca-takedown-policy). A README, a free-software license or excluding game files does not guarantee immunity from claims or certify the legality of all tools and uses.
 
-Este documento describe el alcance del proyecto; no es un dictamen jurídico. Para valorar una publicación o uso concreto en tu jurisdicción, consulta a un profesional cualificado. La ausencia de garantía se rige por las licencias incluidas y la normativa aplicable.
+This document describes the project’s scope; it is not a legal opinion. Consult a qualified professional to assess a particular release or use in your jurisdiction. Warranty disclaimers are governed by the included licenses and applicable law.

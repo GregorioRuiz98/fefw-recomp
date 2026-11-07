@@ -320,10 +320,10 @@ int main(int argc, char** argv) {
         const std::filesystem::path dir = game.empty() ? cfg::executable_dir() : std::filesystem::path(widen_utf8(absolute_utf8(game)));
         if (force_setup || cfg::needs_setup(dir)) {
             const auto setup = dir / L"fefw_setup.exe";
-            if (!file_exists(setup.wstring())) die("Falta fefw_setup.exe. Conserva el configurador junto al juego para completar la configuración inicial.");
+            if (!file_exists(setup.wstring())) die("fefw_setup.exe is missing. Keep the setup tool next to the game to complete initial setup.");
             std::wstring args = cfg::quote_arg(setup.wstring()) + L" --game " + cfg::quote_arg(dir.wstring()) + L" --launch";
             STARTUPINFOW si{sizeof si}; PROCESS_INFORMATION pi{};
-            if (!CreateProcessW(setup.c_str(), args.data(), nullptr, nullptr, FALSE, 0, nullptr, dir.c_str(), &si, &pi)) die("No se puede abrir el configurador.");
+            if (!CreateProcessW(setup.c_str(), args.data(), nullptr, nullptr, FALSE, 0, nullptr, dir.c_str(), &si, &pi)) die("Cannot open the setup tool.");
             CloseHandle(pi.hThread); CloseHandle(pi.hProcess); return 0;
         }
     }

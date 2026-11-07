@@ -57,22 +57,22 @@ void refresh_folder() {
     const auto found = s::candidates(fs::path(text(item(Folder)))); std::string last;
     for (const auto& p : found) {
         const auto valid = s::validate_source(p, false);
-        if (valid.ok) { versions.push_back(p); add(item(Versions), p.filename().wstring() + L" — build compatible DB93B012"); }
+        if (valid.ok) { versions.push_back(p); add(item(Versions), p.filename().wstring() + L" — supported build DB93B012"); }
         else last = valid.error;
     }
     if (versions.empty()) {
-        status(last.empty() ? L"Selecciona la carpeta extraída del juego, con exefs y romfs, o su carpeta de actualizaciones." : s::wide(last));
+        status(last.empty() ? L"Select the extracted game folder containing exefs and romfs, or its parent update folder." : s::wide(last));
     } else {
         choose(item(Versions), 0);
-        status(L"Versión reconocida. Los archivos se verificarán antes de guardar.");
+        status(L"Version recognized. Files will be verified before saving.");
     }
     refresh_languages(); EnableWindow(item(Save), !versions.empty()); EnableWindow(item(SavePlay), !versions.empty());
 }
 void browse() {
     IFileOpenDialog* dialog{};
-    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) { error("No se puede abrir el selector de carpetas."); return; }
+    if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) { error("Cannot open the folder picker."); return; }
     DWORD options{}; dialog->GetOptions(&options); dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
-    dialog->SetTitle(L"Selecciona tu copia extraída de Fire Emblem");
+    dialog->SetTitle(L"Select your extracted Fire Emblem copy");
     const fs::path current(text(item(Folder)));
     if (fs::is_directory(current)) {
         IShellItem* initial{};
@@ -92,7 +92,7 @@ void launch_game() {
     const auto exe = game_dir / L"fefw.exe";
     std::wstring args = s::quote_arg(exe.wstring()) + L" --skip-setup --game " + s::quote_arg(game_dir.wstring());
     STARTUPINFOW si{sizeof si}; PROCESS_INFORMATION pi{};
-    if (!CreateProcessW(exe.c_str(), args.data(), nullptr, nullptr, FALSE, 0, nullptr, game_dir.c_str(), &si, &pi)) throw std::runtime_error("No se puede iniciar fefw.exe.");
+    if (!CreateProcessW(exe.c_str(), args.data(), nullptr, nullptr, FALSE, 0, nullptr, game_dir.c_str(), &si, &pi)) throw std::runtime_error("Cannot start fefw.exe.");
     CloseHandle(pi.hThread); CloseHandle(pi.hProcess);
 }
 void finish_save() {
@@ -102,7 +102,7 @@ void finish_save() {
 }
 void prepare() {
     const auto script = game_dir / L"tools/Prepare-Game.ps1";
-    if (!fs::is_regular_file(script)) throw std::runtime_error("Faltan las herramientas de preparación local. Conserva la carpeta tools junto al configurador.");
+    if (!fs::is_regular_file(script)) throw std::runtime_error("Local preparation tools are missing. Keep the tools folder next to the setup tool.");
     wchar_t system[MAX_PATH]{}; GetSystemDirectoryW(system, MAX_PATH);
     const fs::path ps = fs::path(system) / L"WindowsPowerShell/v1.0/powershell.exe";
     std::wstring args = s::quote_arg(ps.wstring()) + L" -NoProfile -ExecutionPolicy Bypass -File " + s::quote_arg(script.wstring()) +
@@ -110,30 +110,30 @@ void prepare() {
     STARTUPINFOW si{sizeof si}; si.dwFlags = STARTF_USESHOWWINDOW; si.wShowWindow = SW_HIDE;
     PROCESS_INFORMATION pi{};
     job = CreateJobObjectW(nullptr, nullptr);
-    if (!job) throw std::runtime_error("No se puede preparar el proceso de trabajo.");
+    if (!job) throw std::runtime_error("Cannot create the preparation process.");
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION ji{}; ji.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &ji, sizeof ji)) { CloseHandle(job); job = nullptr; throw std::runtime_error("No se puede controlar la preparación local."); }
+    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &ji, sizeof ji)) { CloseHandle(job); job = nullptr; throw std::runtime_error("Cannot manage local preparation."); }
     if (!CreateProcessW(ps.c_str(), args.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | CREATE_SUSPENDED, nullptr, game_dir.c_str(), &si, &pi)) {
-        CloseHandle(job); job = nullptr; throw std::runtime_error("No se puede iniciar la preparación local.");
+        CloseHandle(job); job = nullptr; throw std::runtime_error("Cannot start local preparation.");
     }
-    if (!AssignProcessToJobObject(job, pi.hProcess)) { TerminateProcess(pi.hProcess, 3); CloseHandle(pi.hThread); CloseHandle(pi.hProcess); CloseHandle(job); job = nullptr; throw std::runtime_error("No se pudo aislar el proceso de preparación."); }
+    if (!AssignProcessToJobObject(job, pi.hProcess)) { TerminateProcess(pi.hProcess, 3); CloseHandle(pi.hThread); CloseHandle(pi.hProcess); CloseHandle(job); job = nullptr; throw std::runtime_error("Could not isolate the preparation process."); }
     preparation = pi.hProcess; ResumeThread(pi.hThread); CloseHandle(pi.hThread);
     enabled(false); SendMessageW(item(Progress), PBM_SETMARQUEE, TRUE, 80);
-    status(L"Preparando tu copia local. La primera compilación y sus shaders pueden tardar. Puedes cancelar y reanudar después.");
+    status(L"Preparing your local copy. The first build and shaders may take time. You can cancel and resume later.");
     SetTimer(window, 1, 500, nullptr);
 }
 void apply(bool play) {
     if (preparation) return;
-    if (s::game_running(game_dir)) throw std::runtime_error("Cierra el juego antes de cambiar su configuración.");
+    if (s::game_running(game_dir)) throw std::runtime_error("Close the game before changing its settings.");
     const int v = selection(Versions), l = selection(Lang), r = selection(Resolution);
-    if (v < 0 || l < 0 || r < 0) throw std::runtime_error("Selecciona una carpeta válida, resolución e idioma.");
+    if (v < 0 || l < 0 || r < 0) throw std::runtime_error("Select a valid folder, resolution and language.");
     pending = settings; pending.source = versions.at(v); pending.romfs = pending.source / L"romfs";
     pending.language = langs.at(l).value; pending.width = sizes.at(r).first; pending.height = sizes.at(r).second;
     pending.fullscreen = selection(Mode) == 1; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.vsync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.fps60 = SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.completed = true; start_game = play;
-    status(L"Verificando los archivos originales y la copia preparada…"); UpdateWindow(window);
+    status(L"Verifying original files and the prepared copy…"); UpdateWindow(window);
     const auto original = s::validate_source(pending.source, true);
     if (!original.ok) throw std::runtime_error(original.error);
     if (s::validate_ready(game_dir, pending, false).ok) finish_save(); else prepare();
@@ -142,16 +142,16 @@ void create_controls() {
     font = CreateFontW(-px(16), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
     control(L"STATIC", L"Fire Emblem Recomp", 0, 24, 20, 620, 28);
-    control(L"STATIC", L"Configura tu copia local. Tus archivos originales y guardados se conservan.", 0, 24, 53, 620, 30);
-    control(L"STATIC", L"Carpeta del juego", 0, 24, 96, 240, 22);
+    control(L"STATIC", L"Set up your local copy. Original files and saves are preserved.", 0, 24, 53, 620, 30);
+    control(L"STATIC", L"Game folder", 0, 24, 96, 240, 22);
     control(L"EDIT", settings.source.c_str(), Folder, 24, 123, 498, 28, WS_TABSTOP | ES_AUTOHSCROLL);
-    control(L"BUTTON", L"Examinar…", Browse, 534, 122, 112, 30, WS_TABSTOP | BS_PUSHBUTTON);
-    control(L"STATIC", L"Versión del juego", 0, 24, 164, 250, 22);
+    control(L"BUTTON", L"Browse…", Browse, 534, 122, 112, 30, WS_TABSTOP | BS_PUSHBUTTON);
+    control(L"STATIC", L"Game version", 0, 24, 164, 250, 22);
     control(L"COMBOBOX", L"", Versions, 24, 189, 622, 180, WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL);
-    control(L"STATIC", L"Modo de pantalla", 0, 24, 235, 290, 22);
+    control(L"STATIC", L"Display mode", 0, 24, 235, 290, 22);
     control(L"COMBOBOX", L"", Mode, 24, 262, 296, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
-    add(item(Mode), L"Ventana"); add(item(Mode), L"Pantalla completa (escritorio)"); choose(item(Mode), settings.fullscreen ? 1 : 0);
-    control(L"STATIC", L"Resolución de ventana", 0, 344, 235, 290, 22);
+    add(item(Mode), L"Windowed"); add(item(Mode), L"Fullscreen (desktop)"); choose(item(Mode), settings.fullscreen ? 1 : 0);
+    control(L"STATIC", L"Window resolution", 0, 344, 235, 290, 22);
     control(L"COMBOBOX", L"", Resolution, 344, 262, 302, 180, WS_TABSTOP | CBS_DROPDOWNLIST);
     std::set<std::pair<int, int>> choices{{1280,720}, {settings.width,settings.height}};
     DEVMODEW dm{}; dm.dmSize = sizeof dm; DWORD maxw = 1280, maxh = 720;
@@ -165,21 +165,21 @@ void create_controls() {
         if (size.first == settings.width && size.second == settings.height) index = static_cast<int>(sizes.size() - 1);
     }
     choose(item(Resolution), index); EnableWindow(item(Resolution), !settings.fullscreen);
-    control(L"STATIC", L"La pantalla completa usa tu escritorio. El renderizado interno conserva la resolución del juego.", 0, 24, 303, 622, 40);
-    control(L"STATIC", L"Idioma del juego", 0, 24, 352, 300, 22);
+    control(L"STATIC", L"Fullscreen uses your desktop. Internal rendering keeps the game’s original resolution.", 0, 24, 303, 622, 40);
+    control(L"STATIC", L"Game language", 0, 24, 352, 300, 22);
     control(L"COMBOBOX", L"", Lang, 24, 379, 622, 230, WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL);
-    control(L"BUTTON", L"Sincronización vertical", Vsync, 24, 425, 245, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"Vertical synchronization", Vsync, 24, 425, 245, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Vsync), BM_SETCHECK, settings.vsync ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"BUTTON", L"No mostrar la configuración al iniciar", Skip, 24, 489, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"Skip setup on startup", Skip, 24, 489, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Skip), BM_SETCHECK, settings.skip ? BST_CHECKED : BST_UNCHECKED, 0);
     control(L"BUTTON", L"60 FPS (Kompas9, experimental)", Fps60, 280, 425, 366, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Fps60), BM_SETCHECK, settings.fps60 ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"STATIC", L"60 FPS cambia limite y temporizacion; requiere reiniciar. El rendimiento depende del PC.", 0, 24, 456, 622, 24);
+    control(L"STATIC", L"60 FPS changes the limit and timing. Restart required; performance depends on your PC.", 0, 24, 456, 622, 24);
     control(L"STATIC", L"", Status, 24, 523, 622, 39);
     control(PROGRESS_CLASSW, L"", Progress, 24, 568, 622, 9, PBS_MARQUEE);
-    control(L"BUTTON", L"Cancelar", IDCANCEL, 24, 588, 112, 34, WS_TABSTOP);
-    control(L"BUTTON", L"Guardar", Save, 366, 588, 128, 34, WS_TABSTOP);
-    control(L"BUTTON", L"Guardar y jugar", SavePlay, 506, 588, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
+    control(L"BUTTON", L"Cancel", IDCANCEL, 24, 588, 112, 34, WS_TABSTOP);
+    control(L"BUTTON", L"Save", Save, 366, 588, 128, 34, WS_TABSTOP);
+    control(L"BUTTON", L"Save and play", SavePlay, 506, 588, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
     refresh_folder();
 }
 LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
@@ -202,7 +202,7 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                         DWORD code = 1; GetExitCodeProcess(preparation, &code); CloseHandle(preparation); preparation = nullptr;
                         CloseHandle(job); job = nullptr; KillTimer(h, 1); SendMessageW(item(Progress), PBM_SETMARQUEE, FALSE, 0); enabled(true);
                         if (!code) { finish_save(); return 0; }
-                        status(L"No se pudo preparar la copia. Revisa preparation.log; puedes corregir el requisito indicado y reintentar.");
+                        status(L"Preparation failed. Check preparation.log, address the reported requirement and try again.");
                     } else {
                         std::ifstream in(game_dir / L"preparation.status", std::ios::binary);
                         std::string line; if (std::getline(in, line) && !line.empty()) status(s::wide(line));
@@ -234,7 +234,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         int width = 0, height = 0; std::string language; int skip = -1, vsync = -1, fps60 = -1;
         for (int i = 1; i < argc; ++i) {
             const std::wstring arg(argv[i]);
-            auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Falta un argumento"); return argv[++i]; };
+            auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Missing argument"); return argv[++i]; };
             if (arg == L"--game") game_dir = fs::absolute(next());
             else if (arg == L"--source") source = fs::absolute(next());
             else if (arg == L"--launch") start_game = true;
@@ -248,7 +248,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             else if (arg == L"--vsync") vsync = std::stoi(next());
             else if (arg == L"--fps60") fps60 = std::stoi(next());
             else if (arg == L"--test-ui") test_ui = true;
-            else throw std::runtime_error("Argumento desconocido: " + s::utf8(arg));
+            else throw std::runtime_error("Unknown argument: " + s::utf8(arg));
         }
         LocalFree(argv);
         if (validate) { const auto v = s::validate_source(source, true); std::printf("%s\n", v.ok ? "VALID" : v.error.c_str()); return v.ok ? 0 : 2; }
@@ -273,9 +273,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         RECT rect{0, 0, px(670), px(646)};
         const DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
         AdjustWindowRectEx(&rect, style, FALSE, WS_EX_CONTROLPARENT);
-        HWND h = CreateWindowExW(WS_EX_CONTROLPARENT, wc.lpszClassName, L"Fire Emblem Recomp — Configuración", style,
+        HWND h = CreateWindowExW(WS_EX_CONTROLPARENT, wc.lpszClassName, L"Fire Emblem Recomp — Setup", style,
             CW_USEDEFAULT, CW_USEDEFAULT, rect.right - rect.left, rect.bottom - rect.top, nullptr, nullptr, instance, nullptr);
-        if (!h) throw std::runtime_error("No se puede abrir el configurador");
+        if (!h) throw std::runtime_error("Cannot open the setup tool");
         if (test_ui) {
             const bool ok = !versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0 && selection(Mode) >= 0 && selection(Resolution) >= 0 &&
                 IsWindowEnabled(item(Save)) && SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED) &&

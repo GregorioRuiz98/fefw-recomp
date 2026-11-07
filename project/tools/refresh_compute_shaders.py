@@ -30,10 +30,10 @@ def main():
     project = Path(__file__).resolve().parents[1]
     proof = json.loads((project / 'reports/compute-numeric-gpu.json').read_text())
     if proof['exit_code'] != 0 or proof['passed'] != 1:
-        raise SystemExit('Ejecuta NumericTest y corrige sus fallos antes de admitir estos shaders.')
+        raise SystemExit('Run NumericTest and fix failures before accepting these shaders.')
     for name, digest in proof['source_sha256'].items():
         if hashlib.sha256((work / 'engine' / name).read_bytes()).hexdigest() != digest:
-            raise SystemExit('El traductor ha cambiado desde NumericTest; repite la prueba.')
+            raise SystemExit('The translator has changed since NumericTest; run the test again.')
     corpus = work / 'shaders/corpus-expanded'
     selected = {'09b666147b1b1593', '5f55a1c6d53b8f42', '729c628ae2cf96d0', '98acab991e64f3ba', 'bcbd9fdfde78003c'}
     small = work / 'shaders/corpus-compute-five'

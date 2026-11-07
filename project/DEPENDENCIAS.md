@@ -1,11 +1,11 @@
-# Dependencias preparadas en esta sesión
+# Development dependencies used for validation
 
-La construcción se ha ejecutado en Windows x64. El manifiesto exacto está en `reports/toolchain.json`; los logs se conservan en `reports`.
+Builds were performed on Windows x64. The exact local manifest is generated as `reports/toolchain.json`, with logs in `reports`. These private reports are not part of the public package.
 
-| Dependencia | Versión/revisión | Ubicación relativa a `work` |
+| Dependency | Version/revision | Location relative to `work` |
 | --- | --- | --- |
-| Visual C++ Build Tools 2022 | paquete 17.14.44, instalación 17.14.37827.9 | instalación del sistema |
-| Windows SDK | 10.0.26100.0 | instalación del sistema |
+| Visual C++ Build Tools 2022 | Package 17.14.44, installation 17.14.37827.9 | System installation |
+| Windows SDK | 10.0.26100.0 | System installation |
 | LLVM clang-cl | 22.1.8 | `C:/Program Files/LLVM/bin` |
 | .NET SDK | 10.0.403 | `toolchains/dotnet` |
 | Ryubing | `a82350bb774f70fcbd41c9987bf67a3775409963` | `refs/ryubing` |
@@ -14,20 +14,20 @@ La construcción se ha ejecutado en Windows x64. El manifiesto exacto está en `
 | astc-encoder | 5.7.0 | `engine/tools/textures/third_party/astc-encoder` |
 | bc7enc_rdo | `b9438627eef73a1157e84201b6fa6eb2ffd6d9f0` | `engine/tools/textures/third_party/bc7enc_rdo` |
 | ISPC | 1.32.0 | `engine/tools/textures/third_party/ispc` |
-| NVIDIA nvdisasm | 13.3.29, archivo verificado con SHA oficial | `toolchains/nvdisasm` |
+| NVIDIA nvdisasm | 13.3.29, archive checked against its official SHA | `toolchains/nvdisasm` |
 
-El motor descarga sus dependencias Vulkan, SDL e ImGui mediante su configuración CMake. Las bibliotecas de texturas se construyeron siguiendo `engine/tools/textures/THIRD_PARTY.md` y su CMakeLists. La herramienta nvdisasm se usó para diagnóstico, sin instalar CUDA ni sustituir el controlador gráfico.
+The engine downloads Vulkan, SDL and ImGui dependencies through CMake. Texture libraries were built using `engine/tools/textures/THIRD_PARTY.md` and its CMake configuration. nvdisasm was used for diagnosis without installing CUDA or replacing the graphics driver.
 
-`tools/Initialize-BuildEnv.ps1` localiza Visual Studio mediante vswhere y activa su entorno. No se necesita abrir manualmente una consola especial para las acciones Configure/Build/NativeTest/FloatingPointTest.
+`tools/Initialize-BuildEnv.ps1` locates Visual Studio through vswhere and activates its environment. Configure/Build/NativeTest/FloatingPointTest do not require a separate developer console.
 
-El traductor está construido en `engine/tools/shaders/build/bin/Release/net10.0/spirv_harness.dll`. Sus fuentes de Ryubing se prepararon en `engine/tools/shaders/third_party/ryubing` con los tres proyectos que requiere su harness. El validador independiente está en `build/spirv-tools/tools/spirv-val.exe`. Son rutas que las acciones TranslateShaders/ValidateShaders comprueban.
+The translator is built as `engine/tools/shaders/build/bin/Release/net10.0/spirv_harness.dll`. Ryubing sources are prepared in `engine/tools/shaders/third_party/ryubing`, including the three projects required by the harness. The independent validator is `build/spirv-tools/tools/spirv-val.exe`. TranslateShaders/ValidateShaders check these paths.
 
-`tools/Prepare-Game.ps1` automatiza la preparación local a partir de una carpeta original compatible. `Bootstrap` prepara Python y el motor; `tools/Prepare-Dependencies.ps1` descarga y construye las dependencias fijadas, incluyendo .NET SDK 10.0.403 local si falta. Se verifica el SHA-512 del SDK y el SHA-256 de ISPC. No se instalan servicios ni se modifica el PATH permanente. La compilación del traductor fija `Platform=AnyCPU` para que el entorno C++ x64 no cambie su ruta de salida.
+`tools/Prepare-Game.ps1` automates preparation from a supported original folder. `Bootstrap` prepares Python and the engine; `tools/Prepare-Dependencies.ps1` downloads and builds pinned dependencies, including a local .NET SDK 10.0.403 when needed. The SDK’s SHA-512 and ISPC’s SHA-256 are checked. No services are installed and the permanent PATH is unchanged. The translator build pins `Platform=AnyCPU` so the x64 C++ environment does not change its output path.
 
-La traducción generada ocupa unos 637 MB; los objetos, bibliotecas, mapas y EXE consumen espacio adicional. No se ha medido el tiempo de una reconstrucción optimizada completa. `/Od` se eligió para comprobar la integración inicial; `/O1` se puede solicitar con `FEFW_LIFT_OPT` en CMake cuando el arranque sea funcional.
+Generated translation occupies approximately 637 MB; objects, libraries, maps and executables require additional space. A complete optimized rebuild has not been timed. `/Od` was chosen for initial integration checks; `/O1` can be requested with CMake’s `FEFW_LIFT_OPT` when validating performance builds.
 
-## Vídeo del host (2026-11-06)
+## Host video libraries (2026-11-06)
 
-Se añadieron libvpx 1.16.0#3 y dav1d 1.5.4, ambas `x64-windows-static`, con vcpkg `661e42cd1600603016ced1d76a15359e7dade9f5`. La instalación privada está en `work/toolchains/vcpkg/installed/x64-windows-static`; CMake la detecta automáticamente. Para reproducirla, usar ese commit de microsoft/vcpkg, preparar su ejecutable con `bootstrap-vcpkg.bat -disableMetrics` e instalar `libvpx:x64-windows-static dav1d:x64-windows-static --disable-metrics`. Después ejecutar Configure y Build. Sus avisos están en `licenses/`.
+libvpx 1.16.0#3 and dav1d 1.5.4, both `x64-windows-static`, were added using vcpkg `661e42cd1600603016ced1d76a15359e7dade9f5`. The private installation is `work/toolchains/vcpkg/installed/x64-windows-static`, detected automatically by CMake. To reproduce it, use that microsoft/vcpkg commit, run `bootstrap-vcpkg.bat -disableMetrics`, then install `libvpx:x64-windows-static dav1d:x64-windows-static --disable-metrics`. Run Configure and Build afterward. Notices are in `licenses/`.
 
-El decodificador AV1 admite salida CPU de ocho bits y 4:2:0; las imágenes nativas que pide el juego ya se conectan a texturas del host. La reproducción completa conserva una incidencia de pérdida del dispositivo pendiente de investigar.
+The AV1 decoder supports eight-bit 4:2:0 CPU output; native images requested by the game are connected to host textures. A device-loss issue during extended playback remains under investigation.
