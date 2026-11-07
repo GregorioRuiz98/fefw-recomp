@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9026,
-      "sha256": "2f905ef7005c5545e2404022f7577597b5738f066dd1b39f0d03b3956c27e626"
+      "bytes": 9511,
+      "sha256": "87e57cf86e35b385f9ba95ceca2025c48fa90956774f0ce2fcb28f1f815a59fd"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -74,8 +74,8 @@
     },
     {
       "path": "project/DEPENDENCIAS.md",
-      "bytes": 3485,
-      "sha256": "a0f9287245a7b08e460822d16730d0a9fdef4964ce7d6a03c70a04b9b28fdd28"
+      "bytes": 3585,
+      "sha256": "d6632c9c331fc8f6d5229d99105ac4b71fbbdf4b6641b53a524f9dd95216a233"
     },
     {
       "path": "project/FireEmblemRecomp.ps1",
@@ -109,8 +109,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 9026,
-      "sha256": "2f905ef7005c5545e2404022f7577597b5738f066dd1b39f0d03b3956c27e626"
+      "bytes": 9511,
+      "sha256": "87e57cf86e35b385f9ba95ceca2025c48fa90956774f0ce2fcb28f1f815a59fd"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -229,8 +229,8 @@
     },
     {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 21734,
-      "sha256": "3e6db40e5184f27f89a2baa2554c280b4c2b56e5699ada34c5457a99dbf98d4d"
+      "bytes": 22700,
+      "sha256": "0a7bd85ac7a93d24c58dafada49e69022798832d4353076da129cfeebafeb508"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -433,6 +433,11 @@
       "sha256": "edc425ddc340d64a53938ccb3597137cb39b20582358a0bd34b87365b122463e"
     },
     {
+      "path": "project/tests/test_video_port.py",
+      "bytes": 2880,
+      "sha256": "fffbd5aec23c220da0917a2978ff197b5ed4dbff81217c27de724cdcfb245870"
+    },
+    {
       "path": "project/tests/texture_array.spvasm",
       "bytes": 1875,
       "sha256": "27ec64173ca669ac4b0af5d71d6b3cefecf72da582a6e71d68525ec2943a8438"
@@ -459,8 +464,8 @@
     },
     {
       "path": "project/tools/Prepare-Dependencies.ps1",
-      "bytes": 8021,
-      "sha256": "8bb3a88b9ed2e7a926791f933b01a4a0c2e5aef13c7455b7be8f5b960fbbe74b"
+      "bytes": 8228,
+      "sha256": "9033d2132ab45bcfd79bd0921ed25e56fb469250bb871be1eaf346188ad60be2"
     },
     {
       "path": "project/tools/Prepare-Game.ps1",
@@ -518,6 +523,11 @@
       "sha256": "b796d59aa87ea4d3dd38c30ecde134d035c00b652cdb4930d0f93116c7e39db8"
     },
     {
+      "path": "project/tools/prepare_video_port.py",
+      "bytes": 1949,
+      "sha256": "8efb9e55315ed063faf8e0ecede6987df4b02780d58833b4ded9bd1276a4687b"
+    },
+    {
       "path": "project/tools/probe_audio_sdk.py",
       "bytes": 3215,
       "sha256": "77d362f6ab77cb4f6fab6aaa9fb1aa434776499279a491faa8bbc8ae2eca1ed9"
@@ -569,8 +579,8 @@
     },
     {
       "path": "tools/Prepare-Dependencies.ps1",
-      "bytes": 8021,
-      "sha256": "8bb3a88b9ed2e7a926791f933b01a4a0c2e5aef13c7455b7be8f5b960fbbe74b"
+      "bytes": 8228,
+      "sha256": "9033d2132ab45bcfd79bd0921ed25e56fb469250bb871be1eaf346188ad60be2"
     },
     {
       "path": "tools/Prepare-Game.ps1",

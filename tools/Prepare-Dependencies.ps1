@@ -50,7 +50,9 @@ if (!(Test-Path -LiteralPath (Join-Path $vcpkg 'installed/x64-windows-static/lib
     !(Test-Path -LiteralPath (Join-Path $vcpkg 'installed/x64-windows-static/lib/vpx.lib'))) {
     Checkout 'https://github.com/microsoft/vcpkg.git' '661e42cd1600603016ced1d76a15359e7dade9f5' $vcpkg
     Run (Join-Path $vcpkg 'bootstrap-vcpkg.bat') @('-disableMetrics')
-    Run (Join-Path $vcpkg 'vcpkg.exe') @('install', 'libvpx:x64-windows-static', 'dav1d:x64-windows-static', '--disable-metrics')
+    $videoOverlay = Join-Path $Work 'toolchains/video-ports'
+    Run $python @((Join-Path $Project 'tools/prepare_video_port.py'), '--vcpkg', $vcpkg, '--out', $videoOverlay)
+    Run (Join-Path $vcpkg 'vcpkg.exe') @('install', 'libvpx:x64-windows-static', 'dav1d:x64-windows-static', "--overlay-ports=$videoOverlay", '--disable-metrics')
 }
 $dotnet = Join-Path $Work 'toolchains/dotnet/dotnet.exe'
 if (!(Test-Path -LiteralPath $dotnet)) {

@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.3](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.3/FEFW-Recomp-Windows-x64-v0.1.0-preview.3.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.3)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.4](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.4/FEFW-Recomp-Windows-x64-v0.1.0-preview.4.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.4)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only. While the repository is private, you must sign in with an account that has access to download the release.
 
@@ -26,7 +26,7 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 
 ## Status
 
-The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. The previously validated runtime passed 15 executable checks. A 160-second run finished without Vulkan errors, and a sample of 157 consecutive frames showed no isolated flashes. Video libraries were able to reuse the test machine’s vcpkg cache.
+The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. The previously validated runtime passed 15 executable checks. A 160-second run finished without Vulkan errors, and a sample of 157 consecutive frames showed no isolated flashes. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
 
 These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio and the spatial DLSS substitute are experimental; the latter does not implement temporal reconstruction. The severe flicker reported by the user still needs confirmation in other gameplay sequences.
 
@@ -47,7 +47,9 @@ The supported Title ID is `04007EF01F8AE000`, with main Build ID `DB93B0125F4850
 1. Extract the release into a local folder.
 2. Open `fefw_setup.exe` and select the folder containing `exefs` and `romfs`, or its parent folder containing supported updates.
 3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Only languages found in your copy are offered.
-4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; details are saved in `preparation.log`.
+4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; **Open log** opens `preparation.log` for details.
+
+If preview.3 stopped while building `libvpx` in a folder containing spaces, close setup and extract preview.4 into the same package folder. Keep the existing `work` folder, reopen setup and retry **Save and play**. The corrected dependency build uses relative source paths; the original game folder can stay where it is. Preparation resumes, but a first installation still needs to compile the game and shaders.
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 

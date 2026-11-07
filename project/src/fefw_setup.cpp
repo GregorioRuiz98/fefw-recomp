@@ -12,7 +12,7 @@
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
-enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60 };
+enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
@@ -118,6 +118,7 @@ void prepare() {
     }
     if (!AssignProcessToJobObject(job, pi.hProcess)) { TerminateProcess(pi.hProcess, 3); CloseHandle(pi.hThread); CloseHandle(pi.hProcess); CloseHandle(job); job = nullptr; throw std::runtime_error("Could not isolate the preparation process."); }
     preparation = pi.hProcess; ResumeThread(pi.hThread); CloseHandle(pi.hThread);
+    EnableWindow(item(OpenLog), TRUE);
     enabled(false); SendMessageW(item(Progress), PBM_SETMARQUEE, TRUE, 80);
     status(L"Preparing your local copy. The first build and shaders may take time. You can cancel and resume later.");
     SetTimer(window, 1, 500, nullptr);
@@ -178,6 +179,8 @@ void create_controls() {
     control(L"STATIC", L"", Status, 24, 523, 622, 39);
     control(PROGRESS_CLASSW, L"", Progress, 24, 568, 622, 9, PBS_MARQUEE);
     control(L"BUTTON", L"Cancel", IDCANCEL, 24, 588, 112, 34, WS_TABSTOP);
+    control(L"BUTTON", L"Open log", OpenLog, 148, 588, 150, 34, WS_TABSTOP);
+    EnableWindow(item(OpenLog), fs::is_regular_file(game_dir / L"preparation.log"));
     control(L"BUTTON", L"Save", Save, 366, 588, 128, 34, WS_TABSTOP);
     control(L"BUTTON", L"Save and play", SavePlay, 506, 588, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
     refresh_folder();
@@ -194,6 +197,12 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     case Mode: if (HIWORD(w) == CBN_SELCHANGE) EnableWindow(item(Resolution), selection(Mode) == 0); return 0;
                     case Save: apply(false); return 0;
                     case SavePlay: apply(true); return 0;
+                    case OpenLog: {
+                        const auto log = game_dir / L"preparation.log";
+                        if (reinterpret_cast<INT_PTR>(ShellExecuteW(h, L"open", log.c_str(), nullptr, game_dir.c_str(), SW_SHOWNORMAL)) <= 32)
+                            throw std::runtime_error("Cannot open preparation.log. Open it from the setup folder.");
+                        return 0;
+                    }
                     case IDCANCEL: DestroyWindow(h); return 0;
                 } break;
             case WM_TIMER:
@@ -202,7 +211,11 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                         DWORD code = 1; GetExitCodeProcess(preparation, &code); CloseHandle(preparation); preparation = nullptr;
                         CloseHandle(job); job = nullptr; KillTimer(h, 1); SendMessageW(item(Progress), PBM_SETMARQUEE, FALSE, 0); enabled(true);
                         if (!code) { finish_save(); return 0; }
-                        status(L"Preparation failed. Check preparation.log, address the reported requirement and try again.");
+                        SendMessageW(item(Progress), PBM_SETPOS, 0, 0);
+                        status(L"Preparation failed. Use Open log for details, then retry.");
+                        std::ifstream in(game_dir / L"preparation.status", std::ios::binary);
+                        std::string detail; std::getline(in, detail);
+                        error("Preparation failed.\n\n" + detail.substr(0, 4000) + "\n\nUse Open log for details, then retry.");
                     } else {
                         std::ifstream in(game_dir / L"preparation.status", std::ios::binary);
                         std::string line; if (std::getline(in, line) && !line.empty()) status(s::wide(line));

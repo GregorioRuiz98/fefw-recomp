@@ -28,6 +28,6 @@ Generated translation occupies approximately 637 MB; objects, libraries, maps an
 
 ## Host video libraries (2026-11-06)
 
-libvpx 1.16.0#3 and dav1d 1.5.4, both `x64-windows-static`, were added using vcpkg `661e42cd1600603016ced1d76a15359e7dade9f5`. The private installation is `work/toolchains/vcpkg/installed/x64-windows-static`, detected automatically by CMake. To reproduce it, use that microsoft/vcpkg commit, run `bootstrap-vcpkg.bat -disableMetrics`, then install `libvpx:x64-windows-static dav1d:x64-windows-static --disable-metrics`. Run Configure and Build afterward. Notices are in `licenses/`.
+libvpx 1.16.0#3 and dav1d 1.5.4, both `x64-windows-static`, were added using vcpkg `661e42cd1600603016ced1d76a15359e7dade9f5`. The private installation is `work/toolchains/vcpkg/installed/x64-windows-static`, detected automatically by CMake. Run `tools/Prepare-Dependencies.ps1` to reproduce the installation. It generates a local `toolchains/video-ports` overlay from the pinned port, invoking libvpx configure with a relative source path so GNU make works when the package path contains spaces. The original vcpkg checkout and game files are preserved. Notices are in `licenses/`.
 
 The AV1 decoder supports eight-bit 4:2:0 CPU output; native images requested by the game are connected to host textures. A device-loss issue during extended playback remains under investigation.
