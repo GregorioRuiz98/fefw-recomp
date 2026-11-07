@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6256,
-      "sha256": "5fa8bac8d759f2dcb95904c08a9eb4cc5d0267b3627b01b4745723b995d9589d"
+      "bytes": 7631,
+      "sha256": "c1bf9ded14fc7fd1ce18f9711106c3e1b7843b9a668f8de1ab0f57949a2564cd"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -109,8 +109,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 6256,
-      "sha256": "5fa8bac8d759f2dcb95904c08a9eb4cc5d0267b3627b01b4745723b995d9589d"
+      "bytes": 7631,
+      "sha256": "c1bf9ded14fc7fd1ce18f9711106c3e1b7843b9a668f8de1ab0f57949a2564cd"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",

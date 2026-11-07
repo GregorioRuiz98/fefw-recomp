@@ -6,6 +6,16 @@ Proyecto experimental de recompilación estática para Windows x64, basado en [p
 
 Este proyecto no está afiliado, patrocinado ni aprobado por Nintendo, Intelligent Systems ni otros titulares. Fire Emblem y Nintendo se mencionan para identificar compatibilidad; sus marcas y derechos pertenecen a sus respectivos titulares.
 
+## Descargar y abrir el configurador
+
+**[Descargar FEFW Recomp para Windows x64 — v0.1.0-preview.1](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.1/FEFW-Recomp-Windows-x64-v0.1.0-preview.1.zip)** · [Notas y archivos del release](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.1)
+
+Extrae **todo el ZIP** y abre `fefw_setup.exe`. El configurador está dentro de esa descarga; las opciones **Code → Download ZIP** y **Source code** de GitHub solo contienen fuentes, sin el ejecutable del configurador. Mientras el repositorio sea privado, necesitas acceso e iniciar sesión para descargarlo.
+
+Puedes elegir la carpeta superior que contiene `updates/131072`, o directamente `updates/131072` si esta contiene `exefs` y `romfs`. El selector detecta la actualización compatible y los idiomas presentes. No cambies ni muevas tus archivos originales para ajustarlos al paquete.
+
+La primera preparación requiere las herramientas indicadas abajo y compila en tu PC el ejecutable `fefw.exe` y los shaders. **Seleccionar la carpeta no equivale a iniciar inmediatamente una instalación nueva.** Cuando termine, **Guardar y jugar** abre el juego. Después podrás abrir `fefw.exe` directamente si activaste **No mostrar la configuración al iniciar**; `fefw_setup.exe` seguirá disponible para cambiar idioma y pantalla.
+
 ## Contenido de la entrega
 
 - Configurador Win32 independiente y sus fuentes correspondientes.
