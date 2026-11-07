@@ -92,7 +92,7 @@ watchdog_seconds = -1
 "@
 # Keep the player's settings and saves when refreshing the executable.
 $iniPath = Join-Path $Out 'fefw.ini'
-[IO.File]::WriteAllText((Join-Path $Out 'fefw.features'), 'fefw-runtime-3', [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText((Join-Path $Out 'fefw.features'), 'fefw-runtime-4', [Text.UTF8Encoding]::new($false))
 if (!(Test-Path -LiteralPath $iniPath)) {
     [IO.File]::WriteAllText($iniPath, $ini, [Text.UTF8Encoding]::new($false))
 }
@@ -108,13 +108,7 @@ The game opens without a console, time limit or automatic button presses.
 The first launch may take time while the driver prepares graphics pipelines.
 
 CONTROLS
-Enter or Space: A (confirm / advance)
-Escape: B (back)
-X, Y: X and Y buttons
-P: PLUS (pause / skip video when supported by the game)
-Tab: MINUS
-Arrow keys: D-pad; WASD: left stick; IJKL: right stick
-Q / E: L / R; 1 / 3: ZL / ZR; C / V: stick clicks
+A controller is required for gameplay. Keyboard and mouse do not send game actions.
 F1: runtime settings; F2: FPS counter; Alt+Enter: fullscreen
 Controller: automatic detection, including when connected during gameplay.
 Xbox: A confirms, B goes back, Menu/Start is PLUS; LB/RB and LT/RT are L/R and ZL/ZR.
@@ -124,7 +118,7 @@ Both sticks, stick clicks and the D-pad are mapped. See CONTROLES-MANDO.md.
 Use F1 > Settings > Controls > Gamepad > Rescan controllers if needed.
 Close the settings overlay to return controller input to the game.
 Close the game with the window X or Alt+F4.
-Bindings and window options are stored in controls.ini after the first launch.
+Controller mappings and window options are stored in controls.ini after the first launch.
 
 OPTIONS
 Experimental REV16 audio, spatial DLSS substitute and an isolated 64 MiB local save.

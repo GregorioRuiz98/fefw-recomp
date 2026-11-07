@@ -113,7 +113,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $Work 'engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
-    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-3', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-4', [Text.UTF8Encoding]::new($false))
     Stage 'Local copy prepared. Saving settings…'
     Stop-Transcript | Out-Null
     exit 0

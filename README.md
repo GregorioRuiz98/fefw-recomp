@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.4](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.4/FEFW-Recomp-Windows-x64-v0.1.0-preview.4.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.4)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.5](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.5/FEFW-Recomp-Windows-x64-v0.1.0-preview.5.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.5)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only. While the repository is private, you must sign in with an account that has access to download the release.
 
@@ -36,6 +36,7 @@ These checks do not establish complete playability or equivalence with the conso
 - Python 3.12 or later, Git, CMake, Ninja and LLVM with clang-cl.
 - Visual C++ Build Tools and the Windows SDK installed beforehand.
 - A connection for preparing dependencies and space for generated code, objects and caches.
+- A controller recognized by Windows and SDL.
 - A compatible folder already extracted with the necessary rights, containing `exefs` and `romfs`.
 
 If .NET SDK 10 is unavailable, version 10.0.403 is prepared locally and its SHA-512 is verified. No services are installed and the permanent PATH is not changed. Initial preparation can take a considerable amount of time.
@@ -49,13 +50,13 @@ The supported Title ID is `04007EF01F8AE000`, with main Build ID `DB93B0125F4850
 3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Only languages found in your copy are offered.
 4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; **Open log** opens `preparation.log` for details.
 
-If preview.3 stopped while building `libvpx` in a folder containing spaces, close setup and extract preview.4 into the same package folder. Keep the existing `work` folder, reopen setup and retry **Save and play**. The corrected dependency build uses relative source paths; the original game folder can stay where it is. Preparation resumes, but a first installation still needs to compile the game and shaders.
+If preview.3 stopped while building `libvpx` in a folder containing spaces, close setup and extract the current release into the same package folder. Keep the existing `work` folder, reopen setup and retry **Save and play**. The corrected dependency build uses relative source paths; the original game folder can stay where it is. Preparation resumes, but a first installation still needs to compile the game and shaders.
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
-Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller and keyboard guide](project/CONTROLES-MANDO.md).
+Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller guide](project/CONTROLES-MANDO.md).
 
-The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Controller and keyboard input work together; close F1 to return input to the game.
+The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
 
 ## Optional 60 FPS patch
 
@@ -63,7 +64,7 @@ In `fefw_setup.exe`, enable **60 FPS (Kompas9, experimental)**, save and restart
 
 Both instruction variants are compiled natively. The option acts on the private image in memory without modifying the original game folder or requiring an emulator or an IPS file in the program folder. It is stored as `[mods] fps60` in `fefw.ini` and sets the host frame limit to 60 when enabled. It does not guarantee sustained 60 FPS or correct timing throughout the game; combat and longer cinematics need further validation.
 
-To upgrade from preview.1 or preview.2, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation and reuses existing shaders. Settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
+To upgrade from preview.1–preview.4, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation and reuses existing shaders. Settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
 
 ## Building the setup tool from source
 

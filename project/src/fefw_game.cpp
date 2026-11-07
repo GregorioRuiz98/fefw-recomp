@@ -6,9 +6,9 @@
 #include "play/play_types.h"
 
 namespace {
-const nxrt::play::GameDefaults kControls = {R"ini(
+const nxrt::play::GameDefaults kControls = {.settings_text = R"ini(
 [meta]
-defaults_rev = 1
+defaults_rev = 2
 [display]
 window_mode = windowed
 width = 1280
@@ -42,32 +42,7 @@ dpad_down = DOWN
 dpad_left = LEFT
 dpad_right = RIGHT
 [bindings.all]
-Return = btn_a
-Space = btn_a
-Escape = btn_b
-X = btn_x
-Y = btn_y
-Q = btn_l
-E = btn_r
-1 = btn_zl
-3 = btn_zr
-Tab = btn_minus
-P = btn_plus
-W = move_forward
-S = move_back
-A = move_left
-D = move_right
-Up = dpad_up
-Down = dpad_down
-Left = dpad_left
-Right = dpad_right
-I = look_up
-K = look_down
-J = look_left
-L = look_right
-C = btn_lstick
-V = btn_rstick
-)ini", 1};
+)ini", .defaults_rev = 2, .controller_only = true};
 
 void title_defaults(nxrt::services::TitleProfile& profile) {
     profile.program_id = 0x04007EF01F8AE000ull;

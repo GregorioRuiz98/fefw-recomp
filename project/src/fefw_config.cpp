@@ -247,7 +247,7 @@ Validation validate_ready(const fs::path& dir, const Settings& s, bool hashes) {
     if (!fs::is_regular_file(dir / L"fefw.exe")) return invalid("The local executable must be generated from your copy of the game.");
     std::ifstream features(dir / L"fefw.features"); std::string revision;
     std::getline(features, revision);
-    if (revision != fefw::mods::kFeatures) return invalid("Update local preparation to use the current controller support and optional 60 FPS patch.");
+    if (revision != fefw::mods::kFeatures) return invalid("Update local preparation for controller-only gameplay and the optional 60 FPS patch.");
     if (const auto v = validate_prepared(s.exefs); !v.ok) return v;
     size_t count = 0; std::error_code ec;
     if (fs::is_directory(s.shaders, ec)) for (const auto& p : fs::directory_iterator(s.shaders)) if (p.is_regular_file() && p.path().extension() == L".spv") ++count;

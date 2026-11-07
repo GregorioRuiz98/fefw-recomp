@@ -97,12 +97,12 @@ NXTEST(preconnected_controller_recovers_without_added_event) {
     CHECK(nxrt::platform::gamepad_poll(cleanup.id, &raw));
 }
 
-NXTEST(service_driven_keyboard_controller_and_shutdown) {
+NXTEST(service_driven_controller_only_and_shutdown) {
     nxrt_register_game_fefw();
     std::string err;
     nxrt::play::Settings settings;
     REQUIRE(nxrt::play::parse_settings(nxrt::play::default_settings_text(), &settings, &err));
-    CHECK(settings.bindings.size() >= 20);
+    CHECK(settings.bindings.empty());
     CHECK(!settings.mouse.menu_cursor);
     CHECK(settings.pad.label_abxy);
     CHECK(settings.pad.rumble);
@@ -115,6 +115,9 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
     {   // A fresh file: exercise the game's factory defaults, not a previous test's settings.
         std::ofstream out(controls);
         out << nxrt::play::default_settings_text();
+        // Old custom bindings must not restore keyboard/mouse gameplay.
+        out << "\n[bindings.all]\nReturn = btn_a\nP = btn_plus\nUp = dpad_up\nW = move_forward\n"
+               "Mouse1 = btn_a\nMouse3 = btn_b\nWheelUp = btn_r\n[mouse]\nmenu_cursor = 1\n";
     }
     nxrt::config_set("play", "controls", controls.string().c_str());
     nxrt::config_set("play", "service_input_fallback", "1");
@@ -135,14 +138,14 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
         std::pair{SDL_SCANCODE_UP, nxrt::hid::btn(nxrt::hid::kBtnUp)}}) {
         key(code, true);
         pump();
-        CHECK((sample().buttons & mask) != 0);
+        CHECK((sample().buttons & mask) == 0);
         key(code, false);
         pump();
         CHECK((sample().buttons & mask) == 0);
     }
     key(SDL_SCANCODE_W, true);
     pump();
-    CHECK(sample().left.y > 30000);
+    CHECK_EQ(sample().left.y, 0);
     key(SDL_SCANCODE_W, false);
     pump();
     CHECK_EQ(sample().left.y, 0);
@@ -155,9 +158,36 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
     CHECK_EQ(nxrt::play::stats().frames, before);
     CHECK((sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)) == 0);
     pump();
-    CHECK((sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)) != 0);
+    CHECK((sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)) == 0);
     key(SDL_SCANCODE_RETURN, false);
     pump();
+
+    for (uint8_t button : {1, 3}) {
+        nxrt::input::Event e;
+        e.type = nxrt::input::EventType::MouseButtonDown;
+        e.u.button.button = button;
+        nxrt::input::queue_push(e);
+        pump();
+        CHECK_EQ(sample().buttons, 0ull);
+        e.type = nxrt::input::EventType::MouseButtonUp;
+        nxrt::input::queue_push(e);
+        pump();
+    }
+    nxrt::input::Event wheel;
+    wheel.type = nxrt::input::EventType::MouseWheel;
+    wheel.u.wheel.dy = 1;
+    nxrt::input::queue_push(wheel);
+    nxrt::input::Event motion;
+    motion.type = nxrt::input::EventType::MouseMotion;
+    motion.flags = nxrt::input::kFlagRelative;
+    motion.u.motion.dx = 100;
+    motion.u.motion.dy = -100;
+    nxrt::input::queue_push(motion);
+    pump();
+    CHECK_EQ(sample().buttons, 0ull);
+    CHECK_EQ(sample().right.x, 0);
+    CHECK_EQ(sample().right.y, 0);
+    CHECK(!nxrt::platform::relative_mouse());
 
     SDL_VirtualJoystickDesc desc;
     SDL_INIT_INTERFACE(&desc);
@@ -177,6 +207,18 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
     for (int n = 0; n < 25 && !(sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)); ++n) pump();
     CHECK(sample().connected);
     CHECK((sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)) != 0);
+    // Using the PC inputs while a controller is held must not change its output.
+    key(SDL_SCANCODE_W, true);
+    nxrt::input::Event click;
+    click.type = nxrt::input::EventType::MouseButtonDown;
+    click.u.button.button = 3;
+    nxrt::input::queue_push(click);
+    pump();
+    CHECK_EQ(sample().buttons, nxrt::hid::btn(nxrt::hid::kBtnA));
+    CHECK_EQ(sample().left.y, 0);
+    key(SDL_SCANCODE_W, false);
+    click.type = nxrt::input::EventType::MouseButtonUp;
+    nxrt::input::queue_push(click);
     SDL_SetJoystickVirtualButton(cleanup.joy, SDL_GAMEPAD_BUTTON_SOUTH, false);
     pump();
     CHECK((sample().buttons & nxrt::hid::btn(nxrt::hid::kBtnA)) == 0);
@@ -237,7 +279,7 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
     pump();
     CHECK_EQ(sample().buttons, 0ull);
     CHECK_EQ(sample().left.x, 0);
-    CHECK(sample().connected); // Keyboard remains player one.
+    CHECK_EQ(sample().connected, nxrt::input::gamepad_count() != 0);
     const struct Family { uint16_t vendor, product; nxrt::input::PadKind kind; } families[] = {
         {0x054c, 0x05c4, nxrt::input::PadKind::PlayStation},
         {0x054c, 0x09cc, nxrt::input::PadKind::PlayStation},

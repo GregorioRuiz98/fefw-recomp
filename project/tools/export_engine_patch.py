@@ -15,6 +15,7 @@ extra += ['runtime/include/nxrt/gfx.h', 'runtime/src/gfx/vk_device.cpp',
           'runtime/src/gfx/nvn/nvn_spirv_patch.cpp', 'runtime/src/gfx/nvn/nvn_spirv_patch.h']
 extra += ['runtime/include/nxrt/platform.h', 'runtime/src/gfx/platform.cpp',
           'runtime/src/gfx/play/play_ui.cpp', 'recomp/nxrecomp/config.py']
+extra += ['runtime/src/gfx/play/play_types.h']
 known = set(re.findall(r'^diff --git a/(\S+) b/\S+$', out.read_text(encoding='utf-8'), re.M)) | set(extra)
 
 

@@ -1884,7 +1884,7 @@ index 84538a9..e14d6ed 100644
      GamepadRaw s;
      for (int n = 0; n < SDL_GAMEPAD_BUTTON_COUNT && n < 32; ++n) {
 diff --git a/runtime/src/gfx/play/play.cpp b/runtime/src/gfx/play/play.cpp
-index f3ee20d..cfd7092 100644
+index f3ee20d..8592a7f 100644
 --- a/runtime/src/gfx/play/play.cpp
 +++ b/runtime/src/gfx/play/play.cpp
 @@ -68,12 +68,16 @@ namespace {
@@ -1906,7 +1906,92 @@ index f3ee20d..cfd7092 100644
  }
  }  // namespace
  
-@@ -667,7 +671,9 @@ int update_hook(::Ctx*, uint64_t, void*) {
+@@ -95,6 +99,7 @@ uint32_t jc2_button_bit(uint8_t b) {
+ }
+ 
+ struct PadFrame {
++    bool connected = false;
+     uint64_t buttons = 0;
+     hid::StickValue left, right;
+     hid::SixAxisSample six;
+@@ -112,7 +117,8 @@ class PlaySource : public hid::InputSource {
+ public:
+     explicit PlaySource(Engine* e) : engine_(e) {}
+     void poll(hid::InputSnapshot& out) override {
+-        const EngineOut kb = engine_->output(FrameLimiter::now_ns());
++        const bool controller_only = game_controller_only();
++        const EngineOut kb = controller_only ? EngineOut{} : engine_->output(FrameLimiter::now_ns());
+         PadFrame pf;
+         Touch t;
+         {
+@@ -121,7 +127,7 @@ public:
+             t = touch_;
+         }
+         hid::NpadInput& n = out.npad[0];
+-        n.connected = true;
++        n.connected = !controller_only || pf.connected;
+         n.style = hid::NpadStyle::FullKey;
+         n.buttons = pf.buttons | kb.buttons;
+         n.left = combine(pf.left, kb.lx, kb.ly);
+@@ -141,7 +147,7 @@ public:
+         gyro_pitch_.store(std::fabs(pf.six.gyro[0]), std::memory_order_relaxed);
+         n.six_axis.gyro[0] *= look_scale_.load(std::memory_order_relaxed);      // the game integrates the pitch rate per call: see play_lookrate.h
+         out.touch.count = 0;
+-        if (t.down) {
++        if (t.down && !controller_only) {
+             out.touch.count = 1;
+             hid::TouchFinger& f = out.touch.fingers[0];
+             f = hid::TouchFinger{};
+@@ -479,6 +485,13 @@ bool jc2_owns_clicks() {
+     return device_only && st.engine && ctx_in_play(st.engine->context()) && hid::jc2_mouse_active();
+ }
+ 
++void controller_settings(Settings& s) {
++    if (!game_controller_only()) return;
++    s.bindings.clear();
++    s.mouse.menu_cursor = false;
++    if (s.prompts.style == PromptStyle::Keyboard) s.prompts.style = PromptStyle::Auto;
++}
++
+ void handle_event(const input::Event& e, uint64_t now) {
+     G& st = g();
+     using input::EventType;
+@@ -512,6 +525,15 @@ void handle_event(const input::Event& e, uint64_t now) {
+         return;
+     }
+     if (st.overlay && st.overlay->handle_event(e)) return;
++    // Host shortcuts and overlay controls remain usable with a controller-only title.
++    if (e.type == EventType::KeyDown &&
++        (e.u.key.scancode == SDL_SCANCODE_RETURN || e.u.key.scancode == SDL_SCANCODE_KP_ENTER) && (e.mods & SDL_KMOD_ALT)) {
++        if (!(e.flags & input::kFlagRepeat)) toggle_fullscreen();
++        return;
++    }
++    if (game_controller_only() && (e.type == EventType::KeyDown || e.type == EventType::KeyUp ||
++        e.type == EventType::MouseButtonDown || e.type == EventType::MouseButtonUp ||
++        e.type == EventType::MouseWheel || e.type == EventType::MouseMotion)) return;
+     const bool menu_blocked = st.overlay && st.overlay->visible();
+     if ((e.type == EventType::KeyDown && !(e.flags & input::kFlagRepeat)) || e.type == EventType::MouseButtonDown || e.type == EventType::MouseWheel)
+         st.last_dev = LastDevice::KeyboardMouse;
+@@ -520,10 +542,6 @@ void handle_event(const input::Event& e, uint64_t now) {
+             if (st.quit_on_close) quit_now("window closed");
+             break;
+         case EventType::KeyDown:
+-            if ((e.u.key.scancode == SDL_SCANCODE_RETURN || e.u.key.scancode == SDL_SCANCODE_KP_ENTER) && (e.mods & SDL_KMOD_ALT)) {
+-                if (!(e.flags & input::kFlagRepeat)) toggle_fullscreen();
+-                return;
+-            }
+             if (!(e.flags & input::kFlagRepeat)) mm::pointer().on_other_input();
+             if (!(e.flags & input::kFlagRepeat) && !menu_blocked) st.engine->key(e.u.key.scancode, true, now);
+             break;
+@@ -619,6 +637,7 @@ void poll_pads(uint64_t now) {
+     for (size_t i = 0; i < n; ++i) {
+         platform::GamepadRaw raw;
+         if (!platform::gamepad_poll(infos[i].id, &raw)) continue;
++        pf.connected = true;
+         hid::NpadInput tmp;
+         map_pad(raw, st.settings.pad, &tmp);
+         {   // a pressed button or a stick well off centre makes this the pad the prompts follow
+@@ -667,7 +686,9 @@ int update_hook(::Ctx*, uint64_t, void*) {
      // All of it runs once per presented frame: the game's main loop runs more iterations than it presents frames (Pokopia ~79 against ~50 a
      // second), and per iteration the limiter took several slots per frame while the in-flight list (one id per sim_begin, one popped per
      // present) filled up until wait_in_flight held the main thread for presents that only come after more main-loop work.
@@ -1917,7 +2002,24 @@ index f3ee20d..cfd7092 100644
      if (frame_start) {
          extras::LowLatency* ll = extras::lowlat();
          if (extras::pace_in_main()) {
-@@ -882,6 +888,12 @@ int update_hook(::Ctx*, uint64_t, void*) {
+@@ -700,6 +721,7 @@ int update_hook(::Ctx*, uint64_t, void*) {
+         std::unique_lock<std::mutex> lk(st.mu);
+         if (st.have_pending) {
+             Settings s = st.pending;
++            controller_settings(s);
+             st.have_pending = false;
+             const std::string old_mode = st.settings.display.window_mode;
+             const int old_monitor = st.settings.display.monitor;
+@@ -859,7 +881,7 @@ int update_hook(::Ctx*, uint64_t, void*) {
+             hm.buttons = overlay_visible ? 0u : st.jc2_buttons;
+             hm.wheel_x = st.jc2_wheel_x;
+             hm.wheel_y = st.jc2_wheel_y;
+-            hm.focused = (platform::focused() || tt::enabled()) && !platform::minimized() && !overlay_visible;
++            hm.focused = !game_controller_only() && (platform::focused() || tt::enabled()) && !platform::minimized() && !overlay_visible;
+             hm.captured = platform::relative_mouse();
+             hid::jc2_mouse_feed(hm);
+             st.jc2_wheel_x = st.jc2_wheel_y = 0;
+@@ -882,6 +904,12 @@ int update_hook(::Ctx*, uint64_t, void*) {
      return 0;
  }
  
@@ -1930,7 +2032,34 @@ index f3ee20d..cfd7092 100644
  // ---- what the game module gets from play mode (play_game.h GameHost) ----------------------------------------------------------------------
  class GameHostImpl : public GameHost {
  public:
-@@ -1167,7 +1179,6 @@ bool start(const StartOptions& opt) {
+@@ -909,8 +937,7 @@ public:
+             if (st.late_sample && st.window && std::this_thread::get_id() == st.pump_thread) platform::pump_events();
+             if (extras::LowLatency* ll = extras::lowlat()) ll->input_sample();
+             const input::MouseDelta d = input::mouse_delta_take();
+-            *dx = d.dx;
+-            *dy = d.dy;
++            if (!game_controller_only()) { *dx = d.dx; *dy = d.dy; }
+         }
+     }
+     void aim_applied(double dx, double dy) override {
+@@ -1085,6 +1112,7 @@ bool load() {
+     std::string err;
+     const bool existed = GetFileAttributesA(st.path.c_str()) != INVALID_FILE_ATTRIBUTES;
+     st.load_ok = load_settings(st.path, &st.settings, &err);
++    controller_settings(st.settings);
+     if (!existed) {
+         std::string e2;
+         if (save_settings(st.path, st.settings, &e2)) NXLOG_I(kTag, "wrote the factory settings to %s", st.path.c_str());
+@@ -1121,7 +1149,7 @@ bool load() {
+     else audio::set_master_volume(static_cast<float>(st.settings.audio.volume));
+     if (config_has("audio", "device")) st.settings.audio.device = config_get_str("audio", "device", "default");
+     else config_set("audio", "device", st.settings.audio.device.c_str());
+-    st.capture_mouse = config_get_bool("play", "capture_mouse", true);
++    st.capture_mouse = !game_controller_only() && config_get_bool("play", "capture_mouse", true);
+     st.late_sample = config_get_bool("play", "late_sample", true);
+     st.quit_on_close = config_get_bool("play", "quit_on_close", true);
+     st.log_status = config_get_bool("play", "log_status", false);
+@@ -1167,7 +1195,6 @@ bool start(const StartOptions& opt) {
      kernel::sched_set_process_priority(st.window);     // a person is playing: keep the frame out of the background load
      st.pump_thread = std::this_thread::get_id();
      g_pump_tid.store(GetCurrentThreadId(), std::memory_order_relaxed);
@@ -1938,7 +2067,7 @@ index f3ee20d..cfd7092 100644
      st.engine = std::make_unique<Engine>(st.settings);
      st.engine->set_context(Ctx::Menu, now_ns());
      st.source_owner = std::make_unique<PlaySource>(st.engine.get());
-@@ -1222,9 +1233,13 @@ bool start(const StartOptions& opt) {
+@@ -1222,9 +1249,13 @@ bool start(const StartOptions& opt) {
      }
      // the frame boundary, then the game's input, camera, lock-on and menu hooks (hooks of one address run in registration order)
      if (gp && gp->frame_update) st.hook_update = hook_add_entry(st.base + gp->frame_update, &update_hook);
@@ -1953,7 +2082,7 @@ index f3ee20d..cfd7092 100644
      NXLOG_I(kTag, "play mode started (%s, overlay %s, base 0x%llx, game %s, frame hook %u)", st.window ? "window" : "no window", st.overlay ? "on" : "off",
              static_cast<unsigned long long>(st.base), game::info().id, st.hook_update);
      return true;
-@@ -1233,6 +1248,9 @@ bool start(const StartOptions& opt) {
+@@ -1233,6 +1264,9 @@ bool start(const StartOptions& opt) {
  void stop() {
      G& st = g();
      if (!st.started) return;
@@ -1963,19 +2092,71 @@ index f3ee20d..cfd7092 100644
      vpad_shutdown();      // a virtual pad from a test script does not outlive play mode
      if (const GamePlay* gp = game_play(); gp && gp->remove) gp->remove();
      if (st.hook_update) hook_remove(st.hook_update);
+diff --git a/runtime/src/gfx/play/play_types.h b/runtime/src/gfx/play/play_types.h
+index 41c1d4c..1044de3 100644
+--- a/runtime/src/gfx/play/play_types.h
++++ b/runtime/src/gfx/play/play_types.h
+@@ -294,8 +294,13 @@ struct GameDefaults {
+     const GameVocabulary* vocabulary = nullptr;      // the names of the action and context slots (below)
+     const struct GameDefaultChange* changes = nullptr;
+     unsigned change_count = 0;
++    bool controller_only = false;                    // title policy; old bindings cannot enable keyboard/mouse gameplay
+ };
+ const GameDefaults* game_defaults();                 // the registered game's, or nullptr
++inline bool game_controller_only() {
++    const GameDefaults* d = game_defaults();
++    return d && d->controller_only;
++}
+ 
+ // The game's words for the generic slots (Info::play_defaults->vocabulary). Every part is optional: a null table keeps the generic names.
+ struct GameActLabel {
 diff --git a/runtime/src/gfx/play/play_ui.cpp b/runtime/src/gfx/play/play_ui.cpp
-index 8910fcc..a1e8567 100644
+index 8910fcc..b1bcd43 100644
 --- a/runtime/src/gfx/play/play_ui.cpp
 +++ b/runtime/src/gfx/play/play_ui.cpp
-@@ -454,6 +454,8 @@ void pad_tab(const LiveStatus& live, Page& p) {   // the Gamepad tab of the Cont
+@@ -408,6 +408,7 @@ void prompts_row(const LiveStatus& live, Page& p) {
+     const int prompt_sel = static_cast<int>(prompts.style);
+     if (ImGui::BeginCombo("Button prompts", kPromptLabels[prompt_sel])) {
+         for (int i = 0; i < kPromptStyleCount; ++i) {
++            if (game_controller_only() && static_cast<PromptStyle>(i) == PromptStyle::Keyboard) continue;
+             if (ImGui::Selectable(kPromptLabels[i], i == prompt_sel) && i != prompt_sel) {
+                 prompts.style = static_cast<PromptStyle>(i);
+                 mark(p);
+@@ -415,7 +416,8 @@ void prompts_row(const LiveStatus& live, Page& p) {
+         }
+         ImGui::EndCombo();
+     }
+-    tip("The button icons in the game's prompts: the game's own Switch icons, Xbox, PlayStation, keyboard and mouse, or Auto to follow the device you used last.");
++    tip(game_controller_only() ? "Button icons: Switch, Xbox, PlayStation, or Auto for your controller." :
++        "The button icons in the game's prompts: the game's own Switch icons, Xbox, PlayStation, keyboard and mouse, or Auto to follow the device you used last.");
+     if (prompts.style == PromptStyle::Auto) {
+         ImGui::SameLine();
+         ImGui::TextDisabled("showing %s", cstr(live.prompt_now));
+@@ -454,6 +456,10 @@ void pad_tab(const LiveStatus& live, Page& p) {   // the Gamepad tab of the Cont
      ImGui::SeparatorText("Gamepad");
      if (live.pads == 0) ImGui::TextUnformatted("No gamepad open.");
      else ImGui::Text("%d open: %s", live.pads, live.pad_name.c_str());
 +    if (ImGui::Button("Rescan controllers")) platform::rescan_gamepads();
-+    ImGui::TextWrapped("Controller and keyboard work together. Press a controller button; no mode change is needed.");
++    ImGui::TextWrapped("%s", game_controller_only() ?
++        "A controller is required to play. Keyboard and mouse are available only for host menus and shortcuts." :
++        "Controller and keyboard work together. Press a controller button; no mode change is needed.");
      ImGui::Text("Gyro available: %s    Rumble available: %s", yes_no(live.pad_gyro), yes_no(live.pad_rumble));
  }
  
+@@ -1319,11 +1325,11 @@ void controls_page(UiHost& host, const LiveStatus& live, Page& p) {
+     prompts_row(live, p);
+     ImGui::Spacing();
+     if (ImGui::BeginTabBar("controls_tabs")) {
+-        if (ImGui::BeginTabItem("Mouse")) {
++        if (!game_controller_only() && ImGui::BeginTabItem("Mouse")) {
+             mouse_tab(p);
+             ImGui::EndTabItem();
+         }
+-        if (ImGui::BeginTabItem("Keyboard and mouse buttons")) {
++        if (!game_controller_only() && ImGui::BeginTabItem("Keyboard and mouse buttons")) {
+             bindings_tab(host, p);
+             ImGui::EndTabItem();
+         }
 diff --git a/runtime/src/gfx/vk_device.cpp b/runtime/src/gfx/vk_device.cpp
 index ac2edcf..172f367 100644
 --- a/runtime/src/gfx/vk_device.cpp

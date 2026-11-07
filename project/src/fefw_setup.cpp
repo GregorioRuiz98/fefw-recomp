@@ -143,7 +143,7 @@ void create_controls() {
     font = CreateFontW(-px(16), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI");
     control(L"STATIC", L"Fire Emblem Recomp", 0, 24, 20, 620, 28);
-    control(L"STATIC", L"Set up your local copy. Original files and saves are preserved.", 0, 24, 53, 620, 30);
+    control(L"STATIC", L"Set up your local copy. A controller is required to play.", 0, 24, 53, 620, 30);
     control(L"STATIC", L"Game folder", 0, 24, 96, 240, 22);
     control(L"EDIT", settings.source.c_str(), Folder, 24, 123, 498, 28, WS_TABSTOP | ES_AUTOHSCROLL);
     control(L"BUTTON", L"Browse…", Browse, 534, 122, 112, 30, WS_TABSTOP | BS_PUSHBUTTON);

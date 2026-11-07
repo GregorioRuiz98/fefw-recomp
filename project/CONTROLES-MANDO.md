@@ -1,8 +1,8 @@
-# Controller and keyboard guide
+# Controller guide
 
-Connect your controller to Windows and open **fefw.exe**. Detection is automatic; you can also connect it while the game is running. Controller and keyboard input remain available together.
+Connect your controller to Windows and open **fefw.exe**. Detection is automatic; you can also connect it while the game is running. A controller is required for gameplay. Keyboard and mouse work only in the setup tool, host settings and shortcuts (F1, F2, Alt+Enter and closing the window).
 
-The game searches for controllers at startup and checks the device list every second to recover from missing connection notifications. DualShock 4 uses SDL’s HID driver over USB and when exposed by Windows over Bluetooth. There is no exclusive mouse/keyboard mode to disable.
+The game searches for controllers at startup and checks the device list every second to recover from missing connection notifications. DualShock 4 uses SDL’s HID driver over USB and when exposed by Windows over Bluetooth. Keyboard keys, mouse buttons, movement and the wheel do not send game actions. Old keyboard/mouse bindings in controls.ini cannot re-enable them; their gameplay settings tabs are hidden.
 
 If the controller does not respond, open **F1 → Settings → Controls → Gamepad** and press **Rescan controllers**. That section shows the device name and status. Close F1 to return button input to the game; input is deliberately held back while the settings overlay is open. You can also reconnect the cable and wait a second.
 
@@ -23,6 +23,6 @@ The four face buttons follow their printed labels when SDL identifies them. Play
 
 Settings are stored in **controls.ini**, in `[pad]` and `[padmap]`. Runtime settings also open with **F1**. Both sticks default to a 10% deadzone; triggers activate at 35% travel. Rumble and sensors are enabled when available, but their physical behavior in this game has not been verified.
 
-Disconnecting releases buttons and sticks while keyboard input remains available. If a controller does not respond, check `fefw.log` for a `gamepad ... added` entry with its name. Compatibility depends on Windows and SDL recognizing the device.
+Disconnecting releases buttons and sticks. Reconnect a controller to continue playing. If a controller does not respond, check `fefw.log` for a `gamepad ... added` entry with its name. Compatibility depends on Windows and SDL recognizing the device.
 
 The complete SDL → service-driven input → HID path has been tested with virtual Xbox, DualShock 4 (two revisions), DualSense and Nintendo Switch controllers, including buttons, triggers, sticks, deadzones and connection/disconnection. An additional regression checks a preconnected DualShock 4, missing notifications and duplicate prevention. Physical testing on your machine and a full playthrough remain outstanding.
