@@ -13,6 +13,8 @@ extra = ['tools/shaders/harness/translator/ampere-'+s+'.patch' for s in ('array-
 extra += ['tools/shaders/licenses/nxnative-MIT.txt', 'runtime/src/gfx/nvn/nvn_spatial.spvasm', 'runtime/src/gfx/nvn/nvn_spatial_shader.inc']
 extra += ['runtime/include/nxrt/gfx.h', 'runtime/src/gfx/vk_device.cpp',
           'runtime/src/gfx/nvn/nvn_spirv_patch.cpp', 'runtime/src/gfx/nvn/nvn_spirv_patch.h']
+extra += ['runtime/include/nxrt/platform.h', 'runtime/src/gfx/platform.cpp',
+          'runtime/src/gfx/play/play_ui.cpp', 'recomp/nxrecomp/config.py']
 known = set(re.findall(r'^diff --git a/(\S+) b/\S+$', out.read_text(encoding='utf-8'), re.M)) | set(extra)
 
 

@@ -21,6 +21,8 @@ class LayoutTests(unittest.TestCase):
             r'constexpr uint64_t (\w+) = (0x[0-9A-Fa-f]+)ull', header)}
 
     def test_modules_do_not_overlap_reserved_regions_or_each_other(self):
+        if not (PROJECT / 'reports/dump-inventory.json').is_file():
+            self.skipTest('Private dump inventory is generated locally and is not distributed')
         inventory = json.loads((PROJECT / 'reports/dump-inventory.json').read_text(encoding='utf-8'))
         spans = {m['name']: m['memory_size'] for m in inventory['modules']}
         regions = []

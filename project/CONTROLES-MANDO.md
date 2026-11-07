@@ -2,6 +2,10 @@
 
 Conecta el mando a Windows y abre **fefw.exe**. La detección es automática; también puedes conectarlo con el juego abierto. No hace falta activar un emulador ni desactivar el teclado.
 
+El juego busca mandos al arrancar y revisa la lista cada segundo para recuperarse de avisos de conexión perdidos. El DualShock 4 usa el controlador HID de SDL tanto por USB como cuando Windows lo expone por Bluetooth. No hay un modo exclusivo de ratón/teclado que debas desactivar: ambos siguen disponibles.
+
+Si el mando no responde, abre **F1 → Settings → Controls → Gamepad** y pulsa **Detectar mandos / Rescan controllers**. En esa sección aparece el nombre del dispositivo y su estado. Cierra F1 para que los botones lleguen al juego; mientras los ajustes están abiertos se retienen deliberadamente. También puedes desconectar y conectar el cable y esperar un segundo.
+
 | Juego | Xbox | PlayStation | Nintendo Pro |
 | --- | --- | --- | --- |
 | A / confirmar | A | Cruz | A |
@@ -21,4 +25,4 @@ Los ajustes están en **controls.ini**, secciones `[pad]` y `[padmap]`; también
 
 Al desconectar el mando se liberan botones y sticks, y el teclado sigue disponible. Si no responde, comprueba en `fefw.log` que aparezca `gamepad ... added` con su nombre. La compatibilidad depende de que Windows y SDL reconozcan el dispositivo.
 
-Se ha probado la ruta completa SDL → lectura por servicios → HID con mandos virtuales de las familias Xbox, PlayStation y Nintendo Switch, incluidos botones, gatillos, sticks, zona muerta y conexión/desconexión. Falta la prueba con tu mando físico y una partida completa.
+Se ha probado la ruta completa SDL → lectura por servicios → HID con mandos virtuales de las familias Xbox, DualShock 4 (dos revisiones), DualSense y Nintendo Switch, incluidos botones, gatillos, sticks, zona muerta y conexión/desconexión. Una regresión adicional verifica un DualShock 4 preconectado, avisos perdidos y ausencia de dispositivos duplicados. La comprobación física en tu equipo y una partida completa siguen pendientes.

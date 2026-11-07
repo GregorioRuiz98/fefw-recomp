@@ -33,7 +33,7 @@ std::string system_language();
 struct Settings {
     fs::path source, exefs, romfs, shaders;
     int width = 1280, height = 720;
-    bool fullscreen = false, skip = true, completed = false, vsync = true;
+    bool fullscreen = false, skip = true, completed = false, vsync = true, fps60 = false;
     std::string language;
 };
 struct Validation { bool ok = false; std::string error; };

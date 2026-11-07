@@ -8,6 +8,7 @@
 /fefw.map
 /fefw.pdb
 /fefw.ini
+/fefw.features
 /controls.ini
 /preparation.*
 **/__pycache__/

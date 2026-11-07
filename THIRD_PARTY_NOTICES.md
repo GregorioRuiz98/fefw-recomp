@@ -10,6 +10,7 @@ Estos avisos acompañan al software y los parches. Las referencias al motor y su
 | Mesa NAK | Referencias de decodificación; MIT, titulares indicados | `project/licenses/mesa-nak-MIT.txt` |
 | smo-recomp y referencias GPL del motor | GNU GPL v3; alcance en los avisos del motor | `project/licenses/smo-recomp-GPL-3.0.txt` |
 | nxnative | Adaptaciones del traductor; MIT, seedds | `project/licenses/nxnative-MIT.txt` |
+| Parche de 60 FPS de Kompas9 | [Switch-Game-Patches, revisión 9e553571c986fbd45ef55202cb8ec0e1179a3db9](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave); puntos del parche v1.0, integración nativa propia. Documentación y herramientas originales MIT | `project/licenses/Kompas9-MIT.txt`; alcance y límites en el README de origen |
 | libvpx | Biblioteca de vídeo del host; BSD e ISC según sus archivos | `project/licenses/libvpx-copyright.txt` |
 | dav1d y código incorporado | Biblioteca de vídeo del host; licencias del aviso completo | `project/licenses/dav1d-copyright.txt` |
 

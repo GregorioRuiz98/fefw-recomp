@@ -46,6 +46,57 @@ struct Cleanup {
 };
 }
 
+NXTEST(preconnected_controller_recovers_without_added_event) {
+    // A controller can already exist when the game starts, with its initial
+    // notification consumed by another SDL user. Discovery must enumerate it.
+    REQUIRE(SDL_Init(SDL_INIT_GAMEPAD));
+    Cleanup cleanup;
+    SDL_VirtualJoystickDesc desc;
+    SDL_INIT_INTERFACE(&desc);
+    desc.type = SDL_JOYSTICK_TYPE_GAMEPAD;
+    desc.naxes = SDL_GAMEPAD_AXIS_COUNT;
+    desc.nbuttons = SDL_GAMEPAD_BUTTON_COUNT;
+    desc.vendor_id = 0x054c;
+    desc.product_id = 0x09cc;
+    desc.name = "Preconnected DualShock 4 regression";
+    cleanup.id = SDL_AttachVirtualJoystick(&desc);
+    REQUIRE(cleanup.id);
+    cleanup.joy = SDL_OpenJoystick(cleanup.id);
+    REQUIRE(cleanup.joy);
+    SDL_PumpEvents();
+    SDL_FlushEvents(SDL_EVENT_GAMEPAD_ADDED, SDL_EVENT_GAMEPAD_ADDED);
+    REQUIRE(nxrt::platform::init());
+    nxrt::platform::pump_events();
+    nxrt::platform::GamepadRaw raw;
+    REQUIRE(nxrt::platform::gamepad_poll(cleanup.id, &raw));
+    CHECK_EQ(nxrt::input::gamepad_kind_of(cleanup.id), nxrt::input::PadKind::PlayStation);
+    const auto count = nxrt::input::gamepad_count();
+    nxrt::platform::rescan_gamepads();
+    nxrt::platform::pump_events();
+    CHECK_EQ(nxrt::input::gamepad_count(), count);
+    SDL_SetJoystickVirtualButton(cleanup.joy, SDL_GAMEPAD_BUTTON_SOUTH, true);
+    nxrt::platform::pump_events();
+    REQUIRE(nxrt::platform::gamepad_poll(cleanup.id, &raw));
+    CHECK(raw.buttons & (1u << SDL_GAMEPAD_BUTTON_SOUTH));
+    // A lost hot-plug notification must also heal without restarting.
+    const auto disconnected = cleanup.id;
+    SDL_CloseJoystick(cleanup.joy); cleanup.joy = nullptr;
+    SDL_DetachVirtualJoystick(cleanup.id); cleanup.id = 0;
+    SDL_PumpEvents();
+    SDL_FlushEvents(SDL_EVENT_GAMEPAD_REMOVED, SDL_EVENT_GAMEPAD_REMOVED);
+    CHECK(!nxrt::platform::gamepad_poll(disconnected, &raw));
+    nxrt::platform::pump_events();
+    cleanup.id = SDL_AttachVirtualJoystick(&desc);
+    REQUIRE(cleanup.id);
+    cleanup.joy = SDL_OpenJoystick(cleanup.id);
+    REQUIRE(cleanup.joy);
+    SDL_PumpEvents();
+    SDL_FlushEvents(SDL_EVENT_GAMEPAD_ADDED, SDL_EVENT_GAMEPAD_ADDED);
+    SDL_Delay(1100);
+    nxrt::platform::pump_events();
+    CHECK(nxrt::platform::gamepad_poll(cleanup.id, &raw));
+}
+
 NXTEST(service_driven_keyboard_controller_and_shutdown) {
     nxrt_register_game_fefw();
     std::string err;
@@ -188,6 +239,8 @@ NXTEST(service_driven_keyboard_controller_and_shutdown) {
     CHECK_EQ(sample().left.x, 0);
     CHECK(sample().connected); // Keyboard remains player one.
     const struct Family { uint16_t vendor, product; nxrt::input::PadKind kind; } families[] = {
+        {0x054c, 0x05c4, nxrt::input::PadKind::PlayStation},
+        {0x054c, 0x09cc, nxrt::input::PadKind::PlayStation},
         {0x054c, 0x0ce6, nxrt::input::PadKind::PlayStation},
         {0x057e, 0x2009, nxrt::input::PadKind::Switch},
     };

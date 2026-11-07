@@ -16,7 +16,7 @@ function Run([string]$Exe, [string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "Fallo $Exe ($LASTEXITCODE)" }
 }
 Run 'cmake' @('-S', $project, '-B', $build, '-G', 'Ninja', '-DCMAKE_C_COMPILER=clang-cl', '-DCMAKE_CXX_COMPILER=clang-cl', '-DCMAKE_BUILD_TYPE=Release', '-DFEFW_BUILD_GAME=OFF')
-Run 'cmake' @('--build', $build, '--target', 'fefw_setup', 'fefw_config_tests', '--parallel', '1')
+Run 'cmake' @('--build', $build, '--target', 'fefw_setup', 'fefw_config_tests', 'fefw_mods_tests', '--parallel', '1')
 Run 'ctest' @('--test-dir', $build, '--output-on-failure')
 $python = Join-Path $Work 'venv/Scripts/python.exe'
 if (!(Test-Path -LiteralPath $python)) { $python = 'python' }

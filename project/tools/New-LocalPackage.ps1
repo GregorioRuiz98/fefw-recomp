@@ -92,6 +92,7 @@ watchdog_seconds = -1
 "@
 # Keep the player's settings and saves when refreshing the executable.
 $iniPath = Join-Path $Out 'fefw.ini'
+[IO.File]::WriteAllText((Join-Path $Out 'fefw.features'), 'fefw-runtime-2', [Text.UTF8Encoding]::new($false))
 if (!(Test-Path -LiteralPath $iniPath)) {
     [IO.File]::WriteAllText($iniPath, $ini, [Text.UTF8Encoding]::new($false))
 }

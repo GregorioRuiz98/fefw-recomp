@@ -23,6 +23,7 @@
 // work/run) nothing changes, except that [fs] exefs in the ini named by --ini / NXRT_INI replaces the built-in ExeFS default.
 #include <windows.h>
 #include "fefw_config.h"
+#include "fefw_mods.h"
 
 #include <chrono>
 #include <cstdio>
@@ -434,6 +435,12 @@ int main(int argc, char** argv) {
         nxrt::Module* m = nxrt::module_load_nso_file(path.c_str(), lo, &err);
         if (!m) die("cannot load %s: %s", path.c_str(), err.c_str());
         if (m->base() != g.nx->base) die("module %s is mapped at a base different from the one the library was lifted for", g.file);
+        if (std::strcmp(g.file, "main") == 0 && nxrt::config_get_bool("mods", "fps60", false)) {
+            if (!fefw::mods::apply_fps60(
+                    {reinterpret_cast<std::byte*>(m->base()), static_cast<size_t>(m->size())},
+                    fefw::mods::nso_build_id(widen_utf8(path)), true, err)) die("60 FPS patch refused: %s", err.c_str());
+            NXLOG_I("mods", "60 FPS enabled: presentation interval 1 and timing rate 60 (Kompas9 v1.0)");
+        }
         // 2. register the lifted functions and tables (an ABI-version mismatch of a stale library is refused here)
         const nxrt::RegResult r = nxrt::nxmodule_register(m, g.nx, *g.abi);
         if (!r.ok()) die("lifted module %s refused: %s", g.file, r.message.c_str());

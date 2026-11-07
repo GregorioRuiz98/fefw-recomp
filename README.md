@@ -8,7 +8,7 @@ Este proyecto no está afiliado, patrocinado ni aprobado por Nintendo, Intellige
 
 ## Descargar y abrir el configurador
 
-**[Descargar FEFW Recomp para Windows x64 — v0.1.0-preview.1](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.1/FEFW-Recomp-Windows-x64-v0.1.0-preview.1.zip)** · [Notas y archivos del release](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.1)
+**[Descargar FEFW Recomp para Windows x64 — v0.1.0-preview.2](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.2/FEFW-Recomp-Windows-x64-v0.1.0-preview.2.zip)** · [Notas y archivos del release](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.2)
 
 Extrae **todo el ZIP** y abre `fefw_setup.exe`. El configurador está dentro de esa descarga; las opciones **Code → Download ZIP** y **Source code** de GitHub solo contienen fuentes, sin el ejecutable del configurador. Mientras el repositorio sea privado, necesitas acceso e iniciar sesión para descargarlo.
 
@@ -53,6 +53,16 @@ Se reconoce el Title ID `04007EF01F8AE000`, main Build ID `DB93B0125F4850601D61C
 
 La resolución de salida es el tamaño de la ventana; la resolución interna conserva su valor original. Pantalla completa utiliza el escritorio. La primera configuración activa sincronización vertical. Consulta [los controles de mando y teclado](project/CONTROLES-MANDO.md).
 
+La versión preview.2 busca mandos al arrancar y vuelve a comprobarlos cada segundo. Para recuperar un DualShock 4 u otro dispositivo puedes usar **F1 → Settings → Controls → Gamepad → Detectar mandos**. Mando y teclado funcionan simultáneamente; cierra F1 para devolver el control al juego.
+
+## Parche opcional de 60 FPS
+
+En `fefw_setup.exe`, activa **60 FPS (Kompas9, experimental)**, guarda y reinicia el juego. Está desactivado inicialmente y se puede desactivar desde el mismo configurador. La integración reproduce los dos cambios del [parche 60FPS v1.0 de Kompas9](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave): intervalo de presentación y tasa de temporización. Se comprueban el Build ID y las dos instrucciones antes de aplicar nada.
+
+Ambas variantes están compiladas de forma nativa. La opción actúa sobre la imagen privada en memoria, sin modificar tu carpeta original ni exigir un emulador o copiar un IPS a la carpeta del programa. El ajuste se conserva como `[mods] fps60` en `fefw.ini` y fija el límite del host en 60 al activarlo. No garantiza rendimiento sostenido de 60 FPS ni equivalencia temporal en todo el juego; combate y cinemáticas prolongadas requieren validación adicional.
+
+Para actualizar desde preview.1, extrae el nuevo ZIP sobre la misma carpeta y abre el configurador con el juego cerrado. Al guardar se actualizará la preparación local y se reutilizarán los shaders ya preparados. Se conservan ajustes y partidas. No basta con cambiar un número en el INI de un ejecutable antiguo: la nueva versión tiene que compilarse.
+
 ## Construir el configurador desde las fuentes
 
 No necesitas archivos del juego para construir el configurador. Desde la raíz, en PowerShell:
@@ -60,7 +70,7 @@ No necesitas archivos del juego para construir el configurador. Desde la raíz, 
 ```powershell
 . .\project\tools\Initialize-BuildEnv.ps1
 cmake -S project -B work/setup -G Ninja -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_BUILD_TYPE=Release -DFEFW_BUILD_GAME=OFF
-cmake --build work/setup --target fefw_setup fefw_config_tests --parallel 1
+cmake --build work/setup --target fefw_setup fefw_config_tests fefw_mods_tests --parallel 1
 ctest --test-dir work/setup --output-on-failure
 Copy-Item work/setup/fefw_setup.exe ./fefw_setup.exe
 .\fefw_setup.exe

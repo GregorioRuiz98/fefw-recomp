@@ -52,6 +52,13 @@ int main() {
         check(game.get("launcher", "skip_setup") == "0", "show-setup preference is saved");
         check(controls.get("display", "vsync") == "1", "first-run profile enables synchronized presentation");
         check(controls.get("padmap", "start") == "PLUS", "editing setup preserves controller mapping");
+        check(game.get("mods", "fps60") == "0", "60 FPS patch defaults to off");
+        edit.fps60 = true;
+        s::edit_settings(edit, game, controls);
+        check(game.get("mods", "fps60") == "1" && controls.get("display", "fps_limit") == "60", "60 FPS changes game patch and host cap");
+        edit.fps60 = false;
+        s::edit_settings(edit, game, controls);
+        check(game.get("mods", "fps60") == "0", "60 FPS can be disabled");
         const auto before = s::load(dir);
         check(!before.completed && s::needs_setup(dir), "first launch requires setup");
         check(!s::game_running(dir), "game mutex absent before start");

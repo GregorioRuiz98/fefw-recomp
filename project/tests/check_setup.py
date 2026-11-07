@@ -30,6 +30,7 @@ def main():
         if src.exists():
             shutil.copy2(src, folder / name)
     game_ini = folder / 'fefw.ini'
+    (folder / 'fefw.features').write_text('fefw-runtime-2', encoding='utf-8')
     control_ini = folder / 'controls.ini'
     game_ini.write_text(
         '[fs]\nexefs = ' + str(work / 'prepared/exefs') + '\nromfs = ' + str(a.source / 'romfs') +
@@ -72,6 +73,16 @@ def main():
     run('save_skip_setup', ['--apply', '--source', str(a.source), '--skip', '1'])
     text = run('direct_launch_preference', ['--status'])
     assert 'show_setup=0' in text
+    run('enable_fps60', ['--apply', '--fps60', '1'])
+    assert read(game_ini)['mods']['fps60'] == '1'
+    assert read(control_ini)['display']['fps_limit'] == '60'
+    assert 'fps60=1' in run('fps60_status', ['--status'])
+    run('fps60_checked_ui', ['--test-ui'])
+    run('disable_fps60', ['--apply', '--fps60', '0'])
+    assert read(game_ini)['mods']['fps60'] == '0'
+    (folder / 'fefw.features').unlink()
+    run('old_executable_requires_update', ['--status'], 2)
+    (folder / 'fefw.features').write_text('fefw-runtime-2', encoding='utf-8')
     run('standalone_ui_ignores_skip', ['--test-ui'])
     before = game_ini.read_bytes(), control_ini.read_bytes()
     run('unsupported_language_keeps_configuration', ['--apply', '--language', 'Portuguese'], 2)

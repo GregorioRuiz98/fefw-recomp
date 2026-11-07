@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "fefw_config.h"
+#include "fefw_mods.h"
 #include "fefw_supported.h"
 #include <windows.h>
 #include <bcrypt.h>
@@ -184,6 +185,7 @@ Settings load(const fs::path& dir) {
     s.language = ini.get("system", "language", system_language());
     s.skip = ini.get("launcher", "skip_setup", "1") == "1";
     s.completed = ini.get("launcher", "setup_complete", "0") == "1";
+    s.fps60 = ini.get("mods", "fps60", "0") == "1";
     s.vsync = s.completed ? controls.get("display", "vsync", "1") != "0" : true;
     return s;
 }
@@ -243,6 +245,9 @@ Validation validate_ready(const fs::path& dir, const Settings& s, bool hashes) {
     const auto ls = available_languages(s.source);
     if (std::none_of(ls.begin(), ls.end(), [&](const auto& l) { return s.language == l.value; })) return invalid("El idioma elegido no está presente en esta copia.");
     if (!fs::is_regular_file(dir / L"fefw.exe")) return invalid("Falta generar el ejecutable local desde tu copia del juego.");
+    std::ifstream features(dir / L"fefw.features"); std::string revision;
+    std::getline(features, revision);
+    if (revision != fefw::mods::kFeatures) return invalid("Actualiza la preparacion local para detectar mandos y habilitar el parche opcional de 60 FPS.");
     if (const auto v = validate_prepared(s.exefs); !v.ok) return v;
     size_t count = 0; std::error_code ec;
     if (fs::is_directory(s.shaders, ec)) for (const auto& p : fs::directory_iterator(s.shaders)) if (p.is_regular_file() && p.path().extension() == L".spv") ++count;
@@ -265,6 +270,7 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     controls.set("tweaks", "language", s.language);
     ini.set("launcher", "source_dir", path_text(s.source)); ini.set("launcher", "skip_setup", s.skip ? "1" : "0");
     ini.set("launcher", "setup_complete", "1"); ini.set("launcher", "configuration_version", "1");
+    ini.set("mods", "fps60", s.fps60 ? "1" : "0");
     ini.set("boot", "gfx", "window");
     if (ini.get("boot", "max_seconds").empty()) ini.set("boot", "max_seconds", "0");
     if (ini.get("play", "service_input_fallback").empty()) ini.set("play", "service_input_fallback", "1");
@@ -274,6 +280,7 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     controls.set("display", "width", std::to_string(s.width)); controls.set("display", "height", std::to_string(s.height));
     controls.set("display", "window_mode", s.fullscreen ? "borderless" : "windowed");
     controls.set("display", "vsync", s.vsync ? "1" : "0");
+    if (s.fps60) controls.set("display", "fps_limit", "60");
 }
 void save(const fs::path& dir, const Settings& s) {
     if (game_running(dir)) throw std::runtime_error("Cierra el juego antes de guardar la configuración.");

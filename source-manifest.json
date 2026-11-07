@@ -14,8 +14,8 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 260,
-      "sha256": "f58710fb4eb48951ab2165312f5cb22a538bea2d598db8bb8f22812959525385"
+      "bytes": 275,
+      "sha256": "8868397044fded6679250d5024a6f2b5748977be7510b0669e5bd7f85d219130"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -44,13 +44,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 7631,
-      "sha256": "c1bf9ded14fc7fd1ce18f9711106c3e1b7843b9a668f8de1ab0f57949a2564cd"
+      "bytes": 9307,
+      "sha256": "6a328ae99d452b4342c52fe9e404f5bea2703cd7fec03e456c2b81fdbc679dac"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 2399,
-      "sha256": "8ba2c23138aa01e9e2d054e84855c5218fb0ec4080693ae3fc22966435230768"
+      "bytes": 2812,
+      "sha256": "902fc0f0a187e1855297cefce3bf5c2397ad084b4450428d75bf5b9c64d2c205"
     },
     {
       "path": "project/.gitignore",
@@ -59,8 +59,8 @@
     },
     {
       "path": "project/CMakeLists.txt",
-      "bytes": 9421,
-      "sha256": "27541321454d3e930f8fd6e17cd215d7684a9388c1b27efcaf5193344e6e11cc"
+      "bytes": 9686,
+      "sha256": "3e9146d9e2ab8232b1b1d348a6e17c612e537c27181353e86394e2f490c4df46"
     },
     {
       "path": "project/CONTRIBUTING.md",
@@ -69,8 +69,8 @@
     },
     {
       "path": "project/CONTROLES-MANDO.md",
-      "bytes": 1831,
-      "sha256": "8dfa33f4c3d898d74db8d0a10a3e74dee052e164c69fc536e9bd4e4b171e354a"
+      "bytes": 2681,
+      "sha256": "09602072ee3857e17d2a25bc1a3b8d4afcd466a0055f938b5919537ee25a35c7"
     },
     {
       "path": "project/DEPENDENCIAS.md",
@@ -79,8 +79,8 @@
     },
     {
       "path": "project/FireEmblemRecomp.ps1",
-      "bytes": 18724,
-      "sha256": "47b47d491e5729a0d2293667444259bd81af0f169ad6f404bd3e12c444100941"
+      "bytes": 18743,
+      "sha256": "e3eefaaec2e4ceb35c1aa1593580932e37174a835b2a24d7606bba2a01071c2c"
     },
     {
       "path": "project/GITHUB-PUBLISH.md",
@@ -109,18 +109,23 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 7631,
-      "sha256": "c1bf9ded14fc7fd1ce18f9711106c3e1b7843b9a668f8de1ab0f57949a2564cd"
+      "bytes": 9307,
+      "sha256": "6a328ae99d452b4342c52fe9e404f5bea2703cd7fec03e456c2b81fdbc679dac"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
-      "bytes": 2399,
-      "sha256": "8ba2c23138aa01e9e2d054e84855c5218fb0ec4080693ae3fc22966435230768"
+      "bytes": 2812,
+      "sha256": "902fc0f0a187e1855297cefce3bf5c2397ad084b4450428d75bf5b9c64d2c205"
     },
     {
       "path": "project/config.py",
-      "bytes": 763,
-      "sha256": "133e98f3911000e82c788cb5a97932ff879a24c4c2521f78b0e1f8eec2db8891"
+      "bytes": 1106,
+      "sha256": "e7b2673ad6c63e8929ca78505bbb359679667d86db48aeb46243334a5d26012c"
+    },
+    {
+      "path": "project/licenses/Kompas9-MIT.txt",
+      "bytes": 1064,
+      "sha256": "c9e7af00cad3ece0db4a16bbdb98b8ddab451b6737cad2e408293bfe117b928e"
     },
     {
       "path": "project/licenses/Ryubing-MIT.txt",
@@ -168,9 +173,14 @@
       "sha256": "fd1157bfc9368ad2c05e602e1b2fa369f7eefa39a570201ee48ee9efe448e171"
     },
     {
-      "path": "project/patches/engine.patch",
+      "path": "project/patches/engine-preview1.patch",
       "bytes": 208253,
       "sha256": "4759dc4e37c3c5826821ed4c45319ceff6f76875fe04f74598ca50fe7d12a768"
+    },
+    {
+      "path": "project/patches/engine.patch",
+      "bytes": 215740,
+      "sha256": "d0eb2d4cc3f9786e4377f51689abf7415b55be448b3ad63c618296363b3d0d49"
     },
     {
       "path": "project/requirements.txt",
@@ -179,13 +189,13 @@
     },
     {
       "path": "project/src/fefw_config.cpp",
-      "bytes": 18303,
-      "sha256": "84eafa4a0d885a4e3b325a71cd626d0cc82b42d5f640a3546d3a6123ac445c88"
+      "bytes": 18758,
+      "sha256": "f0960b5f6a17d415c3fe6bdf82279b4c13aee5f418f5ad83f9aa0b7fabfe4844"
     },
     {
       "path": "project/src/fefw_config.h",
-      "bytes": 1965,
-      "sha256": "e5992b5c445d5d9af9f3bd512f07a80055b471c168c96c9a720dff386309afce"
+      "bytes": 1980,
+      "sha256": "6ce3c6c590b81e43049a514cdbafd6840b1b88fc21caaecdcf39b727be27a081"
     },
     {
       "path": "project/src/fefw_game.cpp",
@@ -199,13 +209,23 @@
     },
     {
       "path": "project/src/fefw_main.cpp",
-      "bytes": 28629,
-      "sha256": "fc4ffc58d1e9350da55ca5e6291ffe0e2a830f624792e93c0d41c732c7bbb9e9"
+      "bytes": 29124,
+      "sha256": "1e995534660c8f988881952a4ac4bc7f4c917beb4dbc9dbb99e06198ed433735"
+    },
+    {
+      "path": "project/src/fefw_mods.cpp",
+      "bytes": 1816,
+      "sha256": "ab1402d95781895dfb9990a0fb03463493333954872e31556e051719107cf030"
+    },
+    {
+      "path": "project/src/fefw_mods.h",
+      "bytes": 718,
+      "sha256": "7b61b89a31b72b9947c9f0ac2e324df0b711cfeff826f4c4cf6ee9b4be57be7a"
     },
     {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 21265,
-      "sha256": "9c8a6894d1c5adbaebf08cc7b1ead1126e0d5f58d55f59a8bf316dda97d31115"
+      "bytes": 21977,
+      "sha256": "e49d6b44664f379ec7a3396d6927fbae78d78efb0296160b4c3af7588c756e48"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -279,8 +299,8 @@
     },
     {
       "path": "project/tests/check_setup.py",
-      "bytes": 6830,
-      "sha256": "7fd4c33e51843506c9c5de7d1ea0eb330b1704ef95f8542efdbbc8c730b972f3"
+      "bytes": 7454,
+      "sha256": "c7fcb85b5e11c1405df00c8f0db7762b698c5041bd709d9ef61cdfc68208307b"
     },
     {
       "path": "project/tests/check_shader_textures.py",
@@ -339,8 +359,8 @@
     },
     {
       "path": "project/tests/test_config.cpp",
-      "bytes": 5548,
-      "sha256": "aa2017153891d5c52da073047a2a8de5ccf7d7836967137f3ee6542bd61773b3"
+      "bytes": 5994,
+      "sha256": "fd67ff6b13c01781add0659801bb9d6d637c4e6f95eb772fb02aca9af2649bf1"
     },
     {
       "path": "project/tests/test_formats.py",
@@ -354,18 +374,23 @@
     },
     {
       "path": "project/tests/test_interactive_input.cpp",
-      "bytes": 9540,
-      "sha256": "4b0a8b8b87960a3407a18c8e6cbac5201419306a182486f074114f85e6a103ca"
+      "bytes": 11953,
+      "sha256": "be0f76df49292f1bb0fa599547339fbc3c08a57e78b44dfe665956da84bf9c21"
     },
     {
       "path": "project/tests/test_layout.py",
-      "bytes": 2437,
-      "sha256": "931124188e16aeff223998e75dbad4391daafbac2d9c43acd2561c7336a2c2cc"
+      "bytes": 2601,
+      "sha256": "f913763d449b293e9d4289747b920f4ef288000765b49d0b8b2e3cb0bf7dd60b"
     },
     {
       "path": "project/tests/test_local_preparation.py",
       "bytes": 1537,
       "sha256": "a32137ed015fb5cf2a0379a7813bed92ee00e1227ee5cbe47ae3bc4eb5ea93d8"
+    },
+    {
+      "path": "project/tests/test_mods.cpp",
+      "bytes": 1664,
+      "sha256": "969d910cb031a61a22fca49b374eb425859a6ded1f09e0e871e471602b2f800a"
     },
     {
       "path": "project/tests/test_pointer_auth.py",
@@ -388,9 +413,14 @@
       "sha256": "f4b2160028214c9629a6a94d74874b5f53398816f7fb8f5a765f1e54f661bcbd"
     },
     {
+      "path": "project/tests/test_runtime_patches.py",
+      "bytes": 1695,
+      "sha256": "4d8779e0e623f9860cc09fbd241c89c04177df4840c771c562970430d1a1cef3"
+    },
+    {
       "path": "project/tests/test_shader_cache_policy.py",
-      "bytes": 4769,
-      "sha256": "867c42ea400da479d671b037a4a793df51dcf6dddfa60d4ff6ca09d6e89053d4"
+      "bytes": 4793,
+      "sha256": "d39847127cd2edbee7008d221ba022f684bde95286cbfafe33cebcc4f4f88bc7"
     },
     {
       "path": "project/tests/test_texture_arrays.cpp",
@@ -414,13 +444,13 @@
     },
     {
       "path": "project/tools/New-LocalPackage.ps1",
-      "bytes": 7831,
-      "sha256": "d71cf02d3ef362937a2552efcdb0bee50b2f2405607b8df74f5630d3c23a25a8"
+      "bytes": 7941,
+      "sha256": "8d33daf1caa5a14f2f4bdd853c0cc693b54873df1ce30cb1ffad0f2c9c25901a"
     },
     {
       "path": "project/tools/New-PublicPackage.ps1",
-      "bytes": 1443,
-      "sha256": "e69c76a8a6faa41a3241e0a33ec3b8acfa18bbd55c86cbd95d1583e0aa975cb3"
+      "bytes": 1462,
+      "sha256": "46bc09dc934b19c66845b1abfa9954ea25412fad16f9c82fa93c2b6ff7045e37"
     },
     {
       "path": "project/tools/Prepare-Dependencies.ps1",
@@ -429,8 +459,8 @@
     },
     {
       "path": "project/tools/Prepare-Game.ps1",
-      "bytes": 6885,
-      "sha256": "f826726e60f6066537fd39d3b75e94de57e4cae16af3a97176317923bb3afb06"
+      "bytes": 7285,
+      "sha256": "46ac2535aeac5d98dc3e032a59c37a38e22346f958f09693a7adf3065fdb78e4"
     },
     {
       "path": "project/tools/audit_public_repo.py",
@@ -439,8 +469,8 @@
     },
     {
       "path": "project/tools/bootstrap.py",
-      "bytes": 2154,
-      "sha256": "a77d8cdcf86b3975c3b51e47fce3cc5b89ca47a4873b6ffabf11f5c199e46cc8"
+      "bytes": 3398,
+      "sha256": "e549d535e80f18be2c2312044ed987182612b32b3b532aa9ef87ed69241c36b3"
     },
     {
       "path": "project/tools/check_shader_variants.py",
@@ -449,8 +479,8 @@
     },
     {
       "path": "project/tools/export_engine_patch.py",
-      "bytes": 2066,
-      "sha256": "17c84eace435cd3aacae0a8b9d14b21debc1c500574f52b4fc5a09566a365962"
+      "bytes": 2218,
+      "sha256": "107164c9710880fe94dd455cedf08dda4330b68e121ecb2d8b5741e053a25006"
     },
     {
       "path": "project/tools/extract_shaders.py",
@@ -474,8 +504,8 @@
     },
     {
       "path": "project/tools/package_public.py",
-      "bytes": 7784,
-      "sha256": "c3a927bda52fcb1eb0110c852bb550059abf40daf7aebc091f5b0cd688975b82"
+      "bytes": 7800,
+      "sha256": "67a617a2bc0b2d94401b01a05373ab372a2b5c8d068f92ef6d4a70510686e4aa"
     },
     {
       "path": "project/tools/prepare.py",
@@ -513,6 +543,11 @@
       "sha256": "0575cddb349e8d2f948a375e2f622dec4ed7e96d7771d81d194bef822e3c246c"
     },
     {
+      "path": "project/tools/refresh_runtime_patches.py",
+      "bytes": 3304,
+      "sha256": "73166057082437bdb142746dd1b5652a83020ca0c44fb3489f474e2e2ac55467"
+    },
+    {
       "path": "project/tools/refresh_uniform_arrays.py",
       "bytes": 3801,
       "sha256": "e9f79bbf8a283f59a879ba21709cf0e4813086d0aba3efa11624ee7840ad58e2"
@@ -534,8 +569,8 @@
     },
     {
       "path": "tools/Prepare-Game.ps1",
-      "bytes": 6885,
-      "sha256": "f826726e60f6066537fd39d3b75e94de57e4cae16af3a97176317923bb3afb06"
+      "bytes": 7285,
+      "sha256": "46ac2535aeac5d98dc3e032a59c37a38e22346f958f09693a7adf3065fdb78e4"
     }
   ]
 }

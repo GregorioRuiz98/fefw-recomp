@@ -12,7 +12,7 @@
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
-enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync };
+enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60 };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
@@ -36,7 +36,7 @@ void choose(HWND h, int n) { SendMessageW(h, CB_SETCURSEL, n, 0); }
 int selection(int id) { return static_cast<int>(SendMessageW(item(id), CB_GETCURSEL, 0, 0)); }
 void add(HWND h, const std::wstring& v) { SendMessageW(h, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(v.c_str())); }
 void enabled(bool on) {
-    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync}) EnableWindow(item(id), on);
+    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60}) EnableWindow(item(id), on);
     if (on) EnableWindow(item(Resolution), selection(Mode) == 0);
 }
 HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int w, int h, DWORD style = 0) {
@@ -131,6 +131,7 @@ void apply(bool play) {
     pending.language = langs.at(l).value; pending.width = sizes.at(r).first; pending.height = sizes.at(r).second;
     pending.fullscreen = selection(Mode) == 1; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.vsync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED;
+    pending.fps60 = SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.completed = true; start_game = play;
     status(L"Verificando los archivos originales y la copia preparada…"); UpdateWindow(window);
     const auto original = s::validate_source(pending.source, true);
@@ -167,12 +168,15 @@ void create_controls() {
     control(L"STATIC", L"La pantalla completa usa tu escritorio. El renderizado interno conserva la resolución del juego.", 0, 24, 303, 622, 40);
     control(L"STATIC", L"Idioma del juego", 0, 24, 352, 300, 22);
     control(L"COMBOBOX", L"", Lang, 24, 379, 622, 230, WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL);
-    control(L"BUTTON", L"Sincronización vertical", Vsync, 24, 425, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"Sincronización vertical", Vsync, 24, 425, 245, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Vsync), BM_SETCHECK, settings.vsync ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"BUTTON", L"No mostrar la configuración al iniciar", Skip, 24, 463, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"No mostrar la configuración al iniciar", Skip, 24, 489, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Skip), BM_SETCHECK, settings.skip ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"STATIC", L"", Status, 24, 504, 622, 50);
-    control(PROGRESS_CLASSW, L"", Progress, 24, 559, 622, 9, PBS_MARQUEE);
+    control(L"BUTTON", L"60 FPS (Kompas9, experimental)", Fps60, 280, 425, 366, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    SendMessageW(item(Fps60), BM_SETCHECK, settings.fps60 ? BST_CHECKED : BST_UNCHECKED, 0);
+    control(L"STATIC", L"60 FPS cambia limite y temporizacion; requiere reiniciar. El rendimiento depende del PC.", 0, 24, 456, 622, 24);
+    control(L"STATIC", L"", Status, 24, 523, 622, 39);
+    control(PROGRESS_CLASSW, L"", Progress, 24, 568, 622, 9, PBS_MARQUEE);
     control(L"BUTTON", L"Cancelar", IDCANCEL, 24, 588, 112, 34, WS_TABSTOP);
     control(L"BUTTON", L"Guardar", Save, 366, 588, 128, 34, WS_TABSTOP);
     control(L"BUTTON", L"Guardar y jugar", SavePlay, 506, 588, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
@@ -227,7 +231,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         int argc = 0; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         game_dir = s::executable_dir(); fs::path source;
         bool validate = false, apply_cli = false, status_cli = false;
-        int width = 0, height = 0; std::string language; int skip = -1, vsync = -1;
+        int width = 0, height = 0; std::string language; int skip = -1, vsync = -1, fps60 = -1;
         for (int i = 1; i < argc; ++i) {
             const std::wstring arg(argv[i]);
             auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Falta un argumento"); return argv[++i]; };
@@ -242,6 +246,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             else if (arg == L"--language") language = s::utf8(next());
             else if (arg == L"--skip") skip = std::stoi(next());
             else if (arg == L"--vsync") vsync = std::stoi(next());
+            else if (arg == L"--fps60") fps60 = std::stoi(next());
             else if (arg == L"--test-ui") test_ui = true;
             else throw std::runtime_error("Argumento desconocido: " + s::utf8(arg));
         }
@@ -251,9 +256,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (width) settings.width = width; if (height) settings.height = height;
         if (!language.empty()) settings.language = language; if (skip >= 0) settings.skip = skip != 0;
         if (vsync >= 0) settings.vsync = vsync != 0;
+        if (fps60 >= 0) settings.fps60 = fps60 != 0;
         if (status_cli) {
             const auto v = s::validate_ready(game_dir, settings);
-            std::printf("ready=%d skip=%d show_setup=%d width=%d height=%d language=%s\n%s\n", v.ok, settings.skip, s::needs_setup(game_dir), settings.width, settings.height, settings.language.c_str(), v.error.c_str()); return v.ok ? 0 : 2;
+            std::printf("ready=%d skip=%d show_setup=%d width=%d height=%d language=%s fps60=%d\n%s\n", v.ok, settings.skip, s::needs_setup(game_dir), settings.width, settings.height, settings.language.c_str(), settings.fps60, v.error.c_str()); return v.ok ? 0 : 2;
         }
         if (apply_cli) { settings.completed = true; s::save(game_dir, settings); std::puts("SAVED"); return 0; }
         const HANDLE lock = CreateMutexW(nullptr, FALSE, (s::game_mutex_name(game_dir) + L"_setup").c_str());
@@ -272,7 +278,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (!h) throw std::runtime_error("No se puede abrir el configurador");
         if (test_ui) {
             const bool ok = !versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0 && selection(Mode) >= 0 && selection(Resolution) >= 0 &&
-                IsWindowEnabled(item(Save)) && SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED);
+                IsWindowEnabled(item(Save)) && SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED) &&
+                SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == (settings.fps60 ? BST_CHECKED : BST_UNCHECKED);
             std::printf("ui_valid=%d versions=%zu languages=%zu\n", ok, versions.size(), langs.size());
             // Capture only our own configuration form for visual QA, then
             // exercise the real Cancel handler without saving anything.

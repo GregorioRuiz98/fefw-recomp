@@ -19,3 +19,10 @@ class Config(GameConfig):
         ModuleSpec('rtld', 0x7700000000, 'rtld'),
     ]
     extra_entries = {'rtld': [0]}
+    # Kompas9/Switch-Game-Patches, 60FPS v1.0, commit 9e553571c986.
+    # Both native alternatives must be compiled: editing mapped ARM bytes alone
+    # cannot change a statically recompiled instruction.
+    runtime_instruction_patches = {
+        0x710005D18C: (0x2A0403F6, 0x52800036),
+        0x71007BF1AC: (0x528003C9, 0x52800789),
+    }

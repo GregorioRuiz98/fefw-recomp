@@ -66,6 +66,7 @@ try {
     if ($CheckOnly) { Stage 'Herramientas principales disponibles.'; Stop-Transcript | Out-Null; exit 0 }
     Stage 'Preparando las herramientas locales…'
     if (!(Test-Path -LiteralPath (Join-Path $Work 'venv/Scripts/python.exe'))) { Action 'Bootstrap' }
+    else { Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/bootstrap.py'), '--work', $Work, '--engine-only') }
     Stage 'Verificando y normalizando tu copia del juego…'
     Action 'Prepare'
     Stage 'Preparando las bibliotecas y el traductor de shaders…'
@@ -73,6 +74,7 @@ try {
     Stage 'Traduciendo el codigo del juego para este PC…'
     & (Join-Path $Work 'venv/Scripts/python.exe') (Join-Path $Project 'tools/local_preparation.py') --work $Work
     if ($LASTEXITCODE -ne 0) { Action 'Cover'; Action 'Lift' }
+    Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_runtime_patches.py'), '--work', $Work)
     Action 'Configure'; Action 'Build'
     $cache = Join-Path $Work 'shaders/validated-sdk22'
     if (!(Test-Path -LiteralPath (Join-Path $cache 'results.tsv')) -or
@@ -111,6 +113,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $Work 'engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-2', [Text.UTF8Encoding]::new($false))
     Stage 'Copia local preparada. Guardando la configuracion…'
     Stop-Transcript | Out-Null
     exit 0

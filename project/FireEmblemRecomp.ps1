@@ -185,7 +185,7 @@ switch ($Action) {
     }
     'NativeTest' {
         . (Join-Path $PSScriptRoot 'tools/Initialize-BuildEnv.ps1')
-        Invoke-Checked 'cmake' @('--build', (Join-Path $Work 'build/fefw'), '--target', 'fefw_runtime_tests', 'fefw_input_tests', 'fefw_config_tests', '--parallel', '1')
+        Invoke-Checked 'cmake' @('--build', (Join-Path $Work 'build/fefw'), '--target', 'fefw_runtime_tests', 'fefw_input_tests', 'fefw_config_tests', 'fefw_mods_tests', '--parallel', '1')
         Invoke-Checked 'ctest' @('--test-dir', (Join-Path $Work 'build/fefw'), '--output-on-failure')
     }
     'ComputeTest' {

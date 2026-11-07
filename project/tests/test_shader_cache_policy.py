@@ -64,7 +64,8 @@ class ShaderCachePolicyTests(unittest.TestCase):
             self.assertIn('constant-bank', runtime_rejection(f'texTexture2D[c{bank}:8]=s2b128'))
 
     def test_a_rejected_translation_removes_its_old_cached_file(self):
-        work = Path(__file__).resolve().parents[3] / 'work'
+        work = Path.cwd() / 'config-test-results'
+        work.mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='cache-policy-', dir=work) as temp:
             folder = Path(temp)
             source, cache = folder / 'translated', folder / 'cache'
