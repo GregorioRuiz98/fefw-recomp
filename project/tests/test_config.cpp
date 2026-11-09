@@ -67,6 +67,18 @@ int main() {
         edit.fps60 = false;
         s::edit_settings(edit, game, controls);
         check(game.get("mods", "fps60") == "0", "60 FPS can be disabled");
+        edit.check_updates = true; edit.fps120 = true; edit.window_mode = "borderless"; edit.output = "1920x1080"; edit.render_ratio = 2.0/3.0;
+        s::edit_settings(edit, game, controls);
+        check(game.get("mods", "fps120") == "1" && controls.get("display", "fps_limit") == "120", "120 FPS sets game hook and host ceiling");
+        check(controls.get("display", "window_mode") == "borderless" && game.get("fefw", "output") == "1920x1080", "borderless and game output saved independently");
+        check(game.get("launcher", "check_updates") == "1", "optional startup update check saved");
+        check(game.get("fefw", "render").empty(), "old explicit render override cleared");
+        edit.fps120 = false; s::edit_settings(edit, game, controls);
+        check(controls.get("display", "fps_limit") == "60", "disabling 120 restores the original host cap");
+        edit.output = "3841x2160"; rejected = false; try { s::edit_settings(edit, game, controls); } catch (...) { rejected = true; }
+        check(rejected, "unsafe game output rejected"); edit.output = "console";
+        edit.render_ratio = 2; rejected = false; try { s::edit_settings(edit, game, controls); } catch (...) { rejected = true; }
+        check(rejected, "oversized internal scale rejected");
         const auto before = s::load(dir);
         check(!before.completed && s::needs_setup(dir), "first launch requires setup");
         check(!s::game_running(dir), "game mutex absent before start");

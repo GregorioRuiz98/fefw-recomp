@@ -8,23 +8,26 @@
 #include <cstdio>
 #include <fstream>
 #include <set>
+#include <cmath>
 
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
 enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog, Upscaler,
-    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall };
+    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
 HFONT font{}, title_font{}, heading_font{}, small_font{};
-HWND pages[3]{}, parent{};
+constexpr int page_count = 4;
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.6";
+HWND pages[page_count]{}, parent{};
 HWND folder_tip{};
 std::wstring tip_text;
 struct Placement { HWND handle; int page, x, y, width, height; bool right_half; };
 std::vector<Placement> placements;
 std::vector<HWND> headings, small_text;
-int active_page = 0, creating_page = -1, scroll_offset[3]{};
+int active_page = 0, creating_page = -1, scroll_offset[page_count]{};
 bool folder_scanned = false;
 std::wstring last_folder;
 int dpi = 96, result = 3;
@@ -32,7 +35,7 @@ bool start_game = false, test_ui = false;
 std::vector<fs::path> versions;
 std::vector<s::Language> langs;
 std::vector<std::pair<int, int>> sizes;
-HANDLE preparation{}, job{};
+HANDLE preparation{}, job{}, update_process{};
 
 int px(int v) { return MulDiv(v, dpi, 96); }
 HWND item(int id) {
@@ -51,13 +54,14 @@ void choose(HWND h, int n) { SendMessageW(h, CB_SETCURSEL, n, 0); }
 int selection(int id) { return static_cast<int>(SendMessageW(item(id), CB_GETCURSEL, 0, 0)); }
 void add(HWND h, const std::wstring& v) { SendMessageW(h, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(v.c_str())); }
 void enabled(bool on) {
-    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler}) EnableWindow(item(id), on);
+    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler, GameOutput, RenderRatio, AutoCheck, CheckUpdates}) EnableWindow(item(id), on);
     if (on) EnableWindow(item(Resolution), selection(Mode) == 0);
     EnableWindow(item(Save), on && !versions.empty() && !langs.empty());
     EnableWindow(item(SavePlay), on && !versions.empty() && !langs.empty());
     EnableWindow(item(Versions), on && !versions.empty());
     EnableWindow(item(Lang), on && !langs.empty());
     EnableWindow(item(Recommended), on);
+    if (!on) EnableWindow(item(InstallUpdate), FALSE);
 }
 HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int w, int h, DWORD style = 0) {
     HWND c = CreateWindowExW(cls == std::wstring(L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls, label,
@@ -84,7 +88,7 @@ void fonts() {
 }
 void move(HWND h, int x, int y, int w, int height) { MoveWindow(h, px(x), px(y), px(w), px(height), TRUE); }
 int logical(int v) { return MulDiv(v, 96, dpi); }
-int page_content_height(int p) { return p == 1 ? 352 : p == 2 ? 338 : 328; }
+int page_content_height(int p) { return p == 1 ? 522 : p == 2 ? 338 : 328; }
 void page_layout(int p) {
     RECT r{}; GetClientRect(pages[p], &r);
     const int width = logical(r.right), height = logical(r.bottom);
@@ -111,7 +115,7 @@ void layout() {
     move(item(Tabs), 24, 98, w - 48, h - 254);
     RECT content{}; GetClientRect(item(Tabs), &content); TabCtrl_AdjustRect(item(Tabs), FALSE, &content);
     POINT origin{content.left, content.top}; MapWindowPoints(item(Tabs), window, &origin, 1);
-    for (int p = 0; p < 3; ++p) {
+    for (int p = 0; p < page_count; ++p) {
         MoveWindow(pages[p], origin.x + px(20), origin.y + px(20),
             std::max<int>(px(100), content.right - content.left - px(40)),
             std::max<int>(px(80), content.bottom - content.top - px(28)), TRUE);
@@ -126,8 +130,8 @@ void layout() {
     move(item(SavePlay), w - 172, h - 48, 148, 34);
 }
 void select_page(int p) {
-    active_page = std::clamp(p, 0, 2); TabCtrl_SetCurSel(item(Tabs), active_page);
-    for (int i = 0; i < 3; ++i) ShowWindow(pages[i], i == active_page ? SW_SHOW : SW_HIDE);
+    active_page = std::clamp(p, 0, page_count - 1); TabCtrl_SetCurSel(item(Tabs), active_page);
+    for (int i = 0; i < page_count; ++i) ShowWindow(pages[i], i == active_page ? SW_SHOW : SW_HIDE);
     SetWindowPos(pages[active_page], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     page_layout(active_page);
 }
@@ -162,7 +166,7 @@ void reconstruction_help() {
 void recommended() {
     choose(item(Mode), 0); choose(item(Upscaler), 0);
     for (size_t i = 0; i < sizes.size(); ++i) if (sizes[i] == std::pair{1280, 720}) choose(item(Resolution), static_cast<int>(i));
-    SendMessageW(item(Vsync), BM_SETCHECK, BST_CHECKED, 0); SendMessageW(item(Fps60), BM_SETCHECK, BST_UNCHECKED, 0);
+    SendMessageW(item(Vsync), BM_SETCHECK, BST_CHECKED, 0); choose(item(Fps60), 0); choose(item(GameOutput), 0); choose(item(RenderRatio), 0);
     EnableWindow(item(Resolution), TRUE); reconstruction_help();
     status(L"Recommended graphics selected. Use Save to apply them; your game folder, language and startup preference are kept.");
 }
@@ -262,10 +266,13 @@ void apply(bool play) {
     if (v < 0 || l < 0 || r < 0) throw std::runtime_error("Select a valid folder, resolution and language.");
     pending = settings; pending.source = versions.at(v); pending.romfs = pending.source / L"romfs";
     pending.language = langs.at(l).value; pending.width = sizes.at(r).first; pending.height = sizes.at(r).second;
-    pending.fullscreen = selection(Mode) == 1; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
+    pending.window_mode = selection(Mode) == 2 ? "exclusive" : selection(Mode) == 1 ? "borderless" : "windowed"; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.vsync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.upscaler = selection(Upscaler) == 1 ? "bilinear" : "taau";
-    pending.fps60 = SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == BST_CHECKED;
+    pending.check_updates = SendMessageW(item(AutoCheck), BM_GETCHECK, 0, 0) == BST_CHECKED;
+    pending.fps60 = selection(Fps60) == 1; pending.fps120 = selection(Fps60) == 2;
+    pending.output = selection(GameOutput) == 0 ? "console" : s::utf8(text(item(GameOutput)));
+    pending.render_ratio = selection(RenderRatio) == 0 ? 0 : std::stod(s::utf8(text(item(RenderRatio)))) / 100.0;
     pending.completed = true; start_game = play;
     state(L"Verifying your local copy");
     status(L"Checking original files and the prepared copy before saving…"); UpdateWindow(window);
@@ -273,14 +280,48 @@ void apply(bool play) {
     if (!original.ok) throw std::runtime_error(original.error);
     if (s::validate_ready(game_dir, pending, false).ok) finish_save(); else prepare();
 }
+void refresh_update() {
+    const s::Ini status_file(game_dir / L"update.status");
+    const auto message = status_file.get("update", "message", "No update check has completed yet.");
+    SetWindowTextW(item(UpdateText), s::wide(message).c_str());
+    const bool busy = update_process && WaitForSingleObject(update_process, 0) != WAIT_OBJECT_0;
+    EnableWindow(item(InstallUpdate), !busy && !preparation && !s::game_running(game_dir) && status_file.get("update", "state") == "available");
+    EnableWindow(item(CheckUpdates), !busy && !preparation);
+    if (!busy) {
+        std::ifstream in(game_dir / L"update-notes.txt", std::ios::binary);
+        std::string notes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        if (notes.size() > 128 * 1024) notes.resize(128 * 1024);
+        SetWindowTextW(item(UpdateNotes), s::wide(notes).c_str());
+    }
+}
+void update_tools(bool install) {
+    if (preparation || (update_process && WaitForSingleObject(update_process, 0) != WAIT_OBJECT_0)) return;
+    if (install && s::game_running(game_dir)) throw std::runtime_error("Close the game before installing updates.");
+    fs::path script = game_dir / L"project/tools/Update-Release.ps1";
+    if (!fs::is_regular_file(script)) script = game_dir / L"tools/Update-Release.ps1";
+    if (!fs::is_regular_file(script)) throw std::runtime_error("Update tools are missing. Extract the full public package first.");
+    wchar_t system[MAX_PATH]{}; GetSystemDirectoryW(system, MAX_PATH);
+    const auto ps = fs::path(system) / L"WindowsPowerShell/v1.0/powershell.exe";
+    std::wstring args = s::quote_arg(ps.wstring()) + L" -NoProfile -ExecutionPolicy Bypass -File " + s::quote_arg(script.wstring()) +
+        L" -GameDirectory " + s::quote_arg(game_dir.wstring()) + L" -Current " + tools_version + (install ? L" -Action Install -ParentId " + std::to_wstring(GetCurrentProcessId()) : L" -Action Check");
+    STARTUPINFOW si{sizeof si}; si.dwFlags = STARTF_USESHOWWINDOW; si.wShowWindow = SW_HIDE;
+    PROCESS_INFORMATION pi{};
+    if (!CreateProcessW(ps.c_str(), args.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, game_dir.c_str(), &si, &pi)) throw std::runtime_error("Cannot start update tools.");
+    if (update_process) CloseHandle(update_process);
+    update_process = pi.hProcess; CloseHandle(pi.hThread);
+    EnableWindow(item(CheckUpdates), FALSE); EnableWindow(item(InstallUpdate), FALSE);
+    SetWindowTextW(item(UpdateText), L"Checking the project's GitHub releases…");
+    if (install) { result = 0; DestroyWindow(window); }
+    else SetTimer(window, 2, 400, nullptr);
+}
 void create_controls() {
     fonts();
     control(L"STATIC", L"Fire Emblem Recomp", Title, 24, 18, 760, 34);
     SendMessageW(item(Title), WM_SETFONT, reinterpret_cast<WPARAM>(title_font), TRUE);
     control(L"STATIC", L"Settings for your local copy. A controller is required to play.", Subtitle, 24, 58, 760, 24);
     control(WC_TABCONTROLW, L"", Tabs, 24, 98, 760, 330, WS_TABSTOP | WS_CLIPSIBLINGS);
-    const wchar_t* names[] = {L"Game", L"Graphics", L"Startup"};
-    for (int p = 0; p < 3; ++p) {
+    const wchar_t* names[] = {L"Game", L"Graphics", L"Startup", L"Updates"};
+    for (int p = 0; p < page_count; ++p) {
         TCITEMW tab{}; tab.mask = TCIF_TEXT; tab.pszText = const_cast<wchar_t*>(names[p]);
         TabCtrl_InsertItem(item(Tabs), p, &tab);
         pages[p] = CreateWindowExW(WS_EX_CONTROLPARENT, L"FEFW_SettingsPage", names[p],
@@ -311,7 +352,8 @@ void create_controls() {
     creating_page = 1; parent = pages[1];
     control(L"STATIC", L"Display &mode", 0, 0, 0, -2, 22);
     control(L"COMBOBOX", L"", Mode, 0, 26, -2, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
-    add(item(Mode), L"Windowed"); add(item(Mode), L"Fullscreen (desktop)"); choose(item(Mode), settings.fullscreen ? 1 : 0);
+    add(item(Mode), L"Windowed"); add(item(Mode), L"Borderless (desktop)"); add(item(Mode), L"Fullscreen (exclusive)");
+    choose(item(Mode), settings.window_mode == "exclusive" ? 2 : settings.window_mode == "borderless" ? 1 : 0);
     right(control(L"STATIC", L"&Window resolution", 0, 0, 0, -2, 22));
     right(control(L"COMBOBOX", L"", Resolution, 0, 26, -2, 180, WS_TABSTOP | CBS_DROPDOWNLIST));
     std::set<std::pair<int, int>> choices{{1280,720}, {settings.width,settings.height}};
@@ -325,20 +367,39 @@ void create_controls() {
         sizes.push_back(size); add(item(Resolution), std::to_wstring(size.first) + L" × " + std::to_wstring(size.second));
         if (size.first == settings.width && size.second == settings.height) index = static_cast<int>(sizes.size() - 1);
     }
-    choose(item(Resolution), index); EnableWindow(item(Resolution), !settings.fullscreen);
-    hint(control(L"STATIC", L"Window resolution changes the output size. Fullscreen uses your desktop resolution. The game's internal render size is unchanged.", 0, 0, 66, -1, 36));
+    choose(item(Resolution), index); EnableWindow(item(Resolution), settings.window_mode == "windowed");
+    hint(control(L"STATIC", L"Window size controls presentation. Borderless and fullscreen use the desktop. Game output and internal scale below control 3D detail.", 0, 0, 66, -1, 36));
     control(L"STATIC", L"3D &reconstruction", 0, 0, 112, -1, 22);
     control(L"COMBOBOX", L"", Upscaler, 0, 138, -1, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
     add(item(Upscaler), L"Temporal anti-aliasing (TAAU) — recommended");
     add(item(Upscaler), L"Bilinear — comparison mode");
     choose(item(Upscaler), settings.upscaler == "bilinear" ? 1 : 0);
     hint(control(L"STATIC", L"", UpscalerHelp, 0, 176, -1, 42));
-    control(L"BUTTON", L"&Vertical synchronization", Vsync, 0, 232, -2, 28, WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY);
-    right(control(L"BUTTON", L"&60 FPS (experimental)", Fps60, 0, 232, -2, 28, WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY));
+    control(L"STATIC", L"Frame-rate &target", 0, 0, 232, -2, 22);
+    control(L"COMBOBOX", L"", Fps60, 0, 258, -2, 160, WS_TABSTOP | CBS_DROPDOWNLIST);
+    for (const auto* label : {L"Original (30 / 60 FPS)", L"60 FPS (experimental)", L"120 FPS (experimental)"}) add(item(Fps60), label);
+    choose(item(Fps60), settings.fps120 ? 2 : settings.fps60 ? 1 : 0);
+    right(control(L"BUTTON", L"&Vertical synchronization", Vsync, 0, 258, -2, 28, WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY));
     SendMessageW(item(Vsync), BM_SETCHECK, settings.vsync ? BST_CHECKED : BST_UNCHECKED, 0);
-    SendMessageW(item(Fps60), BM_SETCHECK, settings.fps60 ? BST_CHECKED : BST_UNCHECKED, 0);
-    hint(control(L"STATIC", L"60 FPS applies the Kompas9 timing patch. Restart required; performance depends on your PC. Leave it off to use the game's original frame limit.", 0, 0, 270, -1, 36));
-    control(L"BUTTON", L"Use recommended &graphics", Recommended, 0, 312, 254, 32, WS_TABSTOP);
+    hint(control(L"STATIC", L"Higher targets also adjust game timing. Restart required. Actual FPS depends on your PC and scene; movies keep their encoded frame rate.", 0, 0, 298, -1, 40));
+    control(L"STATIC", L"Game &output (WxH)", 0, 0, 354, -2, 22);
+    control(L"COMBOBOX", L"", GameOutput, 0, 380, -2, 180, WS_TABSTOP | CBS_DROPDOWN | ES_AUTOHSCROLL);
+    add(item(GameOutput), L"Original game output");
+    for (const auto* size : {L"1280x720", L"1600x900", L"1920x1080", L"2560x1440", L"3840x2160"}) add(item(GameOutput), size);
+    if (settings.output == "console") choose(item(GameOutput), 0); else SetWindowTextW(item(GameOutput), s::wide(settings.output).c_str());
+    right(control(L"STATIC", L"Internal &scale per dimension", 0, 0, 354, -2, 22));
+    right(control(L"COMBOBOX", L"", RenderRatio, 0, 380, -2, 180, WS_TABSTOP | CBS_DROPDOWNLIST));
+    add(item(RenderRatio), L"Original (usually 50%)");
+    int ratio_index = 0;
+    const double ratios[] = {0.5, 2.0/3.0, 0.75, 1.0};
+    for (int i = 0; i < 4; ++i) {
+        add(item(RenderRatio), i == 1 ? L"66.67%" : std::to_wstring(static_cast<int>(ratios[i] * 100)) + L"%");
+        if (std::abs(settings.render_ratio - ratios[i]) < 0.006) ratio_index = i + 1;
+    }
+    if (settings.render_ratio > 0 && !ratio_index) { add(item(RenderRatio), std::to_wstring(settings.render_ratio * 100) + L"%"); ratio_index = 5; }
+    choose(item(RenderRatio), ratio_index);
+    hint(control(L"STATIC", L"TAAU reconstructs 3D to game output. Larger sizes cost GPU memory. Above 1440p output, internal rendering is capped at 50% to protect the game's target pool.", 0, 0, 420, -1, 48));
+    control(L"BUTTON", L"Use recommended &graphics", Recommended, 0, 480, 254, 32, WS_TABSTOP);
     reconstruction_help();
 
     creating_page = 2; parent = pages[2];
@@ -350,6 +411,17 @@ void create_controls() {
     control(L"STATIC", L"Connect your controller before playing. To reconnect during a game, open F1 → Settings → Controls → Gamepad → Rescan controllers.", 0, 0, 200, -1, 54);
     hint(control(L"STATIC", L"Your settings and saves stay with this installation.", 0, 0, 266, -1, 24));
     control(L"BUTTON", L"Open installation &folder", OpenInstall, 0, 298, 254, 32, WS_TABSTOP);
+
+    creating_page = 3; parent = pages[3];
+    heading(control(L"STATIC", (std::wstring(L"Project tools ") + tools_version).c_str(), 0, 0, 0, -1, 26));
+    hint(control(L"STATIC", L"Updates come from GregorioRuiz98/fefw-recomp. SHA256 and the package manifest are verified before installation. Game files, builds, saves and caches are preserved.", 0, 0, 38, -1, 54));
+    control(L"BUTTON", L"Check for updates when setup &opens", AutoCheck, 0, 100, -1, 28, WS_TABSTOP | BS_AUTOCHECKBOX);
+    SendMessageW(item(AutoCheck), BM_SETCHECK, settings.check_updates ? BST_CHECKED : BST_UNCHECKED, 0);
+    control(L"BUTTON", L"&Check now", CheckUpdates, 0, 144, 145, 32, WS_TABSTOP);
+    control(L"BUTTON", L"Install update and &restart setup", InstallUpdate, 160, 144, 310, 32, WS_TABSTOP);
+    EnableWindow(item(InstallUpdate), FALSE);
+    control(L"STATIC", L"Check for a newer release to see its changes. Installing closes setup; save pending settings first.", UpdateText, 0, 190, -1, 40);
+    control(L"EDIT", L"", UpdateNotes, 0, 242, -1, 86, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP);
 
     creating_page = -1; parent = nullptr;
     heading(control(L"STATIC", L"Choose your game folder", StatusTitle, 24, 500, 760, 24));
@@ -394,22 +466,23 @@ bool check_ui() {
     check(folder_tip && SendMessageW(folder_tip, TTM_GETTOOLCOUNT, 0, 0) == 1, "long folder path tooltip registered");
     check(LOWORD(SendMessageW(window, DM_GETDEFID, 0, 0)) == SavePlay, "keyboard default action");
     check(SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED), "stored startup preference");
-    check(SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == (settings.fps60 ? BST_CHECKED : BST_UNCHECKED), "stored FPS preference");
+    check(selection(Fps60) == (settings.fps120 ? 2 : settings.fps60 ? 1 : 0), "stored FPS preference");
     const int language = selection(Lang), mode = selection(Mode), resolution = selection(Resolution), upscale = selection(Upscaler);
-    const LRESULT sync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0), fps = SendMessageW(item(Fps60), BM_GETCHECK, 0, 0);
+    const LRESULT sync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0), fps = selection(Fps60);
     auto tab = [&](int p) {
         TabCtrl_SetCurSel(item(Tabs), p); NMHDR n{item(Tabs), Tabs, TCN_SELCHANGE};
         SendMessageW(window, WM_NOTIFY, Tabs, reinterpret_cast<LPARAM>(&n));
-        for (int i = 0; i < 3; ++i) check((IsWindowVisible(pages[i]) != FALSE) == (i == p), "only selected page is visible");
+        for (int i = 0; i < page_count; ++i) check((IsWindowVisible(pages[i]) != FALSE) == (i == p), "only selected page is visible");
         RECT r{}; GetWindowRect(pages[p], &r); POINT origin{r.left + px(8), r.top + px(8)};
         MapWindowPoints(nullptr, window, &origin, 1);
         check(ChildWindowFromPoint(window, origin) == pages[p], "selected page is above tab background");
     };
-    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp"};
-    for (int p = 0; p < 3; ++p) {
+    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp", L"setup-ui-updates.bmp"};
+    for (int p = 0; p < page_count; ++p) {
         tab(p);
         RECT client{}, view{}; GetClientRect(window, &client); GetClientRect(pages[p], &view);
-        if (logical(client.bottom) >= 680) check(logical(view.bottom) >= page_content_height(p), "normal window shows the complete page");
+        SCROLLINFO scroll{sizeof scroll, SIF_RANGE | SIF_PAGE}; GetScrollInfo(pages[p], SB_VERT, &scroll);
+        check(logical(view.bottom) >= page_content_height(p) || scroll.nMax >= page_content_height(p) - 1, "page content fits or remains scrollable");
         check(capture_ui(names[p]), "capture settings page");
     }
     check(selection(Lang) == language && selection(Upscaler) == upscale, "tab changes preserve edits");
@@ -424,14 +497,14 @@ bool check_ui() {
     tab(1); choose(item(Mode), 1);
     SendMessageW(window, WM_COMMAND, MAKEWPARAM(Mode, CBN_SELCHANGE), reinterpret_cast<LPARAM>(item(Mode)));
     check(!IsWindowEnabled(item(Resolution)), "fullscreen disables window resolution");
-    choose(item(Upscaler), 1); SendMessageW(item(Fps60), BM_SETCHECK, BST_CHECKED, 0);
+    choose(item(Upscaler), 1); choose(item(Fps60), 1);
     SendMessageW(item(Vsync), BM_SETCHECK, BST_UNCHECKED, 0);
     SendMessageW(window, WM_COMMAND, MAKEWPARAM(Recommended, BN_CLICKED), reinterpret_cast<LPARAM>(item(Recommended)));
     check(selection(Mode) == 0 && selection(Upscaler) == 0 && sizes.at(selection(Resolution)) == std::pair{1280,720}, "recommended graphics selections");
-    check(IsWindowEnabled(item(Resolution)) && SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED && SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == BST_UNCHECKED, "recommended sync and frame limit");
+    check(IsWindowEnabled(item(Resolution)) && SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED && selection(Fps60) == 0, "recommended sync and frame limit");
     check(selection(Lang) == language && SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED), "recommendation preserves unrelated choices");
     choose(item(Mode), mode); choose(item(Resolution), resolution); choose(item(Upscaler), upscale);
-    SendMessageW(item(Vsync), BM_SETCHECK, sync, 0); SendMessageW(item(Fps60), BM_SETCHECK, fps, 0);
+    SendMessageW(item(Vsync), BM_SETCHECK, sync, 0); choose(item(Fps60), static_cast<int>(fps));
     EnableWindow(item(Resolution), mode == 0); reconstruction_help();
     const std::wstring folder = text(item(Folder));
     tab(0); SetWindowTextW(item(Folder), L""); refresh_folder();
@@ -509,6 +582,8 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     case Mode: if (HIWORD(w) == CBN_SELCHANGE) EnableWindow(item(Resolution), selection(Mode) == 0); return 0;
                     case Upscaler: if (HIWORD(w) == CBN_SELCHANGE) reconstruction_help(); return 0;
                     case Recommended: recommended(); return 0;
+                    case CheckUpdates: update_tools(false); return 0;
+                    case InstallUpdate: update_tools(true); return 0;
                     case OpenInstall:
                         if (reinterpret_cast<INT_PTR>(ShellExecuteW(h, L"open", game_dir.c_str(), nullptr, nullptr, SW_SHOWNORMAL)) <= 32)
                             throw std::runtime_error("Cannot open the installation folder.");
@@ -524,6 +599,13 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     case IDCANCEL: SendMessageW(h, WM_CLOSE, 0, 0); return 0;
                 } break;
             case WM_TIMER:
+                if (w == 2) {
+                    refresh_update();
+                    if (update_process && WaitForSingleObject(update_process, 0) == WAIT_OBJECT_0) {
+                        CloseHandle(update_process); update_process = nullptr; KillTimer(h, 2);
+                    }
+                    return 0;
+                }
                 if (preparation) {
                     if (WaitForSingleObject(preparation, 0) == WAIT_OBJECT_0) {
                         DWORD code = 1; GetExitCodeProcess(preparation, &code); CloseHandle(preparation); preparation = nullptr;
@@ -567,7 +649,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         int argc = 0; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         game_dir = s::executable_dir(); fs::path source;
         bool validate = false, apply_cli = false, status_cli = false;
-        int width = 0, height = 0; std::string language, upscaler; int skip = -1, vsync = -1, fps60 = -1;
+        int width = 0, height = 0; std::string language, upscaler; int skip = -1, vsync = -1, fps60 = -1, fps = -1;
+        std::string window_mode, output; double ratio = -1;
         for (int i = 1; i < argc; ++i) {
             const std::wstring arg(argv[i]);
             auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Missing argument"); return argv[++i]; };
@@ -584,6 +667,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             else if (arg == L"--vsync") vsync = std::stoi(next());
             else if (arg == L"--upscaler") upscaler = s::utf8(next());
             else if (arg == L"--fps60") fps60 = std::stoi(next());
+            else if (arg == L"--fps") fps = std::stoi(next());
+            else if (arg == L"--window-mode") window_mode = s::utf8(next());
+            else if (arg == L"--output") output = s::utf8(next());
+            else if (arg == L"--render-ratio") ratio = std::stod(next());
             else if (arg == L"--test-ui") test_ui = true;
             else throw std::runtime_error("Unknown argument: " + s::utf8(arg));
         }
@@ -594,10 +681,18 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (!language.empty()) settings.language = language; if (skip >= 0) settings.skip = skip != 0;
         if (vsync >= 0) settings.vsync = vsync != 0;
         if (!upscaler.empty()) settings.upscaler = upscaler;
-        if (fps60 >= 0) settings.fps60 = fps60 != 0;
+        if (fps60 >= 0) { settings.fps60 = fps60 != 0; settings.fps120 = false; }
+        if (fps >= 0) {
+            if (fps != 0 && fps != 60 && fps != 120) throw std::runtime_error("FPS target must be 0, 60 or 120.");
+            settings.fps60 = fps == 60; settings.fps120 = fps == 120;
+        }
+        if (!window_mode.empty()) settings.window_mode = window_mode;
+        if (!output.empty()) settings.output = output;
+        if (ratio >= 0) settings.render_ratio = ratio;
         if (status_cli) {
             const auto v = s::validate_ready(game_dir, settings);
-            std::printf("ready=%d skip=%d show_setup=%d width=%d height=%d language=%s fps60=%d\n%s\n", v.ok, settings.skip, s::needs_setup(game_dir), settings.width, settings.height, settings.language.c_str(), settings.fps60, v.error.c_str()); return v.ok ? 0 : 2;
+            std::printf("ready=%d skip=%d show_setup=%d width=%d height=%d language=%s fps60=%d\n%s\n", v.ok, settings.skip, s::needs_setup(game_dir), settings.width, settings.height, settings.language.c_str(), settings.fps60, v.error.c_str());
+            std::printf("fps120=%d window_mode=%s output=%s render_ratio=%.4f\n", settings.fps120, settings.window_mode.c_str(), settings.output.c_str(), settings.render_ratio); return v.ok ? 0 : 2;
         }
         if (apply_cli) { settings.completed = true; s::save(game_dir, settings); std::puts("SAVED"); return 0; }
         const HANDLE lock = CreateMutexW(nullptr, FALSE, (s::game_mutex_name(game_dir) + L"_setup").c_str());
@@ -610,7 +705,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         RegisterClassExW(&wc);
         WNDCLASSEXW page_class = wc; page_class.lpfnWndProc = page_proc; page_class.lpszClassName = L"FEFW_SettingsPage";
         RegisterClassExW(&page_class);
-        RECT rect{0, 0, px(820), px(680)}, work_area{};
+        RECT rect{0, 0, px(820), px(850)}, work_area{};
         const DWORD style = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN;
         AdjustWindowRectEx(&rect, style, FALSE, WS_EX_CONTROLPARENT);
         SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
@@ -623,10 +718,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (!h) throw std::runtime_error("Cannot open the setup tool");
         if (test_ui) {
             result = check_ui() ? 0 : 2; SendMessageW(h, WM_COMMAND, IDCANCEL, 0);
-        } else ShowWindow(h, show);
+        } else { ShowWindow(h, show); refresh_update(); if (settings.check_updates) update_tools(false); }
         MSG msg{}; while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
             if (msg.message == WM_KEYDOWN && msg.wParam == VK_TAB && GetKeyState(VK_CONTROL) < 0) {
-                select_page((active_page + (GetKeyState(VK_SHIFT) < 0 ? 2 : 1)) % 3);
+                select_page((active_page + (GetKeyState(VK_SHIFT) < 0 ? page_count - 1 : 1)) % page_count);
                 SetFocus(item(Tabs)); continue;
             }
             if (!IsDialogMessageW(h, &msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }

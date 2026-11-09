@@ -21,6 +21,9 @@ extra += ['runtime/src/gfx/nvn/api_dlss.h', 'runtime/src/gfx/nvn/api_dlss.cpp',
           'runtime/src/gfx/nvn/nvn_register.cpp', 'runtime/src/gfx/extras/taau.h',
           'runtime/src/gfx/extras/taau.cpp', 'runtime/src/gfx/extras/taau_shaders.inc',
           'runtime/scripts/gen_taau_shaders.py']
+extra += ['runtime/include/nxrt/frame_limiter.h', 'runtime/include/nxrt/game.h',
+          'runtime/src/gfx/frame_limiter.cpp', 'runtime/src/gfx/nvn/nvn_present.cpp',
+          'runtime/src/gfx/nvn/nvn_gpu_texture.cpp']
 known = set(re.findall(r'^diff --git a/(\S+) b/\S+$', out.read_text(encoding='utf-8'), re.M)) | set(extra)
 
 

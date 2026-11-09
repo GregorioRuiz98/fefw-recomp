@@ -66,6 +66,7 @@ const nxrt::game::Info& game_info() {
         game.program_id = 0x04007EF01F8AE000ull;
         game.version = "build DB93B012 / update-directory 131072";
         game.platform = nxrt::game::Platform::Switch2;
+        game.present_interval_hz = 60;
         game.main_base = 0x7100000000ull;
         game.exe_name = "fefw.exe";
         game.game_ini = "fefw.ini";

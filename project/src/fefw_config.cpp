@@ -9,6 +9,8 @@
 #include <cctype>
 #include <cwctype>
 #include <cstring>
+#include <cmath>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -181,12 +183,16 @@ Settings load(const fs::path& dir) {
     s.exefs = resolved(dir, ini.get("fs", "exefs", "exefs"));
     s.shaders = resolved(dir, ini.get("nvn", "shader_cache", "shader_cache/spirv"));
     s.width = number(controls.get("display", "width"), 1280); s.height = number(controls.get("display", "height"), 720);
-    s.fullscreen = controls.get("display", "window_mode", "windowed") != "windowed";
+    s.window_mode = controls.get("display", "window_mode", "windowed");
+    s.output = ini.get("fefw", "output", "console");
+    try { s.render_ratio = std::stod(ini.get("fefw", "render_ratio", "0")); } catch (...) { s.render_ratio = 0; }
     s.language = ini.get("system", "language", system_language());
     s.skip = ini.get("launcher", "skip_setup", "1") == "1";
     s.completed = ini.get("launcher", "setup_complete", "0") == "1";
     s.upscaler = ini.get("dlss", "upscaler", "taau") == "bilinear" ? "bilinear" : "taau";
-    s.fps60 = ini.get("mods", "fps60", "0") == "1";
+    s.check_updates = ini.get("launcher", "check_updates", "0") == "1";
+    s.fps120 = ini.get("mods", "fps120", "0") == "1";
+    s.fps60 = !s.fps120 && ini.get("mods", "fps60", "0") == "1";
     s.vsync = s.completed ? controls.get("display", "vsync", "1") != "0" : true;
     return s;
 }
@@ -248,7 +254,7 @@ Validation validate_ready(const fs::path& dir, const Settings& s, bool hashes) {
     if (!fs::is_regular_file(dir / L"fefw.exe")) return invalid("The local executable must be generated from your copy of the game.");
     std::ifstream features(dir / L"fefw.features"); std::string revision;
     std::getline(features, revision);
-    if (revision != fefw::mods::kFeatures) return invalid("Update local preparation for controller-only gameplay and the optional 60 FPS patch.");
+    if (revision != fefw::mods::kFeatures) return invalid("Update local preparation for the current graphics and frame-rate options.");
     if (const auto v = validate_prepared(s.exefs); !v.ok) return v;
     size_t count = 0; std::error_code ec;
     if (fs::is_directory(s.shaders, ec)) for (const auto& p : fs::directory_iterator(s.shaders)) if (p.is_regular_file() && p.path().extension() == L".spv") ++count;
@@ -259,6 +265,14 @@ bool needs_setup(const fs::path& dir) {
     try { const auto s = load(dir); return !s.skip || !validate_ready(dir, s).ok; } catch (...) { return true; }
 }
 void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
+    if (s.window_mode != "windowed" && s.window_mode != "borderless" && s.window_mode != "exclusive") throw std::runtime_error("Unknown display mode.");
+    if (s.fps60 && s.fps120) throw std::runtime_error("Select one frame-rate target.");
+    if (!std::isfinite(s.render_ratio) || (s.render_ratio != 0 && (s.render_ratio < 0.25 || s.render_ratio > 1))) throw std::runtime_error("Internal scale must be between 0.25 and 1.0, or 0 for the original size.");
+    if (s.output != "console") {
+        int w = 0, h = 0; char tail = 0;
+        if (std::sscanf(s.output.c_str(), "%dx%d%c", &w, &h, &tail) != 2 || w < 640 || h < 360 || w > 3840 || h > 2160 || (w & 1) || (h & 1))
+            throw std::runtime_error("Game output must be even WxH dimensions between 640x360 and 3840x2160.");
+    }
     ini.set("fs", "exefs", path_text(s.exefs)); ini.set("fs", "romfs", path_text(s.source / L"romfs"));
     if (ini.get("fs", "save_dir").empty()) ini.set("fs", "save_dir", "save");
     ini.set("nvn", "shader_cache", path_text(s.shaders));
@@ -274,6 +288,12 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     if (s.upscaler != "taau" && s.upscaler != "bilinear") throw std::runtime_error("Unsupported 3D reconstruction mode");
     ini.set("dlss", "upscaler", s.upscaler);
     ini.set("mods", "fps60", s.fps60 ? "1" : "0");
+    ini.set("mods", "fps120", s.fps120 ? "1" : "0");
+    ini.set("launcher", "check_updates", s.check_updates ? "1" : "0");
+    ini.set("fefw", "output", s.output);
+    ini.set("fefw", "render_ratio", std::to_string(s.render_ratio));
+    // Explicit dimensions from an older manual profile must not override this selection.
+    ini.set("fefw", "render", "");
     ini.set("boot", "gfx", "window");
     if (ini.get("boot", "max_seconds").empty()) ini.set("boot", "max_seconds", "0");
     if (ini.get("play", "service_input_fallback").empty()) ini.set("play", "service_input_fallback", "1");
@@ -281,9 +301,9 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     if (ini.get("nvn", "dlss_spatial_fallback").empty()) ini.set("nvn", "dlss_spatial_fallback", "1");
     if (ini.get("title", "account_save_size").empty()) ini.set("title", "account_save_size", "67108864");
     controls.set("display", "width", std::to_string(s.width)); controls.set("display", "height", std::to_string(s.height));
-    controls.set("display", "window_mode", s.fullscreen ? "borderless" : "windowed");
+    controls.set("display", "window_mode", s.window_mode);
     controls.set("display", "vsync", s.vsync ? "1" : "0");
-    if (s.fps60) controls.set("display", "fps_limit", "60");
+    controls.set("display", "fps_limit", s.fps120 ? "120" : "60");
 }
 void save(const fs::path& dir, const Settings& s) {
     if (game_running(dir)) throw std::runtime_error("Close the game before saving settings.");

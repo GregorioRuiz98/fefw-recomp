@@ -33,7 +33,10 @@ std::string system_language();
 struct Settings {
     fs::path source, exefs, romfs, shaders;
     int width = 1280, height = 720;
-    bool fullscreen = false, skip = true, completed = false, vsync = true, fps60 = false;
+    std::string window_mode = "windowed", output = "console";
+    double render_ratio = 0;
+    bool fps120 = false, check_updates = false;
+    bool skip = true, completed = false, vsync = true, fps60 = false;
     std::string language;
     std::string upscaler = "taau";
 };

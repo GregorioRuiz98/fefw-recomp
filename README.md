@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.5](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.5/FEFW-Recomp-Windows-x64-v0.1.0-preview.5.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.5)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.6](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.6/FEFW-Recomp-Windows-x64-v0.1.0-preview.6.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.6)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -30,7 +30,7 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 
 The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. GPU regressions cover a corrected wide constant-load translation bug and reads beyond short constant-buffer descriptors. Setup repairs affected local shader modules when upgrading an existing cache. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
 
-The current source also adapts Goldoire's built-in temporal reconstruction and complete NVN2 reconstruction API. Setup offers TAAU and a bilinear comparison mode. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for the pinned source, tests and features retained from this project. The download above predates this integration.
+Preview.6 adds built-in temporal reconstruction (TAAU), experimental 120 FPS with measured-time correction, game output and internal scale controls, and verified updates from setup. Vulkan, the F1 overlay, controller reconnection and resumable local preparation remain available. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for source attribution and bounded validation.
 
 These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
 
@@ -51,28 +51,38 @@ The supported Title ID is `04007EF01F8AE000`, with main Build ID `DB93B0125F4850
 
 1. Extract the release into a local folder.
 2. Open `fefw_setup.exe` and select the folder containing `exefs` and `romfs`, or its parent folder containing supported updates.
-3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Current-source builds also offer 3D reconstruction. Only languages found in your copy are offered.
+3. Choose the game language, display mode, frame-rate target, game output, internal scale and 3D reconstruction. Only languages found in your copy are offered.
 4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; **Open log** opens `preparation.log` for details.
 
 If preview.3 stopped while building `libvpx` in a folder containing spaces, close setup and extract the current release into the same package folder. Keep the existing `work` folder, reopen setup and retry **Save and play**. The corrected dependency build uses relative source paths; the original game folder can stay where it is. Preparation resumes, but a first installation still needs to compile the game and shaders.
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
-Current-source builds organize setup into **Game**, **Graphics** and **Startup** tabs. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** to switch tabs. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
+Setup has **Game**, **Graphics**, **Startup** and **Updates** tabs. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** to switch tabs. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
 
-Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller guide](project/CONTROLES-MANDO.md).
+**Window resolution** controls presentation size. **Game output (WxH)** changes the engine's output independently; enter even dimensions from 640x360 to 3840x2160, or keep **Original game output**. **Internal scale per dimension** controls the 3D resolution before TAAU: 50% of 1920x1080 is 960x540. Above 1440p output, the runtime caps internal rendering to half the output per dimension to stay within the title's existing render-target pool. Larger settings require more GPU memory. These options need a restart.
 
-In builds containing the Goldoire integration, **3D reconstruction → Temporal anti-aliasing (TAAU)** combines successive 3D frames using the game's motion and depth data, before the UI is composed. **Bilinear** provides a comparison with temporal history disabled. Save and restart the game after changing it. This is a built-in host upscaler, not NVIDIA DLSS. It does not increase the game's original rendering resolution or promise higher FPS.
+**Borderless** uses the desktop; **Fullscreen (exclusive)** requests the runtime's SDL fullscreen mode and may fall back to borderless if unavailable. The initial configuration enables vertical synchronization. See the [controller guide](project/CONTROLES-MANDO.md).
+
+**3D reconstruction → Temporal anti-aliasing (TAAU)** combines successive 3D frames using the game's motion and depth data, before the UI is composed. **Bilinear** provides a comparison with temporal history disabled. Save and restart the game after changing it. This is a built-in host upscaler, not NVIDIA DLSS. It does not increase the game's original rendering resolution or promise higher FPS.
 
 The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
 
-## Optional 60 FPS patch
+## Frame-rate targets
 
-In `fefw_setup.exe`, enable **60 FPS (Kompas9, experimental)**, save and restart the game. It is disabled by default and can be turned off in the same setup tool. The integration reproduces both changes from [Kompas9’s 60FPS v1.0 patch](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave): presentation interval and timing rate. The Build ID and both original instructions are checked before anything is applied.
+In **Graphics → Frame-rate target**, choose **Original (30 / 60 FPS)**, **60 FPS** or **120 FPS**, then save and restart. Original is the default. Higher targets are experimental; they do not guarantee sustained performance or correct behavior throughout the game.
 
-Both instruction variants are compiled natively. The option acts on the private image in memory without modifying the original game folder or requiring an emulator or an IPS file in the program folder. It is stored as `[mods] fps60` in `fefw.ini` and sets the host frame limit to 60 when enabled. It does not guarantee sustained 60 FPS or correct timing throughout the game; combat and longer cinematics need further validation.
+The 60 FPS option retains both checked changes from [Kompas9's patch](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave). The 120 FPS option adapts Goldoire's native hooks: gameplay target 120, display interval accounting at 120 Hz, menus retaining their target of 60, and correction of accumulated timing error when actual frame times vary. Movies retain their encoded frame rate. Hook instructions and the supported Build ID are checked before enabling the feature.
 
-To upgrade from preview.1–preview.5, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation, checks existing shader files and regenerates the affected modules. Unaffected shader files, settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
+The host limiter respects both the selected ceiling and the game's current presentation interval. `fps60` and `fps120` in `[mods]` are mutually exclusive. The options affect the private mapped image and native hooks, preserving the original game folder. An INI change alone cannot add these features to an older executable.
+
+## Project updates
+
+Open **Updates → Check now** to read the changes in a newer compatible package. **Install update and restart setup** closes setup, downloads only from this repository's release assets, checks GitHub's SHA256 digest and the package's file manifest, and applies the tools update with rollback. Save pending settings and close the game first. **Check for updates when setup opens** is optional and off by default; it checks without installing automatically.
+
+Updates preserve the local game executable, game files, INIs, saves, shader caches and build workspace. Backups remain under `work/updates/`. A new runtime can require a local rebuild: the reopened setup detects that and resumes preparation when you save. Interrupted setup reuses completed translation/build work. Network or verification failures leave the existing installation available.
+
+For older packages without the updater, close the game, extract the entire new ZIP into the same folder and open `fefw_setup.exe`. No commercial game data is included in either update method.
 
 ## Building the setup tool from source
 

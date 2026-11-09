@@ -41,7 +41,7 @@ def main():
         reverse = subprocess.run(['git', '-C', str(engine), 'apply', '--reverse', '--check', str(patch)], capture_output=True)
         if reverse.returncode:
             previous = None
-            for name in ('engine-preview6.patch', 'engine-preview5.patch', 'engine-preview3.patch', 'engine-preview2.patch', 'engine-preview1.patch'):
+            for name in ('engine-preview7.patch', 'engine-preview6.patch', 'engine-preview5.patch', 'engine-preview3.patch', 'engine-preview2.patch', 'engine-preview1.patch'):
                 candidate = PROJECT / 'patches' / name
                 if candidate.is_file() and subprocess.run(
                         ['git', '-C', str(engine), 'apply', '--reverse', '--check', str(candidate)], capture_output=True).returncode == 0:

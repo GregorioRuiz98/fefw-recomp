@@ -42,6 +42,8 @@ def main():
             else:
                 spec = {'path': str(source), 'kind': 'nso', 'name': name, 'base': BASES[name],
                         'game': 'fefw', 'index': list(BASES).index(name)}
+                if name == 'main':
+                    spec['sites'] = str(Path(__file__).resolve().parents[1] / 'src/main.sites')
                 shards = max(1, min(160, (source.stat().st_size + 999999) // 1000000))
                 result = lift_module(spec, str(a.out / name), jobs=a.jobs, shards=shards, log=log)
             result.update(module=name, seconds=round(time.time() - start, 2))

@@ -24,6 +24,7 @@
 #include <windows.h>
 #include "fefw_config.h"
 #include "fefw_mods.h"
+#include "fefw_pc.h"
 
 #include <chrono>
 #include <cstdio>
@@ -436,7 +437,7 @@ int main(int argc, char** argv) {
         nxrt::Module* m = nxrt::module_load_nso_file(path.c_str(), lo, &err);
         if (!m) die("cannot load %s: %s", path.c_str(), err.c_str());
         if (m->base() != g.nx->base) die("module %s is mapped at a base different from the one the library was lifted for", g.file);
-        if (std::strcmp(g.file, "main") == 0 && nxrt::config_get_bool("mods", "fps60", false)) {
+        if (std::strcmp(g.file, "main") == 0 && nxrt::config_get_bool("mods", "fps60", false) && !nxrt::config_get_bool("mods", "fps120", false)) {
             if (!fefw::mods::apply_fps60(
                     {reinterpret_cast<std::byte*>(m->base()), static_cast<size_t>(m->size())},
                     fefw::mods::nso_build_id(widen_utf8(path)), true, err)) die("60 FPS patch refused: %s", err.c_str());
@@ -446,6 +447,8 @@ int main(int argc, char** argv) {
         const nxrt::RegResult r = nxrt::nxmodule_register(m, g.nx, *g.abi);
         if (!r.ok()) die("lifted module %s refused: %s", g.file, r.message.c_str());
     }
+
+    fefw::pc::install(fefw::mods::nso_build_id(widen_utf8(exefs + "\\main")));
 
     // The game reaches NVN only through `nvnBootstrapLoader` (an import of main that the sdk defines: Nintendo's driver). The lifted PLT
     // stub of main calls host_import(), not the GOT that rtld fills, so the symbol is forced to the runtime's NVN front end here; the

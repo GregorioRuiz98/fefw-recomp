@@ -30,7 +30,7 @@ def main():
         if src.exists():
             shutil.copy2(src, folder / name)
     game_ini = folder / 'fefw.ini'
-    (folder / 'fefw.features').write_text('fefw-runtime-6', encoding='utf-8')
+    (folder / 'fefw.features').write_text('fefw-runtime-8', encoding='utf-8')
     control_ini = folder / 'controls.ini'
     game_ini.write_text(
         '[fs]\nexefs = ' + str(work / 'prepared/exefs') + '\nromfs = ' + str(a.source / 'romfs') +
@@ -62,7 +62,7 @@ def main():
     assert 'ui_valid=1' in ui and 'ui_checks=' in ui
     assert before == (game_ini.read_bytes(), control_ini.read_bytes())
     assert (folder / 'setup-ui.bmp').stat().st_size > 100000
-    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing'):
+    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing', 'updates'):
         assert (folder / f'setup-ui-{state}.bmp').stat().st_size > 100000
     run('save_show_setup', ['--apply', '--source', str(a.source), '--width', '1600', '--height', '900', '--language', 'Spanish', '--skip', '0', '--vsync', '1'])
     text = run('show_setup_preference', ['--status'])
@@ -81,6 +81,18 @@ def main():
     assert read(control_ini)['display']['fps_limit'] == '60'
     assert 'fps60=1' in run('fps60_status', ['--status'])
     run('fps60_checked_ui', ['--test-ui'])
+    run('enable_fps120', ['--apply', '--fps', '120', '--output', '1920x1080', '--render-ratio', '0.667', '--window-mode', 'borderless'])
+    assert read(game_ini)['mods']['fps120'] == '1' and read(game_ini)['mods']['fps60'] == '0'
+    assert read(game_ini)['fefw']['output'] == '1920x1080' and read(control_ini)['display']['window_mode'] == 'borderless'
+    assert read(control_ini)['display']['fps_limit'] == '120'
+    run('fps120_and_render_ui', ['--test-ui'])
+    before_invalid = game_ini.read_bytes(), control_ini.read_bytes()
+    run('invalid_render_output', ['--apply', '--output', '8000x4000'], 2)
+    run('invalid_render_ratio', ['--apply', '--render-ratio', '2'], 2)
+    run('invalid_fps', ['--apply', '--fps', '90'], 2)
+    assert before_invalid == (game_ini.read_bytes(), control_ini.read_bytes())
+    run('original_render_and_fps', ['--apply', '--fps', '0', '--output', 'console', '--render-ratio', '0', '--window-mode', 'windowed'])
+    assert read(control_ini)['display']['fps_limit'] == '60' and read(game_ini)['mods']['fps120'] == '0'
     run('disable_fps60', ['--apply', '--fps60', '0'])
     assert read(game_ini)['mods']['fps60'] == '0'
     assert read(game_ini)['dlss']['upscaler'] == 'taau'
@@ -96,7 +108,7 @@ def main():
     run('old_executable_requires_update', ['--status'], 2)
     (folder / 'fefw.features').write_text('fefw-runtime-5', encoding='utf-8')
     run('old_shader_cache_requires_update', ['--status'], 2)
-    (folder / 'fefw.features').write_text('fefw-runtime-6', encoding='utf-8')
+    (folder / 'fefw.features').write_text('fefw-runtime-8', encoding='utf-8')
     run('standalone_ui_ignores_skip', ['--test-ui'])
     before = game_ini.read_bytes(), control_ini.read_bytes()
     run('unsupported_language_keeps_configuration', ['--apply', '--language', 'Portuguese'], 2)

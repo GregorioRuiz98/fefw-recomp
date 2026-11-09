@@ -26,10 +26,10 @@ Adaptations include invalidating the renderer's cached bindings after the host c
 
 | Upstream feature | Decision |
 | --- | --- |
-| Tauri launcher and in-launcher updates | Keep the existing standalone Win32 configurator and its tested settings migration. The upstream updater targets a different package layout and repository; copying it would not update our package correctly. |
+| Launcher and updates | Keep the Win32 configurator. Add an updater for this repository and source-package layout, with preview-version ordering, SHA256, manifest validation, preserved local data, rollback and backups. No Tauri dependency. |
 | Keyboard/mouse gameplay and automatic prompt switching | Keep controller-only gameplay as requested for this project. |
-| 120 FPS | Do not expose it without timing, animation and gameplay validation. Keep the existing optional 60 FPS patch. |
-| Game render-size/config-table overrides | Separate follow-up: these modify game-specific data and need verification against our supported build. Do not reuse the previously problematic global Vulkan resolution multiplier. Window resolution keeps its current meaning. |
+| 120 FPS | Adapt the checked native gameplay-target and measured-time hooks; preserve menu timing. The limiter honors the title interval independently of the host ceiling. Experimental; no sustained-FPS guarantee. |
+| Game render-size/config-table overrides | Adopt the checked SDK graphics-scale hook to rewrite the title's configurations before selection. Output and internal scale are separate. Retain the stable upstream memory cap above 1440p. |
 | Vendor SDK upscalers and frame generation | Omitted from this integration. The built-in TAAU runs without these dependencies. |
 | Bundled toolchain/package builder | Different packaging and licensing inventory. Keep the current declared development dependencies and source-only distribution. |
 
@@ -39,8 +39,22 @@ The adapted temporal/API suite passes all 11 tests on an NVIDIA RTX 4070 Ti SUPE
 
 Local setup integration passes 23 checks, including both reconstruction choices, reopening the standalone UI, rejecting an unsupported mode without changing either INI, controller-map/save-path preservation and rejection of an older runtime marker. The 46 existing Python tests and native configuration/mod tests pass. Both embedded host shader modules validate for Vulkan 1.3, and upgrading the previously patched engine succeeds without a clean checkout. A 187-second instrumented prologue run reports no GPU out-of-bounds access, guest trap or device loss. These are bounded checks, not a full playthrough.
 
-This does not establish complete playability, eliminate every reported flicker, or prove that missing dialogue glyphs are fixed. Long gameplay, combat, other GPUs and the user's exact missing-letter scene require separate checks. The latest published release may predate this source integration; consult its release notes before assuming it includes TAAU.
+This does not establish complete playability, eliminate every reported flicker, or prove that missing dialogue glyphs are fixed. Long gameplay, combat, other GPUs and the user's exact missing-letter scene require separate checks. Preview.6 packages these changes; older releases do not contain the complete integration.
 
 ## Attribution
 
 The imported API, temporal upscaler and adapted tests are GPL-3.0-or-later code from Goldoire and contributors. Original SPDX headers are retained. The host shader generator is included in the engine patch; the embedded shader words are compiled from that open-source GLSL, not extracted commercial shaders. See `THIRD_PARTY_NOTICES.md` and `LICENSE`.
+
+## Preview.6 additions (2026-11-09)
+
+Reviewed the later upstream master at `45a1904ca81995bfea39cb7aa1012851d3aa84d8` as well. The announced v0.1.3 features were selectively adapted from the stable `1d82e428` implementation. The later render-pool allocator replacement, vendor upscalers and frame generation are not imported.
+
+- Adapted `fefw_play.cpp` target/timing hooks and `fefw_res.cpp` configuration hook; original module bases and the verified update remain unchanged.
+- Adapted the independent game-rate limiter, asynchronous ASTC waiter wakeup/cache-miss handling and last texture-view lookup cache. Existing video handling, descriptor robustness and wide-load shader correction are retained.
+- The v0.1.2 black-clothing release fix supplied a missing ASTC converter. Our preparation already copies and checks the ASTC decoder DLLs; it continues to do so. The advertised video and crowd optimizations are not a claim that this project now matches upstream performance in every scene.
+- Added setup controls for original/60/120 FPS, windowed/borderless/exclusive modes, custom engine output and internal scale. Gameplay remains controller-only per this project's requirements; keyboard navigation of setup and F1 remains available.
+- Added an updater for our own repository. Offline tests exercise semantic version ordering, archive path restrictions, digest/manifest checks, rollback after a locked file, backups and preservation of local game data. Network checks are read-only until the user chooses Install.
+
+Preview.6 validation: 46 Python tests, all 11 native CTest groups, 29 setup integration checks, 76 UI checks on the packaged standalone executable, and 34 updater transaction checks pass. A real preview.5 package was downloaded, verified and installed into an isolated fixture without changing its existing settings. The final ZIP also passes the updater's extraction/manifest checks.
+
+The final game executable ran for about 152 seconds with GPU-assisted validation, 1920x1080 game output, 1280x720 internal rendering and the 120 FPS target. Six captures show prologue/cinematic content; the log confirms the gameplay target and menu interval accounting, with no instrumented out-of-bounds access, guest trap or device loss. A separate original-target run also reports no instrumented out-of-bounds access. These runs do not demonstrate sustained 120 FPS, full-game compatibility or correction of every reported visual issue.

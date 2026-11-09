@@ -20,6 +20,7 @@ def refresh(work):
     entries = sorted(set(int(a, 16) for a in re.findall(r'\{ 0x([0-9a-f]+)ULL, f_[0-9a-f]+ \}',
                                                        (folder / 'module_main.cpp').read_text())))
     wanted = {}
+    sites = {0x71007bf1c0: 0xb901dd09, 0x710180ef44: 0xbd416a60}
     for pc, (old, new) in cfg.runtime_instruction_patches.items():
         if image.word(pc) != old:
             raise ValueError('Unsupported original instruction for native patch at ' + hex(pc))
@@ -30,6 +31,16 @@ def refresh(work):
         end = entries[i + 1] if i + 1 < len(entries) else image.end
         fn = Lifter(entry, end, env)
         wanted[pc] = (entry, fn.lift(old, pc), runtime_patch_stmt(env, fn, old, pc))
+    for pc, expected in sites.items():
+        if image.word(pc) != expected:
+            raise ValueError('Unsupported original instruction for native hook at ' + hex(pc))
+        i = bisect.bisect_right(entries, pc) - 1
+        if i < 0:
+            raise ValueError('No translated function contains hook site')
+        entry = entries[i]
+        fn = Lifter(entry, entries[i + 1] if i + 1 < len(entries) else image.end, env)
+        old = fn.lift(expected, pc)
+        wanted[pc] = (entry, old, '{ nx_site_inline(c, 0x%xULL); %s }' % (pc, old))
     updates, found = {}, set()
     for path in sorted(folder.glob('c_*.cpp')):
         text = path.read_text(encoding='utf-8')

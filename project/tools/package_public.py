@@ -15,7 +15,7 @@ ROOT_FILES = {
 }
 PUBLIC_ROOT_DOCUMENTS = {'LICENSE', 'LEGAL.md', 'NOTICE.md', 'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md'}
 ROOT_DIRS = {'src', 'tools', 'tests', 'licenses', 'patches'}
-SUFFIXES = {'.cpp', '.h', '.in', '.rc', '.manifest', '.py', '.ps1', '.md', '.txt', '.json', '.patch', '.tt', '.comp', '.vert', '.frag', '.glsl', '.spvasm'}
+SUFFIXES = {'.cpp', '.h', '.in', '.rc', '.manifest', '.py', '.ps1', '.md', '.txt', '.json', '.patch', '.tt', '.comp', '.vert', '.frag', '.glsl', '.spvasm', '.sites'}
 SKIP_DIRS = {'__pycache__', 'bin', 'obj', 'build', '.venv', '.git'}
 DENIED_PARTS = {'exefs', 'romfs', 'lift', 'shader_cache', 'corpus', 'corpus-expanded', 'save', 'reports', 'prepared'}
 DENIED_SUFFIXES = {'.nsp', '.nca', '.nso', '.xci', '.nsz', '.xcz', '.spv', '.bin', '.png', '.jpg', '.webm', '.wav', '.ogg', '.lib', '.obj', '.pdb', '.dll', '.exe', '.bmp', '.keys', '.pem', '.key', '.7z', '.rar'}
