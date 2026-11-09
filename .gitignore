@@ -10,6 +10,9 @@
 /fefw.ini
 /fefw.features
 /controls.ini
+/controller-profiles/
+/fefw-settings.ini
+/fefw-diagnostics.ini
 /preparation.*
 **/__pycache__/
 *.pyc
