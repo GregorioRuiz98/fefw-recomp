@@ -53,6 +53,14 @@ int main() {
         check(controls.get("display", "vsync") == "1", "first-run profile enables synchronized presentation");
         check(controls.get("padmap", "start") == "PLUS", "editing setup preserves controller mapping");
         check(game.get("mods", "fps60") == "0", "60 FPS patch defaults to off");
+        check(game.get("dlss", "upscaler") == "taau", "temporal reconstruction is the initial profile");
+        edit.upscaler = "bilinear";
+        s::edit_settings(edit, game, controls);
+        check(game.get("dlss", "upscaler") == "bilinear", "bilinear comparison can be selected");
+        edit.upscaler = "invalid";
+        rejected = false; try { s::edit_settings(edit, game, controls); } catch (...) { rejected = true; }
+        check(rejected, "unsupported reconstruction mode rejected");
+        edit.upscaler = "taau";
         edit.fps60 = true;
         s::edit_settings(edit, game, controls);
         check(game.get("mods", "fps60") == "1" && controls.get("display", "fps_limit") == "60", "60 FPS changes game patch and host cap");

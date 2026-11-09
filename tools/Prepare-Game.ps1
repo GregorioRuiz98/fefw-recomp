@@ -78,6 +78,7 @@ try {
     Action 'Configure'; Action 'Build'
     $cache = Join-Path $Work 'shaders/validated-sdk22'
     if (!(Test-Path -LiteralPath (Join-Path $cache 'results.tsv')) -or
+        !(Test-Path -LiteralPath (Join-Path $Work 'shaders/corpus-expanded/unique.tsv')) -or
         @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count -ne 11977) {
         Stage 'Extracting and checking shaders from your copy…'
         Action 'ExtractAllShaders'; Action 'BuildShaders'
@@ -89,6 +90,9 @@ try {
     if ($validatedCount -ne 11977) {
         throw "The cache contains $validatedCount of 11977 shaders. Check shader-validation and shader-variants reports in project/reports before starting the game."
     }
+    Stage 'Checking cached shaders for the wide constant-load correction…'
+    Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_ldc64_shaders.py'),
+        '--work', $Work, '--report', (Join-Path $Project 'reports/ldc64-refresh.json'))
     Stage 'Finishing the local package…'
     $build = Join-Path $Work 'build/fefw'
     foreach ($name in @('fefw.exe','fefw.map','fefw.pdb','astcdec-avx2-shared.dll','astcdec-sse2-shared.dll','astcdec-sse4.1-shared.dll')) {
@@ -113,7 +117,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $Work 'engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
-    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-4', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-6', [Text.UTF8Encoding]::new($false))
     Stage 'Local copy prepared. Saving settings…'
     Stop-Transcript | Out-Null
     exit 0

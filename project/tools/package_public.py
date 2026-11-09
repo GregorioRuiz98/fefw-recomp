@@ -11,7 +11,7 @@ ROOT_FILES = {
     'CMakeLists.txt', 'config.py', 'requirements.txt', 'supported-build.json',
     'LICENSE', 'DEPENDENCIAS.md', 'CONTROLES-MANDO.md', 'INCIDENCIAS-Y-CONFIGURADOR.md', '.gitignore',
     'FireEmblemRecomp.ps1', 'PUBLIC-README.md', 'LEGAL.md', 'NOTICE.md',
-    'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md',
+    'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md', 'UPSTREAM-INTEGRATION.md',
 }
 PUBLIC_ROOT_DOCUMENTS = {'LICENSE', 'LEGAL.md', 'NOTICE.md', 'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md'}
 ROOT_DIRS = {'src', 'tools', 'tests', 'licenses', 'patches'}

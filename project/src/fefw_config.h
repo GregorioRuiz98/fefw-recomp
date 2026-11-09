@@ -35,6 +35,7 @@ struct Settings {
     int width = 1280, height = 720;
     bool fullscreen = false, skip = true, completed = false, vsync = true, fps60 = false;
     std::string language;
+    std::string upscaler = "taau";
 };
 struct Validation { bool ok = false; std::string error; };
 Settings load(const fs::path& dir);

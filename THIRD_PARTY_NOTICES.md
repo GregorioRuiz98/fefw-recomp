@@ -10,6 +10,7 @@ These notices accompany the software and patches. References to the engine and i
 | Mesa NAK | Decoder references; MIT, the identified rights holders | `project/licenses/mesa-nak-MIT.txt` |
 | smo-recomp and the engine’s GPL references | GNU GPL v3; scope described in engine notices | `project/licenses/smo-recomp-GPL-3.0.txt` |
 | nxnative | Translator adaptations; MIT, seedds | `project/licenses/nxnative-MIT.txt` |
+| Goldoire/fefw-recomp | [Revision 1d82e428125b66655dfa357c6c15515371b4e703](https://github.com/Goldoire/fefw-recomp/tree/1d82e428125b66655dfa357c6c15515371b4e703); GPL-3.0-or-later. NVN2 reconstruction API, built-in TAAU, host shader source and regression tests, adapted to our runtime | Original SPDX headers retained in `project/patches/engine.patch` and `project/tests/test_temporal_upscaler.cpp`; full GPL in `LICENSE`; integration scope in `project/UPSTREAM-INTEGRATION.md` |
 | Kompas9 60 FPS patch | [Switch-Game-Patches, revision 9e553571c986fbd45ef55202cb8ec0e1179a3db9](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave); v1.0 patch locations, original native integration. Original documentation and tools are MIT-licensed | `project/licenses/Kompas9-MIT.txt`; scope and limitations in the source README |
 | libvpx | Host video library; BSD and ISC as specified in its files | `project/licenses/libvpx-copyright.txt` |
 | dav1d and incorporated code | Host video library; licenses listed in the full notice | `project/licenses/dav1d-copyright.txt` |

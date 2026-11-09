@@ -34,10 +34,13 @@ def floatu64(b):
     return m<<sh if sh>=0 else m>>-sh
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--work',type=Path,required=True);p.add_argument('--report',type=Path,required=True);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--work',type=Path,required=True);p.add_argument('--report',type=Path,required=True)
+    p.add_argument('--case-prefix',default='',help='Run only synthetic cases whose names begin with this prefix.')
+    a=p.parse_args()
     w=a.work.resolve();out=w/'tests/compute-numeric';out.mkdir(parents=True,exist_ok=True)
     rng=random.Random(20261104); cases=[]
-    def emit(name,body,inputs,expected,local=1,custom=False):
+    def emit(name,body,inputs,expected,local=1,custom=False,uniform_bytes=65536):
+        if not name.startswith(a.case_prefix):return
         # 32 bytes per test row; c3 inputs are loaded at runtime, never constant folded.
         prefix=ins(0x919|7<<12|30<<16,37<<8)+mov(31,0)+lea(29,30,31,5)
         prefix+=ldc(4,3,0,29,5)+ldc(6,3,8,29,5)+ldc(20,0,0x90,typ=5)+lea(20,29,20,0)
@@ -59,7 +62,24 @@ def main():
         assert atomics == (1 if name.startswith('cas_') else 0), (name,atomics)
         def blob(rows):return b''.join(struct.pack('<8I',*(list(row)+[0xcdcdcdcd]*(8-len(row)))) for row in rows)
         (out/(name+'.input')).write_bytes(blob(inputs));(out/(name+'.expected')).write_bytes(blob(expected))
-        cases.append((name,len(inputs),len(expected)))
+        cases.append((name,len(inputs),len(expected),uniform_bytes))
+    # LDC.64 reads both words using the address from before either destination
+    # changes. The loaded low word is another in-bounds address: an aliasing bug
+    # gives a deterministic wrong high word rather than an undefined GPU read.
+    payloads=[[0x100+16*i,0xa5000000+i] for i in range(64)]
+    for name,index,dest,extra in (('low',4,4,0),('high',5,4,0),
+                                  ('separate',4,8,0),('offset',4,4,8)):
+        rows=[]
+        for i,(low,high) in enumerate(payloads):
+            row=[0,0,0,0,low,high]
+            row[index-4]=i*32+16-extra
+            rows.append(row)
+        emit('ldc64_'+name,ldc(dest,3,extra,index,5)+stg(dest,0)+stg(dest+1,4),
+             rows,payloads)
+    # A real four-byte descriptor backed by nonzero data beyond its range.
+    # Reading a distant constant must produce zero, never that backing data.
+    emit('cbuf_short',ldc(4,3,0x168)+stg(4,0)+ldc(5,3,0)+stg(5,4),
+         [[0xcafebabe]*8 for _ in range(32)],[[0,0xcafebabe] for _ in range(32)],uniform_bytes=4)
     values={0,1,(1<<64)-1,16777217,6442451201}
     for bit in range(64):
         for d in (-1,0,1):
@@ -116,7 +136,8 @@ def main():
     body+=ins(0x984|7<<12|8<<16|255<<24,4<<9)+ldc(20,0,0x90,typ=5)
     lo,hi=struct.unpack('<QQ',stg(8,0));body+=ins(lo&~(7<<12),hi)
     emit('cas_contention',body,[[0,0,0,0]],[[64]],local=64,custom=True)
-    (out/'cases.txt').write_text(''.join(f'{n} {count} {ecount}\n' for n,count,ecount in cases))
+    if not cases:raise SystemExit('No synthetic cases match --case-prefix.')
+    (out/'cases.txt').write_text(''.join(f'{n} {count} {ecount} {bound}\n' for n,count,ecount,bound in cases))
     subprocess.run(['cmake','--build',str(w/'build/fefw'),'--target','fefw_numeric_tests','--parallel','1'],check=True)
     result=subprocess.run([str(w/'build/fefw/fefw_numeric_tests.exe'),'compute_numeric'],cwd=out,capture_output=True,text=True,timeout=90)
     log=result.stdout+result.stderr;print(log);a.report.with_suffix('.log').write_text(log)

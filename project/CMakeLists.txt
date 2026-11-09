@@ -105,13 +105,14 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     target_link_libraries(fefw_compute_tests PRIVATE nxrt_gfx nxrt)
     target_link_options(fefw_compute_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
 
-    add_executable(fefw_array_tests tests/test_texture_arrays.cpp tests/test_root_constants.cpp tests/test_gpu_validation.cpp "${FEFW_ENGINE}/runtime/tests/test_main.cpp")
+    add_executable(fefw_array_tests tests/test_texture_arrays.cpp tests/test_root_constants.cpp tests/test_gpu_validation.cpp tests/test_temporal_upscaler.cpp "${FEFW_ENGINE}/runtime/tests/test_main.cpp")
     target_include_directories(fefw_array_tests PRIVATE "${FEFW_ENGINE}/runtime/tests" "${FEFW_ENGINE}/runtime/tests/gfx"
         "${FEFW_ENGINE}/runtime/src/gfx" "${FEFW_ENGINE}/runtime/src/gfx/nvn")
     target_compile_definitions(fefw_array_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS
         FEFW_ARRAY_CACHE_DIR="${FEFW_WORK_DEFAULT}/tests/texture-arrays")
     target_link_libraries(fefw_array_tests PRIVATE nxrt_gfx nxrt)
     target_link_options(fefw_array_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
+    add_test(NAME fefw_temporal COMMAND fefw_array_tests gfx_nvn_dlss)
 endif()
 
 set(FEFW_MODULE_TARGETS "")

@@ -10,7 +10,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 **[Download FEFW Recomp for Windows x64 — v0.1.0-preview.5](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.5/FEFW-Recomp-Windows-x64-v0.1.0-preview.5.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.5)
 
-Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only. While the repository is private, you must sign in with an account that has access to download the release.
+Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
 Select either the parent folder containing `updates/131072`, or `updates/131072` itself if it contains `exefs` and `romfs`. The selector detects the supported update and available languages. You do not need to move or rename the original game files to match the package.
 
@@ -28,9 +28,11 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 
 ## Status
 
-The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. The previously validated runtime passed 15 executable checks. A 160-second run finished without Vulkan errors, and a sample of 157 consecutive frames showed no isolated flashes. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
+The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. GPU regressions cover a corrected wide constant-load translation bug and reads beyond short constant-buffer descriptors. Setup repairs affected local shader modules when upgrading an existing cache. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
 
-These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio and the spatial DLSS substitute are experimental; the latter does not implement temporal reconstruction. The severe flicker reported by the user still needs confirmation in other gameplay sequences.
+The current source also adapts Goldoire's built-in temporal reconstruction and complete NVN2 reconstruction API. Setup offers TAAU and a bilinear comparison mode. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for the pinned source, tests and features retained from this project. The download above predates this integration.
+
+These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
 
 ## Requirements
 
@@ -49,7 +51,7 @@ The supported Title ID is `04007EF01F8AE000`, with main Build ID `DB93B0125F4850
 
 1. Extract the release into a local folder.
 2. Open `fefw_setup.exe` and select the folder containing `exefs` and `romfs`, or its parent folder containing supported updates.
-3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Only languages found in your copy are offered.
+3. Choose the game language, output resolution, windowed or fullscreen mode, and vertical synchronization. Current-source builds also offer 3D reconstruction. Only languages found in your copy are offered.
 4. Allow preparation to finish, then use **Save and play**. You can cancel and resume; **Open log** opens `preparation.log` for details.
 
 If preview.3 stopped while building `libvpx` in a folder containing spaces, close setup and extract the current release into the same package folder. Keep the existing `work` folder, reopen setup and retry **Save and play**. The corrected dependency build uses relative source paths; the original game folder can stay where it is. Preparation resumes, but a first installation still needs to compile the game and shaders.
@@ -57,6 +59,8 @@ If preview.3 stopped while building `libvpx` in a folder containing spaces, clos
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
 Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller guide](project/CONTROLES-MANDO.md).
+
+In builds containing the Goldoire integration, **3D reconstruction → Temporal anti-aliasing (TAAU)** combines successive 3D frames using the game's motion and depth data, before the UI is composed. **Bilinear** provides a comparison with temporal history disabled. Save and restart the game after changing it. This is a built-in host upscaler, not NVIDIA DLSS. It does not increase the game's original rendering resolution or promise higher FPS.
 
 The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
 
@@ -66,7 +70,7 @@ In `fefw_setup.exe`, enable **60 FPS (Kompas9, experimental)**, save and restart
 
 Both instruction variants are compiled natively. The option acts on the private image in memory without modifying the original game folder or requiring an emulator or an IPS file in the program folder. It is stored as `[mods] fps60` in `fefw.ini` and sets the host frame limit to 60 when enabled. It does not guarantee sustained 60 FPS or correct timing throughout the game; combat and longer cinematics need further validation.
 
-To upgrade from preview.1–preview.4, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation and reuses existing shaders. Settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
+To upgrade from preview.1–preview.5, close the game, extract the new ZIP into the same folder and open the setup tool. Saving updates the local preparation, checks existing shader files and regenerates the affected modules. Unaffected shader files, settings and saves are preserved. Changing an INI value in an old executable does not add the new functionality: the updated version must be compiled.
 
 ## Building the setup tool from source
 

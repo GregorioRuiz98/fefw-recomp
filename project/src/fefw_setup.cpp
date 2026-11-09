@@ -12,7 +12,7 @@
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
-enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog };
+enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog, Upscaler };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
@@ -36,7 +36,7 @@ void choose(HWND h, int n) { SendMessageW(h, CB_SETCURSEL, n, 0); }
 int selection(int id) { return static_cast<int>(SendMessageW(item(id), CB_GETCURSEL, 0, 0)); }
 void add(HWND h, const std::wstring& v) { SendMessageW(h, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(v.c_str())); }
 void enabled(bool on) {
-    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60}) EnableWindow(item(id), on);
+    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler}) EnableWindow(item(id), on);
     if (on) EnableWindow(item(Resolution), selection(Mode) == 0);
 }
 HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int w, int h, DWORD style = 0) {
@@ -132,6 +132,7 @@ void apply(bool play) {
     pending.language = langs.at(l).value; pending.width = sizes.at(r).first; pending.height = sizes.at(r).second;
     pending.fullscreen = selection(Mode) == 1; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.vsync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED;
+    pending.upscaler = selection(Upscaler) == 1 ? "bilinear" : "taau";
     pending.fps60 = SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.completed = true; start_game = play;
     status(L"Verifying original files and the prepared copy…"); UpdateWindow(window);
@@ -166,23 +167,27 @@ void create_controls() {
         if (size.first == settings.width && size.second == settings.height) index = static_cast<int>(sizes.size() - 1);
     }
     choose(item(Resolution), index); EnableWindow(item(Resolution), !settings.fullscreen);
-    control(L"STATIC", L"Fullscreen uses your desktop. Internal rendering keeps the game’s original resolution.", 0, 24, 303, 622, 40);
-    control(L"STATIC", L"Game language", 0, 24, 352, 300, 22);
-    control(L"COMBOBOX", L"", Lang, 24, 379, 622, 230, WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL);
-    control(L"BUTTON", L"Vertical synchronization", Vsync, 24, 425, 245, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"STATIC", L"3D reconstruction (restart required)", 0, 24, 303, 622, 22);
+    control(L"COMBOBOX", L"", Upscaler, 24, 330, 622, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
+    add(item(Upscaler), L"Temporal anti-aliasing (TAAU)");
+    add(item(Upscaler), L"Bilinear (comparison, no temporal anti-aliasing)");
+    choose(item(Upscaler), settings.upscaler == "bilinear" ? 1 : 0);
+    control(L"STATIC", L"Game language", 0, 24, 376, 300, 22);
+    control(L"COMBOBOX", L"", Lang, 24, 403, 622, 230, WS_TABSTOP | CBS_DROPDOWNLIST | WS_VSCROLL);
+    control(L"BUTTON", L"Vertical synchronization", Vsync, 24, 449, 245, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Vsync), BM_SETCHECK, settings.vsync ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"BUTTON", L"Skip setup on startup", Skip, 24, 489, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"Skip setup on startup", Skip, 24, 513, 622, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Skip), BM_SETCHECK, settings.skip ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"BUTTON", L"60 FPS (Kompas9, experimental)", Fps60, 280, 425, 366, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
+    control(L"BUTTON", L"60 FPS (Kompas9, experimental)", Fps60, 280, 449, 366, 25, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(Fps60), BM_SETCHECK, settings.fps60 ? BST_CHECKED : BST_UNCHECKED, 0);
-    control(L"STATIC", L"60 FPS changes the limit and timing. Restart required; performance depends on your PC.", 0, 24, 456, 622, 24);
-    control(L"STATIC", L"", Status, 24, 523, 622, 39);
-    control(PROGRESS_CLASSW, L"", Progress, 24, 568, 622, 9, PBS_MARQUEE);
-    control(L"BUTTON", L"Cancel", IDCANCEL, 24, 588, 112, 34, WS_TABSTOP);
-    control(L"BUTTON", L"Open log", OpenLog, 148, 588, 150, 34, WS_TABSTOP);
+    control(L"STATIC", L"60 FPS changes the limit and timing. Restart required; performance depends on your PC.", 0, 24, 480, 622, 24);
+    control(L"STATIC", L"", Status, 24, 547, 622, 39);
+    control(PROGRESS_CLASSW, L"", Progress, 24, 592, 622, 9, PBS_MARQUEE);
+    control(L"BUTTON", L"Cancel", IDCANCEL, 24, 612, 112, 34, WS_TABSTOP);
+    control(L"BUTTON", L"Open log", OpenLog, 148, 612, 150, 34, WS_TABSTOP);
     EnableWindow(item(OpenLog), fs::is_regular_file(game_dir / L"preparation.log"));
-    control(L"BUTTON", L"Save", Save, 366, 588, 128, 34, WS_TABSTOP);
-    control(L"BUTTON", L"Save and play", SavePlay, 506, 588, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
+    control(L"BUTTON", L"Save", Save, 366, 612, 128, 34, WS_TABSTOP);
+    control(L"BUTTON", L"Save and play", SavePlay, 506, 612, 140, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
     refresh_folder();
 }
 LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
@@ -244,7 +249,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         int argc = 0; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         game_dir = s::executable_dir(); fs::path source;
         bool validate = false, apply_cli = false, status_cli = false;
-        int width = 0, height = 0; std::string language; int skip = -1, vsync = -1, fps60 = -1;
+        int width = 0, height = 0; std::string language, upscaler; int skip = -1, vsync = -1, fps60 = -1;
         for (int i = 1; i < argc; ++i) {
             const std::wstring arg(argv[i]);
             auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Missing argument"); return argv[++i]; };
@@ -259,6 +264,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             else if (arg == L"--language") language = s::utf8(next());
             else if (arg == L"--skip") skip = std::stoi(next());
             else if (arg == L"--vsync") vsync = std::stoi(next());
+            else if (arg == L"--upscaler") upscaler = s::utf8(next());
             else if (arg == L"--fps60") fps60 = std::stoi(next());
             else if (arg == L"--test-ui") test_ui = true;
             else throw std::runtime_error("Unknown argument: " + s::utf8(arg));
@@ -269,6 +275,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (width) settings.width = width; if (height) settings.height = height;
         if (!language.empty()) settings.language = language; if (skip >= 0) settings.skip = skip != 0;
         if (vsync >= 0) settings.vsync = vsync != 0;
+        if (!upscaler.empty()) settings.upscaler = upscaler;
         if (fps60 >= 0) settings.fps60 = fps60 != 0;
         if (status_cli) {
             const auto v = s::validate_ready(game_dir, settings);
@@ -283,14 +290,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         WNDCLASSEXW wc{sizeof wc}; wc.hInstance = instance; wc.lpfnWndProc = proc; wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
         wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION); wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1); wc.lpszClassName = L"FEFW_Configuration";
         RegisterClassExW(&wc);
-        RECT rect{0, 0, px(670), px(646)};
+        RECT rect{0, 0, px(670), px(670)};
         const DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
         AdjustWindowRectEx(&rect, style, FALSE, WS_EX_CONTROLPARENT);
         HWND h = CreateWindowExW(WS_EX_CONTROLPARENT, wc.lpszClassName, L"Fire Emblem Recomp — Setup", style,
             CW_USEDEFAULT, CW_USEDEFAULT, rect.right - rect.left, rect.bottom - rect.top, nullptr, nullptr, instance, nullptr);
         if (!h) throw std::runtime_error("Cannot open the setup tool");
         if (test_ui) {
-            const bool ok = !versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0 && selection(Mode) >= 0 && selection(Resolution) >= 0 &&
+            const bool ok = !versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0 && selection(Mode) >= 0 && selection(Resolution) >= 0 && selection(Upscaler) == (settings.upscaler == "bilinear" ? 1 : 0) &&
                 IsWindowEnabled(item(Save)) && SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED) &&
                 SendMessageW(item(Fps60), BM_GETCHECK, 0, 0) == (settings.fps60 ? BST_CHECKED : BST_UNCHECKED);
             std::printf("ui_valid=%d versions=%zu languages=%zu\n", ok, versions.size(), langs.size());

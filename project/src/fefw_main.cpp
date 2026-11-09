@@ -365,6 +365,7 @@ int main(int argc, char** argv) {
     if (!exefs_given) exefs = nxrt::config_get_str("fs", "exefs", installed ? "exefs" : exefs.c_str());
     nxrt::config_set("fs", "exefs", exefs.c_str());     // the one in use, for the About page
     nxrt::config_set("process", "program_id", "0x04007EF01F8AE000");
+    if (!nxrt::config_has("gfx", "robust_buffers")) nxrt::config_set("gfx", "robust_buffers", "true");
     NXLOG_I("boot", "fefw %s (Fire Emblem: Fortune's Weave PC port)", FEFW_VERSION);
     NXLOG_I("boot", "Fire Emblem: Fortune's Weave %s: exefs '%s'", nxrt::game::info().version, exefs.c_str());
 

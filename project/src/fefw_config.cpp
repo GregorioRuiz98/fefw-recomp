@@ -185,6 +185,7 @@ Settings load(const fs::path& dir) {
     s.language = ini.get("system", "language", system_language());
     s.skip = ini.get("launcher", "skip_setup", "1") == "1";
     s.completed = ini.get("launcher", "setup_complete", "0") == "1";
+    s.upscaler = ini.get("dlss", "upscaler", "taau") == "bilinear" ? "bilinear" : "taau";
     s.fps60 = ini.get("mods", "fps60", "0") == "1";
     s.vsync = s.completed ? controls.get("display", "vsync", "1") != "0" : true;
     return s;
@@ -270,6 +271,8 @@ void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
     controls.set("tweaks", "language", s.language);
     ini.set("launcher", "source_dir", path_text(s.source)); ini.set("launcher", "skip_setup", s.skip ? "1" : "0");
     ini.set("launcher", "setup_complete", "1"); ini.set("launcher", "configuration_version", "1");
+    if (s.upscaler != "taau" && s.upscaler != "bilinear") throw std::runtime_error("Unsupported 3D reconstruction mode");
+    ini.set("dlss", "upscaler", s.upscaler);
     ini.set("mods", "fps60", s.fps60 ? "1" : "0");
     ini.set("boot", "gfx", "window");
     if (ini.get("boot", "max_seconds").empty()) ini.set("boot", "max_seconds", "0");
