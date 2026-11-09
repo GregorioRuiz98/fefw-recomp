@@ -64,3 +64,19 @@ The final game executable ran for about 152 seconds with GPU-assisted validation
 The standalone Win32 configurator now follows the palette and information grouping of Goldoire's launcher: navy surfaces, teal accent, persistent sidebar, and separate Picture, Performance and Window sections. Game files, Startup and Updates retain our local preparation workflow. Field explanations, a derived resolution summary, pending-change state, Revert and discard confirmation make the settings easier to review before saving.
 
 The theme source credits Goldoire's `launcher/src/theme.css`; no game artwork, Tauri runtime or additional vendor upscaler is distributed. Native control roles, keyboard navigation and the existing INI-preserving editor are retained. See `src/SETTINGS-DESIGN.md`. Normal/compact/144-DPI captures and 29 setup integration checks pass, including dirty/revert and custom-resolution preview checks. This release does not alter the game executable, shaders or renderer.
+
+## Preview.9 renderer follow-up (2026-11-09)
+
+Reviewed [v0.1.5 at a538375](https://github.com/Goldoire/fefw-recomp/tree/a538375), including `f4e78ae` (minimum texture sizes and growing write-tracking slots) and `a3e0496` (integer texture sampling). The base engine pin and existing local build workflow remain unchanged.
+
+- Adapted minimum width/height handling in the texture builder, signed/unsigned view checks and fallback views and unfiltered integer samplers.
+- Adapted the stable growing write-tracking table and its concurrency/reuse regressions. The original engine's memory-arming API remains in use; the unrelated upstream heap API replacement is not required.
+- Preserved our existing narrow-integer compute specialization and extended it to graphics stages, including single-descriptor cube-map reads. Large bindless arrays retain their prior floating-format path; this update does not implement per-element numeric conversion for mixed-format pools. Pipeline modules and descriptor reflection now change together. Specialized modules use hashes derived from their SPIR-V contents so background graphics pipeline compilation cannot confuse them with the original float module.
+- Added original synthetic GPU tests for 2D/cube sampling, data changes and rebinding to normalized formats. No commercial shader is included in these fixtures.
+- Added synthetic IPC save tests for immediate deletion, missing-slot open errors, commit and remount. These validate the runtime's file contract; they do not assert that the game's title-menu state is refreshed correctly.
+
+The source-only public package retains controller-only gameplay, the standalone configurator, update preservation, TAAU and previous constant-buffer fixes. The vendor upscaler/frame-generation and general pool allocator replacements are not included by this update.
+
+Validation and remaining visual/save limitations are described in the release notes. A passing synthetic test is not proof that all flicker, missing text or the reported Continue-after-delete crash is fixed.
+
+The follow-up also protects synchronous CPU texture preparation when the game unmaps source pages before a queued draw is replayed. Preparation copies source bytes with Windows' checked process-memory API before hashing or untiling. Unreadable storage returns a normal failure; an existing GPU image is kept rather than cleared during that transition. A synthetic inaccessible-page test crashes the old code with access violation `0xC0000005` and passes with the snapshot. This protects the failure mechanism observed in a local renderer crash log; it is not proof that every reported save-menu or text defect has the same cause.

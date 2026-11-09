@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.8](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.8/FEFW-Recomp-Windows-x64-v0.1.0-preview.8.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.8)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.9](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.9/FEFW-Recomp-Windows-x64-v0.1.0-preview.9.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.9)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -31,6 +31,10 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. GPU regressions cover a corrected wide constant-load translation bug and reads beyond short constant-buffer descriptors. Setup repairs affected local shader modules when upgrading an existing cache. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
 
 Preview.6 adds built-in temporal reconstruction (TAAU), experimental 120 FPS with measured-time correction, game output and internal scale controls, and verified updates from setup. Vulkan, the F1 overlay, controller reconnection and resumable local preparation remain available. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for source attribution and bounded validation.
+
+Preview.9 adapts the texture-view, integer-sampler and write-tracking changes reviewed through Goldoire v0.1.5. Narrow integer sampling is also specialized for graphics stages, with distinct shader hashes for pipeline prewarming. Synthetic GPU tests cover 2D/cube reads, integer/normalized rebinding and nearest filtering for integer data in single descriptors. Large mixed-format bindless pools retain their previous compatibility path. Texture width/height remain at least one pixel during downsampling, and write tracking grows beyond the previous 512 live-region limit. CPU texture uploads also reject source pages that have become unreadable, retaining the last usable image during that transition instead of crashing or clearing it. Updating from preview.8 requires rebuilding the local runtime; game files and shader caches remain local.
+
+**Reported save-reset issue:** deleting data through title screen → Extras → Delete save data may leave **Continue** visible; selecting it has been reported to close the game. The examined local crash log stopped in texture untiling during scene loading; preview.9 protects unreadable-source uploads. The title-menu state is still being investigated. If the stale option appears after deletion, close and reopen the game before proceeding. Do not use this release as evidence that the menu issue is fixed.
 
 These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller reconnection during gameplay remain outstanding. A USB DualShock 4 has been detected and its live axes read by the standalone configurator; automated virtual-device tests cover button input and reconnection. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
 

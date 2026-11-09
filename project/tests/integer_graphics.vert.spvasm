@@ -1,0 +1,36 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+; Own full-screen triangle; no game data.
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint Vertex %main "main" %index %position
+OpDecorate %index BuiltIn VertexIndex
+OpDecorate %position BuiltIn Position
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%bool = OpTypeBool
+%int = OpTypeInt 32 1
+%float = OpTypeFloat 32
+%v4 = OpTypeVector %float 4
+%in = OpTypePointer Input %int
+%out = OpTypePointer Output %v4
+%index = OpVariable %in Input
+%position = OpVariable %out Output
+%i0 = OpConstant %int 0
+%i1 = OpConstant %int 1
+%zero = OpConstant %float 0
+%one = OpConstant %float 1
+%minus = OpConstant %float -1
+%three = OpConstant %float 3
+%a = OpConstantComposite %v4 %minus %minus %zero %one
+%b = OpConstantComposite %v4 %three %minus %zero %one
+%c = OpConstantComposite %v4 %minus %three %zero %one
+%main = OpFunction %void None %fn
+%label = OpLabel
+%i = OpLoad %int %index
+%is0 = OpIEqual %bool %i %i0
+%is1 = OpIEqual %bool %i %i1
+%bc = OpSelect %v4 %is1 %b %c
+%abc = OpSelect %v4 %is0 %a %bc
+OpStore %position %abc
+OpReturn
+OpFunctionEnd

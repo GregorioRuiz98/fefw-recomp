@@ -65,7 +65,7 @@ void export_diagnostics(const fs::path& file,const fs::path& dir,const Settings&
     Ini check(fs::path{}),controls(fs::path{}); edit_settings(s,check,controls);
     // No log scraping: free-form logs may contain personal paths or game text.
     Ini out(fs::path{}); auto put=[&](const char* k,const std::string& v){out.set("diagnostics",k,v);};
-    put("schema","1"); put("tools","v0.1.0-preview.8"); put("platform","Windows x64");
+    put("schema","1"); put("tools","v0.1.0-preview.9"); put("platform","Windows x64");
     put("ready",validate_ready(dir,s,false).ok?"1":"0"); put("controllers",std::to_string(controllers));
     put("prepared_exefs_present",fs::is_directory(s.exefs)?"1":"0"); put("shader_directory_present",fs::is_directory(s.shaders)?"1":"0");
     put("preparation_log_present",fs::is_regular_file(dir/L"preparation.log")?"1":"0");

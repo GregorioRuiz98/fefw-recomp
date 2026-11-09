@@ -30,7 +30,7 @@ def main():
         if src.exists():
             shutil.copy2(src, folder / name)
     game_ini = folder / 'fefw.ini'
-    (folder / 'fefw.features').write_text('fefw-runtime-8', encoding='utf-8')
+    (folder / 'fefw.features').write_text('fefw-runtime-9', encoding='utf-8')
     control_ini = folder / 'controls.ini'
     game_ini.write_text(
         '[fs]\nexefs = ' + str(work / 'prepared/exefs') + '\nromfs = ' + str(a.source / 'romfs') +
@@ -117,9 +117,9 @@ def main():
     assert 'controller_valid=1' in run('standalone_controller_hotplug', ['--test-controllers'])
     (folder / 'fefw.features').unlink()
     run('old_executable_requires_update', ['--status'], 2)
-    (folder / 'fefw.features').write_text('fefw-runtime-5', encoding='utf-8')
-    run('old_shader_cache_requires_update', ['--status'], 2)
     (folder / 'fefw.features').write_text('fefw-runtime-8', encoding='utf-8')
+    run('old_shader_cache_requires_update', ['--status'], 2)
+    (folder / 'fefw.features').write_text('fefw-runtime-9', encoding='utf-8')
     run('standalone_ui_ignores_skip', ['--test-ui'])
     before = game_ini.read_bytes(), control_ini.read_bytes()
     run('unsupported_language_keeps_configuration', ['--apply', '--language', 'Portuguese'], 2)

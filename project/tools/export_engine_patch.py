@@ -24,6 +24,8 @@ extra += ['runtime/src/gfx/nvn/api_dlss.h', 'runtime/src/gfx/nvn/api_dlss.cpp',
 extra += ['runtime/include/nxrt/frame_limiter.h', 'runtime/include/nxrt/game.h',
           'runtime/src/gfx/frame_limiter.cpp', 'runtime/src/gfx/nvn/nvn_present.cpp',
           'runtime/src/gfx/nvn/nvn_gpu_texture.cpp']
+extra += ['runtime/src/mem/write_watch.cpp', 'runtime/src/gfx/nvn/api_texture_builder.cpp',
+          'runtime/src/gfx/nvn/nvn_gpu_internal.h', 'runtime/src/gfx/nvn/nvn_texdata.cpp']
 known = set(re.findall(r'^diff --git a/(\S+) b/\S+$', out.read_text(encoding='utf-8'), re.M)) | set(extra)
 
 

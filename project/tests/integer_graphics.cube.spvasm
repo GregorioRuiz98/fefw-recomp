@@ -1,0 +1,37 @@
+; SPDX-License-Identifier: GPL-3.0-or-later
+; Read narrow integers through a float-declared sampler, preserving register bits.
+OpCapability Shader
+OpMemoryModel Logical GLSL450
+OpEntryPoint Fragment %main "main" %texture %color
+OpExecutionMode %main OriginUpperLeft
+OpName %texture "fp_t_tcb_8"
+OpDecorate %texture DescriptorSet 2
+OpDecorate %texture Binding 128
+OpDecorate %color Location 0
+%void = OpTypeVoid
+%fn = OpTypeFunction %void
+%uint = OpTypeInt 32 0
+%float = OpTypeFloat 32
+%v2 = OpTypeVector %float 3
+%v4f = OpTypeVector %float 4
+%v4u = OpTypeVector %uint 4
+%zero = OpConstant %float 0
+%half = OpConstant %float 0.5
+%scale = OpConstant %float 0.00392156862745098
+%xy = OpConstantComposite %v2 %half %zero %zero
+%image = OpTypeImage %float Cube 0 0 0 1 Unknown
+%sampled = OpTypeSampledImage %image
+%ptr = OpTypePointer UniformConstant %sampled
+%out = OpTypePointer Output %v4f
+%texture = OpVariable %ptr UniformConstant
+%color = OpVariable %out Output
+%main = OpFunction %void None %fn
+%label = OpLabel
+%s = OpLoad %sampled %texture
+%f = OpImageSampleExplicitLod %v4f %s %xy Lod %zero
+%u = OpBitcast %v4u %f
+%value = OpConvertUToF %v4f %u
+%scaled = OpVectorTimesScalar %v4f %value %scale
+OpStore %color %scaled
+OpReturn
+OpFunctionEnd

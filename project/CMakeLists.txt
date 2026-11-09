@@ -79,6 +79,22 @@ add_subdirectory("${FEFW_ENGINE}/runtime" "${CMAKE_CURRENT_BINARY_DIR}/runtime")
 
 option(FEFW_BUILD_RUNTIME_TESTS "Build memory and thread regression tests" ON)
 if(FEFW_BUILD_RUNTIME_TESTS)
+    add_executable(fefw_save_tests tests/test_save_reset.cpp
+        "${FEFW_ENGINE}/runtime/tests/test_main.cpp"
+        "${FEFW_ENGINE}/runtime/tests/test_svc_fs_volume.cpp")
+    target_include_directories(fefw_save_tests PRIVATE "${FEFW_ENGINE}/runtime/tests" "${FEFW_ENGINE}/runtime/src")
+    target_compile_definitions(fefw_save_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+    target_link_libraries(fefw_save_tests PRIVATE nxrt_gfx nxrt)
+    target_link_options(fefw_save_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
+    file(MAKE_DIRECTORY "${FEFW_WORK_DEFAULT}/tmp/f")
+    add_test(NAME fefw_save_reset COMMAND fefw_save_tests)
+    set_tests_properties(fefw_save_reset PROPERTIES ENVIRONMENT "TEMP=${FEFW_WORK_DEFAULT}/tmp/f;TMP=${FEFW_WORK_DEFAULT}/tmp/f")
+    add_executable(fefw_write_tests tests/test_write_tracking.cpp "${FEFW_ENGINE}/runtime/tests/test_write_watch.cpp" "${FEFW_ENGINE}/runtime/tests/test_main.cpp")
+    target_include_directories(fefw_write_tests PRIVATE "${FEFW_ENGINE}/runtime/tests")
+    target_compile_definitions(fefw_write_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+    target_link_libraries(fefw_write_tests PRIVATE nxrt_gfx nxrt)
+    target_link_options(fefw_write_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
+    add_test(NAME fefw_write_tracking COMMAND fefw_write_tests)
     add_executable(fefw_runtime_tests
         tests/test_audio_revision.cpp
         tests/test_applet22.cpp
@@ -124,7 +140,7 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     target_link_libraries(fefw_compute_tests PRIVATE nxrt_gfx nxrt)
     target_link_options(fefw_compute_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
 
-    add_executable(fefw_array_tests tests/test_texture_arrays.cpp tests/test_root_constants.cpp tests/test_gpu_validation.cpp tests/test_temporal_upscaler.cpp tests/test_pc_runtime.cpp "${FEFW_ENGINE}/runtime/tests/test_main.cpp")
+    add_executable(fefw_array_tests tests/test_texture_arrays.cpp tests/test_root_constants.cpp tests/test_gpu_validation.cpp tests/test_temporal_upscaler.cpp tests/test_pc_runtime.cpp tests/test_render_portability.cpp tests/test_graphics_numeric.cpp tests/test_texture_source.cpp "${FEFW_ENGINE}/runtime/tests/test_main.cpp")
     target_include_directories(fefw_array_tests PRIVATE "${FEFW_ENGINE}/runtime/tests" "${FEFW_ENGINE}/runtime/tests/gfx"
         "${FEFW_ENGINE}/runtime/src/gfx" "${FEFW_ENGINE}/runtime/src/gfx/nvn")
     target_compile_definitions(fefw_array_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS
@@ -133,6 +149,8 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     target_link_options(fefw_array_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
     add_test(NAME fefw_temporal COMMAND fefw_array_tests gfx_nvn_dlss)
     add_test(NAME fefw_pc_runtime COMMAND fefw_array_tests fefw_pc)
+    add_test(NAME fefw_texture_source COMMAND fefw_array_tests texture_source)
+    add_test(NAME fefw_render_portability COMMAND fefw_array_tests fefw_render_portability)
 endif()
 
 set(FEFW_MODULE_TARGETS "")
