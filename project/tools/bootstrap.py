@@ -7,12 +7,32 @@ import subprocess
 import sys
 
 PIN = '2c29515b23a6d78d967775fd7e9f24f50402cca7'
+RUNTIME_PIN = 'a538375a80070e8a6bf5476b03b3dd877a13ea9d'
+RUNTIME_URL = 'https://github.com/Goldoire/fefw-recomp.git'
 PROJECT = Path(__file__).resolve().parents[1]
 PREVIOUS_CONFIG_SHA256 = '133e98f3911000e82c788cb5a97932ff879a24c4c2521f78b0e1f8eec2db8891'
 
 
 def run(*args, **kwargs):
     subprocess.run([str(x) for x in args], check=True, **kwargs)
+
+
+def prepare_runtime(work):
+    """Use the complete upstream runtime, with input-only local adaptations."""
+    engine = work / 'renderer-engine'
+    if not engine.exists():
+        run('git', 'clone', '--no-checkout', RUNTIME_URL, engine)
+        run('git', '-C', engine, 'checkout', '--detach', RUNTIME_PIN)
+    head = subprocess.check_output(['git', '-C', str(engine), 'rev-parse', 'HEAD'], text=True).strip()
+    if head != RUNTIME_PIN:
+        raise RuntimeError(f'Renderer is at {head}, expected {RUNTIME_PIN}; existing checkout was preserved')
+    patch = PROJECT / 'patches' / 'renderer.patch'
+    def check(*args):
+        return subprocess.run(['git', '-C', str(engine), 'apply', *args, str(patch)], capture_output=True).returncode == 0
+    if check('--check'):
+        run('git', '-C', engine, 'apply', patch)
+    elif not check('--reverse', '--check'):
+        raise RuntimeError('Renderer changes conflict with renderer.patch; existing files were preserved')
 
 
 def main():
@@ -59,6 +79,7 @@ def main():
                 raise
     config.parent.mkdir(parents=True, exist_ok=True)
     config.write_bytes(wanted_config)
+    prepare_runtime(work)
     if a.engine_only:
         print('Pinned engine and native patch configuration are up to date')
         return

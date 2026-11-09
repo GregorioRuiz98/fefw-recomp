@@ -6,6 +6,7 @@ $temporary = Join-Path $Work 'tmp'
 New-Item -ItemType Directory -Path $temporary -Force | Out-Null
 $env:TEMP = $temporary; $env:TMP = $temporary
 $engine = Join-Path $Work 'engine'
+$renderer = Join-Path $Work 'renderer-engine'
 function Run([string]$Exe, [string[]]$Arguments) {
     & $Exe @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Exe failed with exit code $LASTEXITCODE" }
@@ -21,22 +22,10 @@ function Checkout([string]$Url, [string]$Pin, [string]$Path) {
 . (Join-Path $Project 'tools/Initialize-BuildEnv.ps1')
 $python = Join-Path $Work 'venv/Scripts/python.exe'
 if (!(Test-Path -LiteralPath $python)) { throw 'The Python environment must be prepared.' }
-$textures = Join-Path $engine 'tools/textures'
-if (!(Test-Path -LiteralPath (Join-Path $textures 'build/release/astc2bc7.lib'))) {
-    Checkout 'https://github.com/ARM-software/astc-encoder.git' 'baff485b0ff36d2f95d28961605106502c653966' (Join-Path $textures 'third_party/astc-encoder')
-    Checkout 'https://github.com/richgel999/bc7enc_rdo.git' 'b9438627eef73a1157e84201b6fa6eb2ffd6d9f0' (Join-Path $textures 'third_party/bc7enc_rdo')
-    $ispcDir = Join-Path $textures 'third_party/ispc'
-    if (!(Test-Path -LiteralPath (Join-Path $ispcDir 'ispc-v1.32.0-windows/bin/ispc.exe'))) {
-        $archiveDir = Join-Path $Work 'downloads'
-        New-Item -ItemType Directory -Path $archiveDir -Force | Out-Null
-        $zip = Join-Path $archiveDir 'ispc-v1.32.0-windows.zip'
-        Invoke-WebRequest 'https://github.com/ispc/ispc/releases/download/v1.32.0/ispc-v1.32.0-windows.zip' -OutFile $zip -UseBasicParsing
-        if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne '148D5CD96ABE7501C730D5FBD00F1F0C893B96BFEADA38D1811C9B6251E86A5C') { throw 'ISPC: SHA-256 incorrecto.' }
-        Expand-Archive -LiteralPath $zip -DestinationPath $ispcDir -Force
-    }
-    Run 'cmake' @('-S', $textures, '-B', (Join-Path $textures 'build/release'), '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_C_COMPILER=clang-cl', '-DCMAKE_CXX_COMPILER=clang-cl')
-    Run 'cmake' @('--build', (Join-Path $textures 'build/release'), '--target', 'astc2bc7_cli', '--parallel', '1')
-}
+# The upstream runtime builds its matching ASTC/BC7 converter from source.
+# Do not link the older converter: its encoder API differs.
+$textures = Join-Path $renderer 'tools/textures'
+Checkout 'https://github.com/ARM-software/astc-encoder.git' 'baff485b0ff36d2f95d28961605106502c653966' (Join-Path $textures 'third_party/astc-encoder')
 $validator = Join-Path $Work 'build/spirv-tools/tools/spirv-val.exe'
 if (!(Test-Path -LiteralPath $validator)) {
     $spv = Join-Path $Work 'refs/spirv-tools'
@@ -89,7 +78,8 @@ if (!(Test-Path -LiteralPath (Join-Path $Work 'toolchains/dotnet/dotnet.exe'))) 
     New-Item -ItemType Directory -Path (Join-Path $Work 'toolchains') -Force | Out-Null
     New-Item -ItemType Junction -Path (Join-Path $Work 'toolchains/dotnet') -Target (Split-Path -Parent $dotnet) | Out-Null
 }
-$staged = Join-Path $engine 'tools/shaders/third_party/ryubing'
+foreach ($shaderEngine in @($engine, $renderer)) {
+$staged = Join-Path $shaderEngine 'tools/shaders/third_party/ryubing'
 if (!(Test-Path -LiteralPath (Join-Path $staged 'src/Ryujinx.Graphics.Shader/Ryujinx.Graphics.Shader.csproj'))) {
     $ryu = Join-Path $Work 'refs/ryubing'
     Checkout 'https://git.ryujinx.app/projects/Ryubing.git' 'a82350bb774f70fcbd41c9987bf67a3775409963' $ryu
@@ -104,4 +94,6 @@ if (!(Test-Path -LiteralPath (Join-Path $staged 'src/Ryujinx.Graphics.Shader/Ryu
 $env:DOTNET_CLI_HOME = Join-Path $Work 'dotnet-home'
 $env:NUGET_PACKAGES = Join-Path $Work 'nuget'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
-Run $dotnet @('restore', (Join-Path $engine 'tools/shaders/harness/SpirvHarness.csproj'), "-p:PatchPython=$python", '-p:Platform=AnyCPU', '--disable-parallel', '-m:1', '-nodeReuse:false', '--source', 'https://api.nuget.org/v3/index.json')
+Run $dotnet @('restore', (Join-Path $shaderEngine 'tools/shaders/harness/SpirvHarness.csproj'), "-p:PatchPython=$python", '-p:Platform=AnyCPU', '--disable-parallel', '-m:1', '-nodeReuse:false', '--source', 'https://api.nuget.org/v3/index.json')
+
+}

@@ -51,7 +51,7 @@ void title_defaults(nxrt::services::TitleProfile& profile) {
     profile.main_thread_stack = 0x100000;
     profile.main_thread_priority = 44;
     profile.main_thread_core = 0;
-    profile.system_resource_size = 0x4000000;
+    profile.system_resource_size = 0; // upstream pool-import path: heap-backed NVN allocations
     // control.nacp has not been supplied. Save sizes/languages/display version
     // stay unspecified and may be set in the ini after verification.
 }
@@ -66,6 +66,11 @@ const nxrt::game::Info& game_info() {
         game.program_id = 0x04007EF01F8AE000ull;
         game.version = "build DB93B012 / update-directory 131072";
         game.platform = nxrt::game::Platform::Switch2;
+        game.nvn_api_minor = 40;
+        game.movie_fail_at_open = true;
+        game.movie_video_decoder = true;
+        game.vi_hdr_status_sdr = true;
+        game.jc2_mouse_default = "off";
         game.present_interval_hz = 60;
         game.main_base = 0x7100000000ull;
         game.exe_name = "fefw.exe";

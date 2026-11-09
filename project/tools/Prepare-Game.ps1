@@ -79,29 +79,16 @@ try {
     if ($LASTEXITCODE -ne 0) { Action 'Cover'; Action 'Lift' }
     Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_runtime_patches.py'), '--work', $Work)
     Action 'Configure'; Action 'Build'
-    $cache = Join-Path $Work 'shaders/validated-sdk22'
-    if (!(Test-Path -LiteralPath (Join-Path $cache 'results.tsv')) -or
-        !(Test-Path -LiteralPath (Join-Path $Work 'shaders/corpus-expanded/unique.tsv')) -or
-        @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count -ne 11977) {
-        Stage 'Extracting and checking shaders from your copy…' 5
-        Action 'ExtractAllShaders'; Action 'BuildShaders'
-        foreach ($check in @('ShaderTest','ComputeTest','NumericTest','ArrayTest','LiteralHandleTest','PoolTest','RootConstantsTest','GpuValidationTest')) { Action $check }
-        Stage 'Translating and validating the complete shader cache…' 6
-        Action 'TranslateAllShaders'; Action 'ValidateAllShaders'
-    }
-    $validatedCount = @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count
-    if ($validatedCount -ne 11977) {
-        throw "The cache contains $validatedCount of 11977 shaders. Check shader-validation and shader-variants reports in project/reports before starting the game."
-    }
-    Stage 'Checking cached shaders for the wide constant-load correction…' 7
-    Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_ldc64_shaders.py'),
-        '--work', $Work, '--report', (Join-Path $Project 'reports/ldc64-refresh.json'))
+    $cache = Join-Path $Work 'shaders/goldoire-v015'
+    Stage 'Translating and validating shaders for the upstream renderer…' 6
+    Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/prepare_renderer_shaders.py'),
+        '--work', $Work, '--dotnet', (Join-Path $Work 'toolchains/dotnet/dotnet.exe'), '--romfs', (Join-Path $Source 'romfs'))
     Stage 'Finishing the local package…' 8
     $build = Join-Path $Work 'build/fefw'
-    foreach ($name in @('fefw.exe','fefw.map','fefw.pdb','astcdec-avx2-shared.dll','astcdec-sse2-shared.dll','astcdec-sse4.1-shared.dll')) {
+    foreach ($name in @('fefw.exe','fefw.map','fefw.pdb')) {
         Copy-Local (Join-Path $build $name) (Join-Path $GameDirectory $name)
     }
-    foreach ($pair in @(@((Join-Path $Work 'prepared/exefs'), 'exefs'), @($cache, 'shader_cache/spirv'), @((Join-Path $build 'fonts'), 'fonts'))) {
+    foreach ($pair in @(@((Join-Path $Work 'prepared/exefs'), 'exefs'), @($cache, 'shader_cache/goldoire-v015'), @((Join-Path $build 'fonts'), 'fonts'))) {
         $destination = Join-Path $GameDirectory $pair[1]
         New-Item -ItemType Directory -Path $destination -Force | Out-Null
         foreach ($file in Get-ChildItem -LiteralPath $pair[0] -File) {
@@ -117,10 +104,10 @@ try {
         Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $GameDirectory 'licenses') -Force
     }
     Copy-Item -LiteralPath (Join-Path $Project 'LICENSE') -Destination (Join-Path $GameDirectory 'LICENSE') -Force
-    Copy-Item -LiteralPath (Join-Path $Work 'engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
+    Copy-Item -LiteralPath (Join-Path $Work 'renderer-engine/runtime/assets/fonts/LICENSE-DejaVu.txt') -Destination (Join-Path $GameDirectory 'licenses') -Force
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
-    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-9', [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-10', [Text.UTF8Encoding]::new($false))
     Stage 'Local copy prepared. Saving settings…' 9
     Stop-Transcript | Out-Null
     exit 0

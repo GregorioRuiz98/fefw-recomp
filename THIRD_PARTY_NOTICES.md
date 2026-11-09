@@ -21,3 +21,7 @@ The `upstream-*-NOTICES.md` documents are retained from the base revision and in
 The setup tool links SDL for controller input, Windows libraries and its C++ standard library without linking the game or graphics runtime. Its sources and build files are in `project/src/` and `project/CMakeLists.txt`. System development tools are not included in this distribution.
 
 Report incomplete attribution by identifying the component, source and missing notice, without attaching proprietary material. This inventory does not claim ownership of third-party components or change their licenses.
+
+## Complete graphics/runtime source (preview.10)
+
+Goldoire/fefw-recomp v0.1.5, commit a538375a80070e8a6bf5476b03b3dd877a13ea9d, GPL-3.0-or-later: runtime, memory pools, Vulkan rendering, texture converter integration and shader extraction/translation tools. Sources are fetched at this exact revision by bootstrap; local adaptations are provided in patches/renderer.patch. Original notices and third-party source licences remain in that checkout. No proprietary upscaler DLLs, extracted game shaders or game code are included in our public package.

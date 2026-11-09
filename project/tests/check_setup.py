@@ -23,19 +23,20 @@ def main():
     folder.mkdir(parents=True, exist_ok=True)
     build = work / 'build/fefw'
     for name in ['fefw.exe', 'fefw_setup.exe', 'astcdec-avx2-shared.dll', 'astcdec-sse2-shared.dll', 'astcdec-sse4.1-shared.dll']:
-        shutil.copy2(build / name, folder / name)
+        if (build / name).is_file():
+            shutil.copy2(build / name, folder / name)
     shutil.copytree(build / 'fonts', folder / 'fonts', dirs_exist_ok=True)
     for name in ['pipeline_cache.bin', 'pipeline_keys.bin']:
         src = work / 'Fire Emblem Recomp' / name
         if src.exists():
             shutil.copy2(src, folder / name)
     game_ini = folder / 'fefw.ini'
-    (folder / 'fefw.features').write_text('fefw-runtime-9', encoding='utf-8')
+    (folder / 'fefw.features').write_text('fefw-runtime-10', encoding='utf-8')
     control_ini = folder / 'controls.ini'
     game_ini.write_text(
         '[fs]\nexefs = ' + str(work / 'prepared/exefs') + '\nromfs = ' + str(a.source / 'romfs') +
         '\nsave_dir = save/my-existing-save\n[boot]\ngfx = window\nmax_seconds = 0\n[nvn]\nshader_cache = ' +
-        str(work / 'shaders/validated-sdk22') + '\ndlss_spatial_fallback = 1\n[audio]\nrevision16_probe = 1\n'
+        str(work / 'shaders/goldoire-v015') + '\ndlss_spatial_fallback = 1\n[audio]\nrevision16_probe = 1\n'
         '[title]\naccount_save_size = 67108864\n[play]\nservice_input_fallback = 1\n[diag]\nwatchdog_seconds = -1\n', encoding='utf-8')
     control_ini.write_text('[display]\nwidth = 1280\nheight = 720\n[padmap]\nstart = PLUS\n[bindings.all]\nP = btn_plus\n', encoding='utf-8')
     results = []
@@ -117,9 +118,9 @@ def main():
     assert 'controller_valid=1' in run('standalone_controller_hotplug', ['--test-controllers'])
     (folder / 'fefw.features').unlink()
     run('old_executable_requires_update', ['--status'], 2)
-    (folder / 'fefw.features').write_text('fefw-runtime-8', encoding='utf-8')
-    run('old_shader_cache_requires_update', ['--status'], 2)
     (folder / 'fefw.features').write_text('fefw-runtime-9', encoding='utf-8')
+    run('old_shader_cache_requires_update', ['--status'], 2)
+    (folder / 'fefw.features').write_text('fefw-runtime-10', encoding='utf-8')
     run('standalone_ui_ignores_skip', ['--test-ui'])
     before = game_ini.read_bytes(), control_ini.read_bytes()
     run('unsupported_language_keeps_configuration', ['--apply', '--language', 'Portuguese'], 2)

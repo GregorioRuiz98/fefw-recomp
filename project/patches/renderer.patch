@@ -1,0 +1,544 @@
+diff --git a/runtime/include/nxrt/platform.h b/runtime/include/nxrt/platform.h
+index a4ac78c..d97f31d 100644
+--- a/runtime/include/nxrt/platform.h
++++ b/runtime/include/nxrt/platform.h
+@@ -69,6 +69,7 @@ struct GamepadRaw {
+                                         // (PlayStation cross, circle, square, triangle count as A, B, X, Y; a Nintendo pad prints B, A, Y, X)
+ };
+ bool gamepad_poll(uint32_t id, GamepadRaw* out);                       // false when no such pad is open
++void rescan_gamepads();                                               // thread-safe request, performed by the next event pump
+ bool gamepad_sensors(uint32_t id, float accel[3], float gyro[3]);      // latest accelerometer (m/s^2) and gyro (rad/s) in SDL's axes; false without both sensors
+ bool gamepad_rumble(uint32_t id, uint16_t low, uint16_t high, uint32_t duration_ms);   // 0..65535 per motor; (0, 0) stops it; false when unsupported
+ 
+diff --git a/runtime/src/gfx/play/play.cpp b/runtime/src/gfx/play/play.cpp
+index db7d83d..b7c9b3f 100644
+--- a/runtime/src/gfx/play/play.cpp
++++ b/runtime/src/gfx/play/play.cpp
+@@ -68,14 +68,18 @@ namespace {
+ // thread that owns the window it pumps the events when the last pump is 100 ms old. Elsewhere it costs a thread-id compare.
+ std::atomic<DWORD> g_pump_tid{0};
+ std::atomic<uint64_t> g_last_pump_ms{0};
++std::atomic<bool> g_service_input{false};
++void service_input_pump();
+ void keyboard_service();
+ void busy_pump() {
+     if (GetCurrentThreadId() != g_pump_tid.load(std::memory_order_relaxed)) return;
+     keyboard_service();
+     const uint64_t t = SDL_GetTicks();
+-    if (t - g_last_pump_ms.load(std::memory_order_relaxed) < 100) return;
++    const bool service_input = g_service_input.load(std::memory_order_relaxed);
++    if (t - g_last_pump_ms.load(std::memory_order_relaxed) < (service_input ? 16 : 100)) return;
+     g_last_pump_ms.store(t, std::memory_order_relaxed);
+-    platform::pump_events();
++    if (service_input) service_input_pump();
++    else platform::pump_events();
+ }
+ }  // namespace
+ 
+@@ -97,6 +101,7 @@ uint32_t jc2_button_bit(uint8_t b) {
+ }
+ 
+ struct PadFrame {
++    bool connected = false;
+     uint64_t buttons = 0;
+     hid::StickValue left, right;
+     hid::SixAxisSample six;
+@@ -114,7 +119,8 @@ class PlaySource : public hid::InputSource {
+ public:
+     explicit PlaySource(Engine* e) : engine_(e) {}
+     void poll(hid::InputSnapshot& out) override {
+-        const EngineOut kb = engine_->output(FrameLimiter::now_ns());
++        const bool controller_only = game_controller_only();
++        const EngineOut kb = controller_only ? EngineOut{} : engine_->output(FrameLimiter::now_ns());
+         PadFrame pf;
+         Touch t;
+         {
+@@ -123,7 +129,7 @@ public:
+             t = touch_;
+         }
+         hid::NpadInput& n = out.npad[0];
+-        n.connected = true;
++        n.connected = !controller_only || pf.connected;
+         n.style = hid::NpadStyle::FullKey;
+         n.buttons = pf.buttons | kb.buttons;
+         n.left = combine(pf.left, kb.lx, kb.ly);
+@@ -143,7 +149,7 @@ public:
+         gyro_pitch_.store(std::fabs(pf.six.gyro[0]), std::memory_order_relaxed);
+         n.six_axis.gyro[0] *= look_scale_.load(std::memory_order_relaxed);      // the game integrates the pitch rate per call: see play_lookrate.h
+         out.touch.count = 0;
+-        if (t.down) {
++        if (t.down && !controller_only) {
+             out.touch.count = 1;
+             hid::TouchFinger& f = out.touch.fingers[0];
+             f = hid::TouchFinger{};
+@@ -486,6 +492,13 @@ bool jc2_owns_clicks() {
+     return device_only && st.engine && ctx_in_play(st.engine->context()) && hid::jc2_mouse_active();
+ }
+ 
++void controller_settings(Settings& s) {
++    if (!game_controller_only()) return;
++    s.bindings.clear();
++    s.mouse.menu_cursor = false;
++    if (s.prompts.style == PromptStyle::Keyboard) s.prompts.style = PromptStyle::Auto;
++}
++
+ void handle_event(const input::Event& e, uint64_t now) {
+     G& st = g();
+     using input::EventType;
+@@ -519,6 +532,15 @@ void handle_event(const input::Event& e, uint64_t now) {
+         return;
+     }
+     if (st.overlay && st.overlay->handle_event(e)) return;
++    // Host shortcuts and overlay controls remain usable with a controller-only title.
++    if (e.type == EventType::KeyDown &&
++        (e.u.key.scancode == SDL_SCANCODE_RETURN || e.u.key.scancode == SDL_SCANCODE_KP_ENTER) && (e.mods & SDL_KMOD_ALT)) {
++        if (!(e.flags & input::kFlagRepeat)) toggle_fullscreen();
++        return;
++    }
++    if (game_controller_only() && (e.type == EventType::KeyDown || e.type == EventType::KeyUp ||
++        e.type == EventType::MouseButtonDown || e.type == EventType::MouseButtonUp ||
++        e.type == EventType::MouseWheel || e.type == EventType::MouseMotion)) return;
+     const bool menu_blocked = st.overlay && st.overlay->blocks_game();
+     if ((e.type == EventType::KeyDown && !(e.flags & input::kFlagRepeat)) || e.type == EventType::MouseButtonDown || e.type == EventType::MouseWheel)
+         st.last_dev = LastDevice::KeyboardMouse;
+@@ -527,10 +549,6 @@ void handle_event(const input::Event& e, uint64_t now) {
+             if (st.quit_on_close) quit_now("window closed");
+             break;
+         case EventType::KeyDown:
+-            if ((e.u.key.scancode == SDL_SCANCODE_RETURN || e.u.key.scancode == SDL_SCANCODE_KP_ENTER) && (e.mods & SDL_KMOD_ALT)) {
+-                if (!(e.flags & input::kFlagRepeat)) toggle_fullscreen();
+-                return;
+-            }
+             if (!(e.flags & input::kFlagRepeat)) mm::pointer().on_other_input();
+             if (!(e.flags & input::kFlagRepeat) && !menu_blocked) st.engine->key(e.u.key.scancode, true, now);
+             break;
+@@ -626,6 +644,7 @@ void poll_pads(uint64_t now) {
+     for (size_t i = 0; i < n; ++i) {
+         platform::GamepadRaw raw;
+         if (!platform::gamepad_poll(infos[i].id, &raw)) continue;
++        pf.connected = true;
+         hid::NpadInput tmp;
+         map_pad(raw, st.settings.pad, &tmp);
+         {   // a pressed button or a stick well off centre makes this the pad the prompts follow
+@@ -696,7 +715,9 @@ int update_hook(::Ctx*, uint64_t, void*) {
+     // All of it runs once per presented frame: the game's main loop runs more iterations than it presents frames (Pokopia ~79 against ~50 a
+     // second), and per iteration the limiter took several slots per frame while the in-flight list (one id per sim_begin, one popped per
+     // present) filled up until wait_in_flight held the main thread for presents that only come after more main-loop work.
+-    const bool frame_start = extras::pace_boundary_due();
++    // A service-driven input tick is not a simulation boundary: never pace or
++    // create in-flight frame markers without the game's real update hook.
++    const bool frame_start = st.hook_update && extras::pace_boundary_due();
+     if (frame_start) {
+         extras::LowLatency* ll = extras::lowlat();
+         if (extras::pace_in_main()) {
+@@ -729,6 +750,7 @@ int update_hook(::Ctx*, uint64_t, void*) {
+         std::unique_lock<std::mutex> lk(st.mu);
+         if (st.have_pending) {
+             Settings s = st.pending;
++            controller_settings(s);
+             st.have_pending = false;
+             const std::string old_mode = st.settings.display.window_mode;
+             const int old_monitor = st.settings.display.monitor;
+@@ -889,7 +911,7 @@ int update_hook(::Ctx*, uint64_t, void*) {
+             hm.buttons = overlay_visible ? 0u : st.jc2_buttons;
+             hm.wheel_x = st.jc2_wheel_x;
+             hm.wheel_y = st.jc2_wheel_y;
+-            hm.focused = (platform::focused() || tt::enabled()) && !platform::minimized() && !overlay_visible;
++            hm.focused = !game_controller_only() && (platform::focused() || tt::enabled()) && !platform::minimized() && !overlay_visible;
+             hm.captured = platform::relative_mouse();
+             hid::jc2_mouse_feed(hm);
+             st.jc2_wheel_x = st.jc2_wheel_y = 0;
+@@ -912,6 +934,12 @@ int update_hook(::Ctx*, uint64_t, void*) {
+     return 0;
+ }
+ 
++// Opt-in bootstrap input for titles whose frame-update site is not known yet.
++// busy_pump runs this only on the window-owning thread, at most once per 16 ms.
++void service_input_pump() {
++    if (g().started) update_hook(nullptr, 0, nullptr);
++}
++
+ // The software keyboard applet blocks the game: the thread that asked waits for the answer, the main thread soon waits too, and no frame is
+ // presented (Pokopia's name entry: the freeze watchdog fired 10 s after the question, frame count still). update_hook, which pumps the window
+ // and feeds the overlay, does not run then. keyboard_service does that part on the window's thread while it is blocked in the kernel
+@@ -970,8 +998,7 @@ public:
+             if (st.late_sample && st.window && std::this_thread::get_id() == st.pump_thread) platform::pump_events();
+             if (extras::LowLatency* ll = extras::lowlat()) ll->input_sample();
+             const input::MouseDelta d = input::mouse_delta_take();
+-            *dx = d.dx;
+-            *dy = d.dy;
++            if (!game_controller_only()) { *dx = d.dx; *dy = d.dy; }
+         }
+     }
+     void aim_applied(double dx, double dy) override {
+@@ -1146,6 +1173,7 @@ bool load() {
+     std::string err;
+     const bool existed = GetFileAttributesA(st.path.c_str()) != INVALID_FILE_ATTRIBUTES;
+     st.load_ok = load_settings(st.path, &st.settings, &err);
++    controller_settings(st.settings);
+     if (!existed) {
+         std::string e2;
+         if (save_settings(st.path, st.settings, &e2)) NXLOG_I(kTag, "wrote the factory settings to %s", st.path.c_str());
+@@ -1182,7 +1210,7 @@ bool load() {
+     else audio::set_master_volume(static_cast<float>(st.settings.audio.volume));
+     if (config_has("audio", "device")) st.settings.audio.device = config_get_str("audio", "device", "default");
+     else config_set("audio", "device", st.settings.audio.device.c_str());
+-    st.capture_mouse = config_get_bool("play", "capture_mouse", true);
++    st.capture_mouse = !game_controller_only() && config_get_bool("play", "capture_mouse", true);
+     st.late_sample = config_get_bool("play", "late_sample", true);
+     st.quit_on_close = config_get_bool("play", "quit_on_close", true);
+     st.log_status = config_get_bool("play", "log_status", false);
+@@ -1297,9 +1325,13 @@ bool start(const StartOptions& opt) {
+     }
+     // the frame boundary, then the game's input, camera, lock-on and menu hooks (hooks of one address run in registration order)
+     if (gp && gp->frame_update) st.hook_update = hook_add_entry(st.base + gp->frame_update, &update_hook);
+-    else NXLOG_W(kTag, "the game (%s) names no frame update: play mode is not pumped", game::info().id);
++    else if (st.window && config_get_bool("play", "service_input_fallback", false)) {
++        g_service_input.store(true, std::memory_order_relaxed);
++        NXLOG_I(kTag, "service-driven input enabled for %s (no simulation timing hook)", game::info().id);
++    } else NXLOG_W(kTag, "the game (%s) names no frame update: play mode is not pumped", game::info().id);
+     if (gp && gp->install) gp->install(st.base, &g_game_host, st.settings);
+     st.started = true;
++    if (st.window) svc_set_busy_hook(&busy_pump);
+     NXLOG_I(kTag, "play mode started (%s, overlay %s, base 0x%llx, game %s, frame hook %u)", st.window ? "window" : "no window", st.overlay ? "on" : "off",
+             static_cast<unsigned long long>(st.base), game::info().id, st.hook_update);
+     return true;
+@@ -1308,6 +1340,9 @@ bool start(const StartOptions& opt) {
+ void stop() {
+     G& st = g();
+     if (!st.started) return;
++    svc_set_busy_hook(nullptr);
++    g_service_input.store(false, std::memory_order_relaxed);
++    g_pump_tid.store(0, std::memory_order_relaxed);
+     vpad_shutdown();      // a virtual pad from a test script does not outlive play mode
+     if (const GamePlay* gp = game_play(); gp && gp->remove) gp->remove();
+     kernel::set_blocked_hook(0, nullptr);
+diff --git a/runtime/src/gfx/play/play_types.h b/runtime/src/gfx/play/play_types.h
+index 7589494..911d25b 100644
+--- a/runtime/src/gfx/play/play_types.h
++++ b/runtime/src/gfx/play/play_types.h
+@@ -295,8 +295,13 @@ struct GameDefaults {
+     const GameVocabulary* vocabulary = nullptr;      // the names of the action and context slots (below)
+     const struct GameDefaultChange* changes = nullptr;
+     unsigned change_count = 0;
++    bool controller_only = false;                    // title policy; old bindings cannot enable keyboard/mouse gameplay
+ };
+ const GameDefaults* game_defaults();                 // the registered game's, or nullptr
++inline bool game_controller_only() {
++    const GameDefaults* d = game_defaults();
++    return d && d->controller_only;
++}
+ 
+ // The game's words for the generic slots (Info::play_defaults->vocabulary). Every part is optional: a null table keeps the generic names.
+ struct GameActLabel {
+diff --git a/runtime/src/gfx/play/play_ui.cpp b/runtime/src/gfx/play/play_ui.cpp
+index b1e4e60..2568232 100644
+--- a/runtime/src/gfx/play/play_ui.cpp
++++ b/runtime/src/gfx/play/play_ui.cpp
+@@ -408,6 +408,7 @@ void prompts_row(const LiveStatus& live, Page& p) {
+     const int prompt_sel = static_cast<int>(prompts.style);
+     if (ImGui::BeginCombo("Button prompts", kPromptLabels[prompt_sel])) {
+         for (int i = 0; i < kPromptStyleCount; ++i) {
++            if (game_controller_only() && static_cast<PromptStyle>(i) == PromptStyle::Keyboard) continue;
+             if (ImGui::Selectable(kPromptLabels[i], i == prompt_sel) && i != prompt_sel) {
+                 prompts.style = static_cast<PromptStyle>(i);
+                 mark(p);
+@@ -415,7 +416,8 @@ void prompts_row(const LiveStatus& live, Page& p) {
+         }
+         ImGui::EndCombo();
+     }
+-    tip("The button icons in the game's prompts: the game's own Switch icons, Xbox, PlayStation, keyboard and mouse, or Auto to follow the device you used last.");
++    tip(game_controller_only() ? "Button icons: Switch, Xbox, PlayStation, or Auto for your controller." :
++        "The button icons in the game's prompts: the game's own Switch icons, Xbox, PlayStation, keyboard and mouse, or Auto to follow the device you used last.");
+     if (prompts.style == PromptStyle::Auto) {
+         ImGui::SameLine();
+         ImGui::TextDisabled("showing %s", cstr(live.prompt_now));
+@@ -456,6 +458,10 @@ void pad_tab(const LiveStatus& live, Page& p) {   // the Gamepad tab of the Cont
+     ImGui::SeparatorText("Gamepad");
+     if (live.pads == 0) ImGui::TextUnformatted("No gamepad open.");
+     else ImGui::Text("%d open: %s", live.pads, live.pad_name.c_str());
++    if (ImGui::Button("Rescan controllers")) platform::rescan_gamepads();
++    ImGui::TextWrapped("%s", game_controller_only() ?
++        "A controller is required to play. Keyboard and mouse are available only for host menus and shortcuts." :
++        "Controller and keyboard work together. Press a controller button; no mode change is needed.");
+     ImGui::Text("Gyro available: %s    Rumble available: %s", yes_no(live.pad_gyro), yes_no(live.pad_rumble));
+ }
+ 
+@@ -1321,11 +1327,11 @@ void controls_page(UiHost& host, const LiveStatus& live, Page& p) {
+     prompts_row(live, p);
+     ImGui::Spacing();
+     if (ImGui::BeginTabBar("controls_tabs")) {
+-        if (ImGui::BeginTabItem("Mouse")) {
++        if (!game_controller_only() && ImGui::BeginTabItem("Mouse")) {
+             mouse_tab(p);
+             ImGui::EndTabItem();
+         }
+-        if (ImGui::BeginTabItem("Keyboard and mouse buttons")) {
++        if (!game_controller_only() && ImGui::BeginTabItem("Keyboard and mouse buttons")) {
+             bindings_tab(host, p);
+             ImGui::EndTabItem();
+         }
+diff --git a/runtime/src/services/audio.cpp b/runtime/src/services/audio.cpp
+index 31e40b2..265520b 100644
+--- a/runtime/src/services/audio.cpp
++++ b/runtime/src/services/audio.cpp
+@@ -71,6 +71,7 @@ struct AudrenState {
+     std::shared_ptr<audren::AudioRendererManager> manager;
+     std::array<std::shared_ptr<ServiceEvent>, 3> device_events;   // QueryAudioDeviceSystemEvent / Input / Output (never fire)
+     float device_volume[4] = {1.0f, 1.0f, 1.0f, 1.0f};
++    bool output_volume_auto_tune = false;  // per-application device policy; no host hardware auto-gain
+ 
+     std::shared_ptr<audren::AudioRendererManager> get_manager() {
+         if (!manager) {
+@@ -99,6 +100,12 @@ audren::AudioRendererConfiguration read_config(const Request& req) {
+     return c;
+ }
+ 
++bool revision_allowed(int32_t revision) {
++    if (!audren::BehaviourInfo::CheckValidRevision(revision)) return false;
++    return audren::BehaviourInfo::GetRevisionNumber(revision) <= 15 ||
++           config_get_bool("audio", "revision16_probe", false);
++}
++
+ // ---- gauges (include/nxrt/gauge.h): audren.* (the renderer totals are kept by AudioRenderSystem, see audren/Server/AudioRenderSystem.h)
+ GaugeCounter g_audren_renderers("audren.renderers");   // open IAudioRenderer objects
+ // Removes its gauge when this file's statics are torn down.
+@@ -281,45 +288,30 @@ std::shared_ptr<Service> make_audio_device(uint32_t revision) {
+         s.add_cmd(12, "QueryAudioDeviceOutputEvent", event_cmd(2));
+         s.add_cmd(13, "GetActiveAudioOutputDeviceName", active_name);
+         s.add_cmd(14, "ListAudioOutputDeviceName", list_names);
+-        // 17.0.0+ device notifications (u64 id: the SDK passes its SystemEvent's address) -> an event per id, signalled when that kind of device
+-        // changes, which never happens here. Ids as Eden-NS2 and the SDK's IAudioDevice proxy (methods 0-8, 10-21 in order: its
+-        // AcquireAudioOutputDeviceNotification calls slot 0xA0 = 17). The SDK attaches the handle to the game's event; a failure leaves that
+-        // event uninitialised and the game's later TryWaitSystemEvent on it aborts (Fortune's Weave).
+-        auto notifications = std::make_shared<std::map<uint64_t, std::shared_ptr<ServiceEvent>>>();
+-        auto acquire = [notifications](uint64_t kind) {
+-            return [notifications, kind](Request& req, Response& rsp) -> uint32_t {
+-                std::lock_guard<std::mutex> lk(st().mu);
+-                auto& ev = (*notifications)[req.arg<uint64_t>(0) ^ kind];
+-                if (!ev) ev = std::make_shared<ServiceEvent>(false);
+-                rsp.out_copy.push_back(ev->new_handle());
+-                return 0;
+-            };
+-        };
+-        auto release = [notifications](uint64_t kind) {
+-            return [notifications, kind](Request& req, Response&) -> uint32_t {
+-                std::lock_guard<std::mutex> lk(st().mu);
+-                notifications->erase(req.arg<uint64_t>(0) ^ kind);
+-                return 0;
+-            };
+-        };
+-        constexpr uint64_t kInput = 1ull << 63;   // keeps input and output ids apart in the one map
+-        s.add_cmd(15, "AcquireAudioInputDeviceNotification", acquire(kInput));
+-        s.add_cmd(16, "ReleaseAudioInputDeviceNotification", release(kInput));
+-        s.add_cmd(17, "AcquireAudioOutputDeviceNotification", acquire(0));
+-        s.add_cmd(18, "ReleaseAudioOutputDeviceNotification", release(0));
+-        // 18.0.0+ output volume auto-tune: the flag is kept and read back, the output is not changed (Eden-NS2 audio_device.cpp does the same).
+-        // The SDK aborts when 19 fails (Fortune's Weave calls it at start-up). 21 (21.0.0+): no device is a low-latency one.
+-        auto auto_tune = std::make_shared<bool>(false);
+-        s.add_cmd(19, "SetAudioDeviceOutputVolumeAutoTuneEnabled", [auto_tune](Request& req, Response&) -> uint32_t {
+-            *auto_tune = req.arg<uint8_t>(0) != 0;
+-            return 0;
+-        });
+-        s.add_cmd(20, "IsAudioDeviceOutputVolumeAutoTuneEnabled", [auto_tune](Request&, Response& rsp) -> uint32_t {
+-            rsp.push<uint8_t>(*auto_tune ? 1 : 0);
++        auto not_implemented = [](Request&, Response&) -> uint32_t { return kResultNotImplemented; };
++        // The virtual output device never changes. Return a real, initially
++        // unsignalled notification event so the SDK can attach/wait/close it.
++        s.add_cmd(15, "AcquireAudioOutputDeviceNotification", event_cmd(2));
++        s.add_cmd(16, "ReleaseAudioOutputDeviceNotification", [](Request&, Response&) -> uint32_t { return 0; });
++        if (audren::BehaviourInfo::GetRevisionNumber(static_cast<int32_t>(revision)) >= 16) {
++            // SDK 22's output notification methods use commands 17/18.
++            s.add_cmd(17, "AcquireAudioOutputDeviceNotification22", event_cmd(2));
++            s.add_cmd(18, "ReleaseAudioOutputDeviceNotification22", [](Request&, Response&) -> uint32_t { return 0; });
++        } else {
++            s.add_cmd(17, "AcquireAudioInputDeviceNotification", not_implemented);
++        }
++        // SDK 22 AudioDeviceImpl exposes this per-application policy as a
++        // bool setter/getter. Host hardware volume is owned by Windows.
++        s.add_cmd(19, "SetAudioDeviceOutputVolumeAutoTuneEnabled", [](Request& req, Response&) -> uint32_t {
++            if (req.in_size < 1) return kResultNotImplemented;
++            std::lock_guard<std::mutex> lk(st().mu);
++            st().output_volume_auto_tune = req.arg<uint8_t>(0) != 0;
++            NXLOG_D("audren", "output volume auto-tune policy %d (host hardware gain unchanged)", st().output_volume_auto_tune);
+             return 0;
+         });
+-        s.add_cmd(21, "IsActiveOutputDeviceEstimatedLowLatency", [](Request&, Response& rsp) -> uint32_t {
+-            rsp.push<uint8_t>(0);
++        s.add_cmd(20, "IsAudioDeviceOutputVolumeAutoTuneEnabled", [](Request&, Response& rsp) -> uint32_t {
++            std::lock_guard<std::mutex> lk(st().mu);
++            rsp.push<uint8_t>(st().output_volume_auto_tune ? 1 : 0);
+             return 0;
+         });
+         (void)revision;
+@@ -331,6 +323,7 @@ std::shared_ptr<Service> make_audio_device(uint32_t revision) {
+ uint32_t open_renderer(Request& req, Response& rsp, bool manual) {
+     if (req.in_size < 0x48) return kResultNotImplemented;
+     audren::AudioRendererConfiguration cfg = read_config(req);
++    if (!revision_allowed(cfg.revision)) return kResultUnsupportedRevision;
+     // OpenAudioRenderer: config (0x34), u64 work buffer size at 0x38, u64 aruid at 0x40; copy handles: the work buffer transfer memory, the process.
+     // OpenAudioRendererForManualExecution: config, u64 work buffer address at 0x38, u64 size at 0x40, u64 aruid at 0x48 (and the process handle).
+     uint64_t work_addr = 0, size = 0, user = 0;
+@@ -370,11 +363,18 @@ std::shared_ptr<Service> make_audren() {
+     auto s = std::make_shared<Service>("audren:u");
+     s->add_cmd(0, "OpenAudioRenderer", [](Request& req, Response& rsp) -> uint32_t { return open_renderer(req, rsp, false); });
+     s->add_cmd(1, "GetWorkBufferSize", [](Request& req, Response& rsp) -> uint32_t {
++        if (req.in_size < sizeof(audren::AudioRendererConfiguration)) return kResultNotImplemented;
+         audren::AudioRendererConfiguration cfg = read_config(req);
+-        if (!audren::BehaviourInfo::CheckValidRevision(cfg.revision)) {
++        NXLOG_D("audren", "config bytes %zu revision 0x%x: rate %u samples %u mixes %u submixes %u voices %u sinks %u effects %u splitters %u destinations %u",
++                req.in_size, cfg.revision, cfg.sample_rate, cfg.sample_count, cfg.mix_buffer_count,
++                cfg.sub_mix_buffer_count, cfg.voice_count, cfg.sink_count, cfg.effect_count,
++                cfg.splitter_count, cfg.splitter_destination_count);
++        if (!revision_allowed(cfg.revision)) {
+             NXLOG_W("audren", "library revision REV%d is not supported", audren::BehaviourInfo::GetRevisionNumber(cfg.revision));
+             return kResultUnsupportedRevision;
+         }
++        if (audren::BehaviourInfo::GetRevisionNumber(cfg.revision) == 16)
++            NXLOG_W("audren", "REV16 diagnostic subset enabled: non-default voice fade curves are rejected; audio correctness unverified");
+         const int64_t size = static_cast<int64_t>(audren::AudioRendererManager::GetWorkBufferSize(cfg));
+         NXLOG_D("audren", "GetWorkBufferSize = 0x%llx", static_cast<unsigned long long>(size));
+         rsp.push<int64_t>(size);
+@@ -386,7 +386,11 @@ std::shared_ptr<Service> make_audren() {
+     });
+     s->add_cmd(3, "OpenAudioRendererForManualExecution", [](Request& req, Response& rsp) -> uint32_t { return open_renderer(req, rsp, true); });
+     s->add_cmd(4, "GetAudioDeviceServiceWithRevisionInfo", [](Request& req, Response& rsp) -> uint32_t {
+-        rsp.push_object(make_audio_device(req.arg<uint32_t>(8)));
++        NXLOG_D("audren", "device revision request bytes %zu: %08x %08x %08x %08x", req.in_size,
++                req.arg<uint32_t>(0), req.arg<uint32_t>(4), req.arg<uint32_t>(8), req.arg<uint32_t>(12));
++        // Wire order: u32 revision, u32 padding, u64 applet resource user id.
++        // Reading +8 as the revision selected legacy notification commands.
++        rsp.push_object(make_audio_device(req.arg<uint32_t>(0)));
+         return 0;
+     });
+     return s;
+diff --git a/runtime/src/services/audren/Server/BehaviourInfo.h b/runtime/src/services/audren/Server/BehaviourInfo.h
+index 7f73e19..872f591 100644
+--- a/runtime/src/services/audren/Server/BehaviourInfo.h
++++ b/runtime/src/services/audren/Server/BehaviourInfo.h
+@@ -29,8 +29,10 @@ class BehaviourInfo {
+     static constexpr int32_t Revision13 = 13 << 24;
+     static constexpr int32_t Revision14 = 14 << 24;
+     static constexpr int32_t Revision15 = 15 << 24;
+-    // Last revision supported by the implementation.
+-    static constexpr int32_t LastRevision = Revision15;
++    static constexpr int32_t Revision16 = 16 << 24;
++    // REV16 is admitted only by the explicit service diagnostic gate. Its
++    // non-default voice fade curve remains unsupported (StateUpdater).
++    static constexpr int32_t LastRevision = Revision16;
+     // Target revision magic supported by the implementation.
+     static constexpr int32_t ProcessRevision = BaseRevisionMagic + LastRevision;
+     // Switch 2 libraries tag their revision 'R' 'E' 'v' (lower case) and go up to 16, which adds no feature over 15 (Eden-NS2
+@@ -42,7 +44,11 @@ class BehaviourInfo {
+ 
+     // Get the revision number from the revision magic.
+     static constexpr int32_t GetRevisionNumber(int32_t revision) {
+-        return (revision - (IsNativeRevision(revision) ? NativeRevisionMagic : BaseRevisionMagic)) >> 24;
++        const uint32_t raw = static_cast<uint32_t>(revision);
++        // SDK 22 accepts both 'REV' (NX) and 'REv' (Ounce), bit 21.
++        if ((raw & 0x00dfffffu) != (static_cast<uint32_t>(BaseRevisionMagic) & 0x00ffffffu)) return -1;
++        const int32_t number = static_cast<int32_t>(raw >> 24) - '0';
++        return number >= 1 && number <= 16 ? number : -1;
+     }
+ 
+     // Current active revision (C# `{ get; private set; }`, so it is a plain member set through SetUserRevision).
+@@ -66,24 +72,18 @@ class BehaviourInfo {
+     void UpdateFlags(uint64_t flags) { _flags = flags; }
+ 
+     // Check if a given revision is valid/supported.
+-    static bool CheckValidRevision(int32_t revision) {
+-        return GetRevisionNumber(revision) <= (IsNativeRevision(revision) ? NativeLastRevision >> 24 : GetRevisionNumber(ProcessRevision));
+-    }
++    static bool CheckValidRevision(int32_t revision) { return GetRevisionNumber(revision) >= 1; }
+ 
+     // Check if the given revision is greater than or equal the supported revision.
+     static bool CheckFeatureSupported(int32_t revision, int32_t supportedRevision) {
+         int32_t revA = GetRevisionNumber(revision);
+         int32_t revB = GetRevisionNumber(supportedRevision);
+ 
+-        if (revA > LastRevision) {
+-            revA = 1;
+-        }
+-
+-        if (revB > LastRevision) {
+-            revB = 1;
+-        }
++        return revA >= 1 && revB >= 1 && revA >= revB;
++    }
+ 
+-        return revA >= revB;
++    bool IsVoiceParameterSupported(const VoiceInParameter2& parameter) const {
++        return !parameter.in_use || GetRevisionNumber(UserRevision) < 16 || parameter.biquad_filter_fade_curve == 0;
+     }
+ 
+     // Check if the memory pool mapping bypass flag is active.
+diff --git a/runtime/src/services/audren/Server/StateUpdater.h b/runtime/src/services/audren/Server/StateUpdater.h
+index d36c2d7..ed7541a 100644
+--- a/runtime/src/services/audren/Server/StateUpdater.h
++++ b/runtime/src/services/audren/Server/StateUpdater.h
+@@ -185,6 +185,12 @@ class StateUpdater {
+         for (uint32_t i = 0; i < context.GetCount(); i++) {
+             VoiceInParameter2 parameter = _inputReader.GetRefOrRefToCopy<VoiceInParameter2>();
+ 
++            if (!_behaviourInfo->IsVoiceParameterSupported(parameter)) {
++                std::fprintf(stderr, "audren: REV16 voice fade curve %u is not implemented\n",
++                             static_cast<unsigned>(parameter.biquad_filter_fade_curve));
++                return ResultCode::UnsupportedOperation;
++            }
++
+             voiceStates.fill(Span<VoiceState>());
+ 
+             VoiceOutStatus& outStatus = _output.GetWriteRef<VoiceOutStatus>()[0];
+diff --git a/runtime/src/services/audren/audren_types.h b/runtime/src/services/audren/audren_types.h
+index d856ccf..0ba238b 100644
+--- a/runtime/src/services/audren/audren_types.h
++++ b/runtime/src/services/audren/audren_types.h
+@@ -587,7 +587,7 @@ struct VoiceInParameter1 {
+ };
+ static_assert(sizeof(VoiceInParameter1) == 0x170);
+ 
+-// Renderer/Parameter/VoiceInParameter2.cs. C# Size = 0x188; fields end at 0x187, so 1 byte of padding.
++// SDK 22 Voice UpdateData<1>: size 0x188; the REV16 fade curve is at 0x177.
+ struct VoiceInParameter2 {
+     int32_t id;
+     int32_t node_id;
+@@ -616,12 +616,11 @@ struct VoiceInParameter2 {
+     uint16_t reserved2;
+     DecodingBehaviour decoding_behaviour_flags;
+     SampleRateConversionQuality src_quality;
+-    uint32_t external_context;
+-    uint32_t external_context_size;
+-    uint32_t reserved3[2];
+-    uint8_t padding;  // C# Size = 0x188
++    uint8_t biquad_filter_fade_curve;
++    uint8_t reserved_tail[0x10];  // SDK client zeroes this tail; meanings unverified
+ };
+ static_assert(sizeof(VoiceInParameter2) == 0x188);
++static_assert(offsetof(VoiceInParameter2, biquad_filter_fade_curve) == 0x177);
+ 
+ // Renderer/Parameter/VoiceOutStatus.cs. No C# size: 0x10 (computed).
+ struct VoiceOutStatus {
+diff --git a/runtime/src/gfx/platform.cpp b/runtime/src/gfx/platform.cpp
+index d5c50d6f8007879f383dd7a4279aae4507e1d066..4b7879a5583158aea72ccd7e81fce968bde5e809 100644
+GIT binary patch
+delta 1341
+zcmah}K~EDw6izvq*u;2HgG!<gV{j{23LzXQkQhj?h=8^TMoly9ytWgzJL}GDu>$GQ
+zAJB^jFWyYNnC#i;!Lz@?|DXqtzM0+9QV;H7cW2+sd*A!s_wC2;nLj@=pN}%<n3hf9
+z#xnCZv%fE;2lZ;5H8EgZ!4lM%r?8ma5x$<EqY!<rDwp}yrim7cS*7{HLXu<A9A8d1
+zg=n{h_$orBkssMiC-Lu*UspRNUueO+=@4D%`{-)$r4}{eGA*R9fC|7q0tHpnL{9HD
+z86pH8YeQ3V1f^N1RX#gC4NpuCS9l1_)e-Z6V@tTGfGIdc&ofVKp|4dDcocY4q@xjJ
+zfK-T4R>83uNKHHP*_IR>Ebtx&P7aQ;K$ob2Gv4PW2O;Vx^ourVkZNF&mY@wW<<*Vq
+z8tRI057cJa$tAm}32>Bn(_PrO*s)xyJS~ypy(*`bY=&eGD+x!)o#f1O@iI?y$mJjf
+zS#>?B&V&V@A|Pp5lM`u-FgYm_ASYSqn3jA^97lAwqcr<W*>%}gnvj=P?-Dr!?X0D`
+za3<`jG`%H;_E8J4xwo;kR^4?DDy%*Qw}=)UO3%X(xKOTaVb~@~(Xe=z&yIF_90CEN
+z%kpDD2@8lGiwVA>f!=S|%#PZnnncAwqXv8}L^P2U+^}K?2jh(7it*2}Z&$jvXRcjZ
+z-+ETAlvW;AACy+_Z<ngu<+=FX%vff$rv$<z1D)?JyPsySUmTK3{B`zA=5b#nbR;#9
+zX>S+{xu^em*e`jdN%D?89!GN@E|0t@#G|E07dnRTff5rFW@&u+PYQhPHke;ev*h6T
+z_>3?~+V_S)Eib`Lp->=c4Rw}4HIk1TPv<ioYm~HLkC9WWkSi+<vKWoqI+k1;qR&YM
+z(g#LXZ_ul5gvfXvwtTNm3xq@Ab9s0tbt?o>GqC(nwg5xY2K{nqd{#+2iIkYnAqqIt
+xWOtLo6XZf!v*reBoqI?>iT{$U!w5+)C*AkE%^QZLaVwKy_ZiQ{=l5=A{{p^)!V>@h
+
+delta 72
+zcmV-O0Js16&H<>z0kC@kvyB0J0kdoa@ffoQAGsB?^fVIzlO{G2vrRU)0kd2<niK&5
+ev-nI+4YR;nIsubEIR%r|TxOHfWE8V)T?+~vwj0I(
+

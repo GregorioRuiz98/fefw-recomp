@@ -181,7 +181,9 @@ Settings load(const fs::path& dir) {
     s.romfs = resolved(dir, ini.get("fs", "romfs", "romfs"));
     s.source = resolved(dir, ini.get("launcher", "source_dir", path_text(s.romfs.parent_path())));
     s.exefs = resolved(dir, ini.get("fs", "exefs", "exefs"));
-    s.shaders = resolved(dir, ini.get("nvn", "shader_cache", "shader_cache/spirv"));
+    s.shaders = resolved(dir, ini.get("nvn", "shader_cache", "shader_cache/goldoire-v015"));
+    if (s.shaders.lexically_normal() == (dir / L"shader_cache" / L"spirv").lexically_normal())
+        s.shaders = dir / L"shader_cache" / L"goldoire-v015";
     s.width = number(controls.get("display", "width"), 1280); s.height = number(controls.get("display", "height"), 720);
     s.window_mode = controls.get("display", "window_mode", "windowed");
     s.output = ini.get("fefw", "output", "console");
@@ -266,7 +268,11 @@ Validation validate_ready(const fs::path& dir, const Settings& s, bool hashes) {
     if (const auto v = validate_prepared(s.exefs); !v.ok) return v;
     size_t count = 0; std::error_code ec;
     if (fs::is_directory(s.shaders, ec)) for (const auto& p : fs::directory_iterator(s.shaders)) if (p.is_regular_file() && p.path().extension() == L".spv") ++count;
-    if (count != 11977) return invalid("The complete shader cache for this copy must be prepared.");
+    const Ini cache_source(s.shaders / L"renderer-source.ini");
+    const int expected = number(cache_source.get("cache", "count"), 0);
+    if (expected < 11977 || count != static_cast<size_t>(expected) ||
+        cache_source.get("cache", "commit") != "a538375a80070e8a6bf5476b03b3dd877a13ea9d")
+        return invalid("Prepare the complete shader cache for the Goldoire graphics runtime.");
     return {true, {}};
 }
 bool needs_setup(const fs::path& dir) {

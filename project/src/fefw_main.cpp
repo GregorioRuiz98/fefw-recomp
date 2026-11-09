@@ -19,7 +19,7 @@
 // controls.ini, fefw.log) is found wherever the exe is started from (double click, shortcut, terminal), and the settings file is ./fefw.ini
 // (written by the launcher's setup). A fefw.ini next to fefw.exe also makes the folder installed. Paths come from fefw.ini, relative ones
 // resolved against the game folder: [fs] exefs (default ./exefs), [fs] romfs (default ./romfs), [nvn] shader_cache (default
-// ./shader_cache/spirv). --exefs / FEFW_EXEFS and the NXRT_* variables win over the ini. Without it (development runs from game-build or
+// ./shader_cache/goldoire-v015). --exefs / FEFW_EXEFS and the NXRT_* variables win over the ini. Without it (development runs from game-build or
 // work/run) nothing changes, except that [fs] exefs in the ini named by --ini / NXRT_INI replaces the built-in ExeFS default.
 #include <windows.h>
 #include "fefw_config.h"
@@ -360,6 +360,11 @@ int main(int argc, char** argv) {
     opt.ini_path = ini;
     opt.log_path = logp;
     if (!nxrt::init(opt)) die("runtime start-up failed (address-space layout)");
+    if (installed && (!ini || !std::strcmp(ini, "fefw.ini")) &&
+        !std::getenv("NXRT_INI") && !std::getenv("NXRT_NVN_SHADER_CACHE")) {
+        const auto settings = fefw::setup::load(std::filesystem::current_path());
+        nxrt::config_set("nvn", "shader_cache", fefw::setup::path_text(settings.shaders).c_str());
+    }
     for (const auto& kv : boot_opts) nxrt::config_set("boot", kv.first.c_str(), kv.second.c_str());
     if (installed && !nxrt::config_has("fs", "romfs")) nxrt::config_set("fs", "romfs", "romfs");   // fefw.ini missing or without [fs]
     // [fs] exefs (fefw.ini, or NXRT_FS_EXEFS) names the ExeFS when neither --exefs nor FEFW_EXEFS does; installed: relative to the game folder.

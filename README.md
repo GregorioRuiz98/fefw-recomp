@@ -1,6 +1,6 @@
 # FE: Fortune’s Weave Recomp — local preparation tools
 
-An experimental static recompilation project for Windows x64, based on [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7). These tools translate and compile code and shaders locally from a folder supplied by the user.
+An experimental static recompilation project for Windows x64, using nxrecomp from [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7) and the complete runtime and shader tools from [Goldoire/fefw-recomp v0.1.5](https://github.com/Goldoire/fefw-recomp/tree/a538375a80070e8a6bf5476b03b3dd877a13ea9d). These tools translate and compile code and shaders locally from a folder supplied by the user.
 
 **This distribution includes tools, source code and patches. It does not include the game.** You need a lawfully obtained copy and the rights required for the copying, extraction, transformation and use you perform. Owning the game does not guarantee that every such activity is permitted in your jurisdiction. See [LEGAL.md](LEGAL.md).
 
@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.9](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.9/FEFW-Recomp-Windows-x64-v0.1.0-preview.9.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.9)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.10](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.10/FEFW-Recomp-Windows-x64-v0.1.0-preview.10.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.10)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -17,6 +17,12 @@ Select either the parent folder containing `updates/131072`, or `updates/131072`
 Initial preparation requires the tools listed below and compiles `fefw.exe` and the shaders on your PC. **Selecting a folder does not make a new installation immediately ready to play.** Once preparation finishes, **Save and play** starts the game. You can then open `fefw.exe` directly if **Skip setup on startup** is enabled; `fefw_setup.exe` remains available to change your settings.
 
 **First launch: allow around 30–40 minutes for initial preparation.** This is a user-reported estimate; time varies with your PC, storage, internet connection and existing caches. Dependencies, game code and shaders are prepared locally. Keep setup open and use **Open log** to follow progress. Later launches reuse the generated executable and caches; updates or missing files may require preparation again.
+
+## Graphics runtime replacement
+
+Preview.10 uses Goldoire’s complete v0.1.5 graphics and memory implementation, matching ASTC/BC7 converter, shader extractor and shader translator. The standalone configurator, controller-only gameplay, reconnection support and local settings workflow remain ours. This replaces the earlier collection of individual graphics patches.
+
+An upgrade requires a local rebuild and a new shader cache. Preparation writes it to `shader_cache/goldoire-v015`; the older cache is preserved. The first run can still pause while textures and driver pipelines are prepared. Full-game rendering compatibility has not been established by this project. See [integration details](project/UPSTREAM-INTEGRATION.md).
 
 ## Package contents
 
@@ -28,13 +34,11 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 
 ## Status
 
-The setup tool, preparation from an empty workspace and 3D prologue scenes have been checked. GPU regressions cover a corrected wide constant-load translation bug and reads beyond short constant-buffer descriptors. Setup repairs affected local shader modules when upgrading an existing cache. A fresh libvpx build has also been verified in an installation path containing spaces, including both Release and Debug libraries.
+Preview.10 replaces the previous renderer with the complete Goldoire v0.1.5 implementation and matching shader tools. The private local build has loaded an existing save and reached the prologue scene with readable dialogue. Automated checks cover the upstream reconstruction/resource-binding/rendered-scene tests and our configuration, controller reconnection, audio, memory and filesystem contracts.
 
-Preview.6 adds built-in temporal reconstruction (TAAU), experimental 120 FPS with measured-time correction, game output and internal scale controls, and verified updates from setup. Vulkan, the F1 overlay, controller reconnection and resumable local preparation remain available. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for source attribution and bounded validation.
+CUDA reconstruction kernels found in the dump are handled by the runtime’s native reconstruction path. They are not required Vulkan shader programs. The cache preparation verifies all 11,977 NVN shaders separately and records its upstream source revision before allowing setup to finish.
 
-Preview.9 adapts the texture-view, integer-sampler and write-tracking changes reviewed through Goldoire v0.1.5. Narrow integer sampling is also specialized for graphics stages, with distinct shader hashes for pipeline prewarming. Synthetic GPU tests cover 2D/cube reads, integer/normalized rebinding and nearest filtering for integer data in single descriptors. Large mixed-format bindless pools retain their previous compatibility path. Texture width/height remain at least one pixel during downsampling, and write tracking grows beyond the previous 512 live-region limit. CPU texture uploads also reject source pages that have become unreadable, retaining the last usable image during that transition instead of crashing or clearing it. Updating from preview.8 requires rebuilding the local runtime; game files and shader caches remain local.
-
-**Reported save-reset issue:** deleting data through title screen → Extras → Delete save data may leave **Continue** visible; selecting it has been reported to close the game. The examined local crash log stopped in texture untiling during scene loading; preview.9 protects unreadable-source uploads. The title-menu state is still being investigated. If the stale option appears after deletion, close and reopen the game before proceeding. Do not use this release as evidence that the menu issue is fixed.
+**Reported save-reset issue:** deleting data through title screen → Extras → Delete save data may leave **Continue** visible; selecting it has been reported to close the game. The examined local crash log stopped in texture untiling during scene loading; preview.9 included a local unreadable-source upload guard; preview.10 replaces that renderer with the upstream implementation. The title-menu state is still being investigated. If the stale option appears after deletion, close and reopen the game before proceeding. Do not use this release as evidence that the menu issue is fixed.
 
 These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller reconnection during gameplay remain outstanding. A USB DualShock 4 has been detected and its live axes read by the standalone configurator; automated virtual-device tests cover button input and reconnection. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
 
