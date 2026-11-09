@@ -39,6 +39,9 @@ struct Settings {
     bool skip = true, completed = false, vsync = true, fps60 = false;
     std::string language;
     std::string upscaler = "taau";
+    std::string ui_language = "en";
+    double volume = 1.0, deadzone = 0.10, right_deadzone = 0.10;
+    bool mute_unfocused = false;
 };
 struct Validation { bool ok = false; std::string error; };
 Settings load(const fs::path& dir);

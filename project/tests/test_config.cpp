@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "fefw_config.h"
+#include "fefw_preferences.h"
 #include <windows.h>
 #include <cstdio>
 #include <fstream>
@@ -95,6 +96,35 @@ int main() {
         check(s::quote_arg(L"a\"b") == L"\"a\\\"b\"", "quotes embedded quotes safely");
         fs::create_directories(dir / L"updates/131072/exefs"); { std::ofstream out(dir / L"updates/131072/exefs/main"); }
         check(s::candidates(dir).size() == 1, "discovers update folders");
+        s::Settings prefs; prefs.source=dir; prefs.language="Spanish";
+        prefs.ui_language="es"; prefs.volume=0.35; prefs.mute_unfocused=true; prefs.deadzone=0.2; prefs.right_deadzone=0.25;
+        s::edit_settings(prefs,game,controls);
+        check(game.get("audio","volume")==controls.get("audio","volume")&&game.get("audio","volume")=="0.350000","master volume agrees with runtime startup override");
+        check(controls.get("audio","mute_unfocused")=="1"&&controls.get("pad","right_deadzone")=="0.250000","writes runtime mute and independent deadzones");
+        check(game.get("launcher","ui_language")=="es"&&game.get("system","language")=="Spanish","interface and game language are independent");
+        game.save(dir/L"fefw.ini"); controls.save(dir/L"controls.ini");
+        auto loaded=s::load(dir);
+        check(loaded.volume==0.35&&loaded.deadzone==0.2&&loaded.right_deadzone==0.25&&loaded.ui_language=="es"&&loaded.mute_unfocused,"audio and controller settings load back");
+        const auto portable=dir/L"portable.ini"; s::export_preferences(portable,prefs);
+        auto imported=s::import_preferences(portable,loaded);
+        check(imported.source==loaded.source&&imported.language==loaded.language&&imported.volume==0.35,"portable import preserves local game folder and dialogue language");
+        { std::ifstream in(portable); std::string contents((std::istreambuf_iterator<char>(in)),{});
+          check(contents.find(s::path_text(dir))==std::string::npos&&contents.find("save_dir")==std::string::npos&&contents.find("Spanish")==std::string::npos,"portable export omits paths, saves and game language"); }
+        for(auto value:{"nan","1.1","0.2junk","-1"}) {
+            s::Ini badprofile(portable); badprofile.set("preferences","volume",value); badprofile.save(dir/L"bad-profile.ini");
+            rejected=false;try{s::import_preferences(dir/L"bad-profile.ini",prefs);}catch(...){rejected=true;} check(rejected,"rejects malformed imported volume");
+        }
+        s::Ini badprofile(portable);badprofile.set("preferences","schema","2");badprofile.save(dir/L"bad-profile.ini");
+        rejected=false;try{s::import_preferences(dir/L"bad-profile.ini",prefs);}catch(...){rejected=true;}check(rejected,"rejects future profile schema");
+        for(int i=0;i<3;++i) { auto preset=prefs;s::graphics_preset(preset,i);s::edit_settings(preset,game,controls);
+            check(!preset.fps60&&!preset.fps120&&preset.language==prefs.language&&preset.volume==prefs.volume,"preset validates and preserves unrelated settings"); }
+        std::string guid="00112233445566778899aabbccddeeff";
+        s::controller_profile(dir,guid,prefs,true); auto padprefs=prefs; padprefs.deadzone=0;padprefs.right_deadzone=0;
+        s::controller_profile(dir,guid,padprefs,false);check(padprefs.deadzone==0.2&&padprefs.right_deadzone==0.25,"per-model controller profile roundtrip");
+        rejected=false;try{s::controller_profile(dir,"../outside",padprefs,true);}catch(...){rejected=true;}check(rejected,"controller profile rejects path traversal");
+        s::export_diagnostics(dir/L"diagnostics.ini",dir,prefs,1);
+        {std::ifstream in(dir/L"diagnostics.ini");std::string contents((std::istreambuf_iterator<char>(in)),{});
+         check(contents.find(s::path_text(dir))==std::string::npos&&contents.find("save_dir")==std::string::npos&&contents.find("controllers = 1")!=std::string::npos,"diagnostics reports hardware count without paths or saves");}
     } catch (const std::exception& e) { ++failed; std::printf("EXCEPTION: %s\n", e.what()); }
     std::printf("Config: %d checks, %d failed\n", checks, failed);
     return failed ? 1 : 0;

@@ -1,0 +1,78 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#pragma once
+#include <map>
+#include <string>
+namespace fefw::setup::ui {
+inline bool spanish=false;
+inline std::wstring translate(const std::wstring& v) {
+    if(!spanish) return v;
+    static const std::map<std::wstring,std::wstring> words={
+        {L"Game files",L"Archivos del juego"},{L"Picture",L"Imagen"},{L"Startup",L"Inicio"},{L"Updates",L"Actualizaciones"},
+        {L"Performance",L"Rendimiento"},{L"Window",L"Ventana"},{L"Controllers",L"Mandos"},{L"Audio",L"Audio"},{L"Tools",L"Herramientas"},
+        {L"Connect your extracted copy and choose its language.",L"Selecciona tu copia extraída y el idioma del juego."},
+        {L"Choose 3D detail and how frames are reconstructed.",L"Elige el detalle 3D y la reconstrucción de imagen."},
+        {L"Choose how the game opens and reconnect your controller.",L"Configura el inicio y la reconexión del mando."},
+        {L"Keep project tools current while preserving your local data.",L"Actualiza las herramientas conservando tus datos locales."},
+        {L"Choose a gameplay target. Performance depends on your PC.",L"Elige los FPS objetivo. El rendimiento depende de tu PC."},
+        {L"Choose how the game appears on your display.",L"Configura cómo aparece el juego en tu pantalla."},
+        {L"Test your controller and tune its sticks before playing.",L"Prueba el mando y ajusta sus sticks antes de jugar."},
+        {L"Set master volume and background audio behavior.",L"Ajusta el volumen y el audio en segundo plano."},
+        {L"Manage portable settings and export a private-data-free report.",L"Gestiona los ajustes y exporta un informe sin datos personales."},
+        {L"Choose the folder containing exefs and romfs, or the parent folder containing the supported update. Original game files are preserved.",L"Elige la carpeta con exefs y romfs, o la carpeta que contiene la actualización compatible. Se conservan los archivos originales."},
+        {L"Game &folder",L"&Carpeta del juego"},{L"&Browse…",L"&Examinar…"},{L"Game &version",L"&Versión del juego"},{L"Game lan&guage",L"&Idioma del juego"},
+        {L"First preparation can take around 30–40 minutes, depending on your PC and existing caches. Later launches reuse the prepared files. Open log shows preparation details.",L"La primera preparación puede tardar unos 30–40 minutos según el PC y las cachés. Después se reutilizan los archivos. Consulta los detalles en el registro."},
+        {L"Resolution",L"Resolución"},{L"Output includes the interface. Internal scale changes 3D detail before reconstruction.",L"La salida incluye la interfaz. La escala interna cambia el detalle 3D antes de la reconstrucción."},
+        {L"Game &output (WxH)",L"&Salida del juego (WxH)"},{L"Original game output",L"Salida original del juego"},{L"Internal &scale",L"&Escala interna"},
+        {L"Original (usually 50%)",L"Original (normalmente 50%)"},{L"Reconstruction",L"Reconstrucción"},{L"3D &reconstruction",L"&Reconstrucción 3D"},
+        {L"Built-in temporal (TAAU) — recommended",L"Temporal integrada (TAAU) — recomendada"},{L"Bilinear — no temporal history",L"Bilineal — sin historial temporal"},
+        {L"Bilinear enlarges each frame separately. Use it to compare against temporal reconstruction.",L"El filtro bilineal amplía cada fotograma por separado. Úsalo para comparar con la reconstrucción temporal."},
+        {L"Smooths 3D edges using detail from successive frames. Built in; no extra downloads needed. Restart the game after changing this.",L"Suaviza los bordes 3D con información de fotogramas sucesivos. No requiere descargas. Reinicia el juego al cambiar esta opción."},
+        {L"Higher resolutions use more GPU memory. Above 1440p output, internal rendering is capped at 50%. Changes apply after restarting the game.",L"Una mayor resolución usa más memoria gráfica. Por encima de 1440p, la escala interna se limita al 50%. Reinicia el juego para aplicar los cambios."},
+        {L"Use recommended &graphics",L"Usar &gráficos recomendados"},{L"Gameplay frame rate",L"Fotogramas por segundo"},{L"Frame-rate &target",L"&FPS objetivo"},
+        {L"Choose the original timing or an experimental higher target. The runtime adjusts game timing with the target.",L"Elige el ritmo original o un objetivo superior experimental. El motor adapta el tiempo del juego."},
+        {L"Original (30 / 60 FPS)",L"Original (30 / 60 FPS)"},{L"60 FPS (experimental)",L"60 FPS (experimental)"},{L"120 FPS (experimental)",L"120 FPS (experimental)"},
+        {L"Recommended for original timing. The game selects its own frame rate (typically 30 FPS in gameplay and 60 FPS in menus).",L"Recomendado para el ritmo original. El juego elige sus FPS: normalmente 30 al jugar y 60 en los menús."},
+        {L"60 FPS target using the checked timing patch. Performance and compatibility depend on your PC and the scene.",L"Objetivo de 60 FPS con el parche de tiempo comprobado. El resultado depende del PC y de la escena."},
+        {L"120 FPS target with measured-time correction. Menus keep their 60 FPS target. Requires a fast CPU and GPU; sustained 120 FPS is not guaranteed.",L"Objetivo de 120 FPS con corrección de tiempo. Los menús mantienen 60 FPS. Requiere CPU y GPU rápidas; no garantiza 120 FPS estables."},
+        {L"Restart after changing the target. Movies retain their encoded frame rate.",L"Reinicia al cambiar el objetivo. Los vídeos conservan sus FPS originales."},
+        {L"Presentation",L"Presentación"},{L"Display &mode",L"&Modo de pantalla"},{L"Windowed",L"Ventana"},{L"Borderless (desktop)",L"Sin bordes (escritorio)"},{L"Fullscreen (exclusive)",L"Pantalla completa (exclusiva)"},
+        {L"&Window resolution",L"&Resolución de ventana"},{L"Window size controls presentation, independently of 3D detail. Borderless and fullscreen use the desktop.",L"El tamaño de ventana es independiente del detalle 3D. Sin bordes y pantalla completa usan el escritorio."},
+        {L"&Vertical synchronization",L"Sincronización &vertical"},{L"Launch behavior",L"Comportamiento de inicio"},{L"S&kip setup on startup",L"&Omitir configuración al iniciar"},
+        {L"After preparation, fefw.exe opens the game directly. You can always return here through fefw_setup.exe. Missing resources reopen setup automatically.",L"Tras la preparación, fefw.exe abre el juego directamente. Puedes volver con fefw_setup.exe. Si faltan recursos, la configuración se abre automáticamente."},
+        {L"Controller",L"Mando"},{L"Connect your controller before playing. To reconnect during a game, open F1 → Settings → Controls → Gamepad → Rescan controllers.",L"Conecta el mando antes de jugar. Para reconectarlo durante la partida: F1 → Settings → Controls → Gamepad → Rescan controllers."},
+        {L"Your settings and saves stay with this installation.",L"Los ajustes y las partidas permanecen en esta instalación."},{L"Open installation &folder",L"Abrir &carpeta de instalación"},
+        {L"Updates come from this project. Verified downloads preserve your game files, builds, settings, saves and caches. Review the changes before installing.",L"Las actualizaciones de este proyecto conservan el juego, las compilaciones, los ajustes, las partidas y las cachés. Revisa los cambios antes de instalar."},
+        {L"Check for updates when setup &opens",L"Buscar actualizaciones al &abrir"},{L"&Check now",L"&Buscar ahora"},{L"Install update and &restart setup",L"Instalar y &reiniciar configuración"},
+        {L"Check for a newer release to see its changes. Installing closes setup; save pending settings first.",L"Busca una nueva versión para ver los cambios. Guarda los ajustes antes de instalar; la configuración se cerrará."},
+        {L"Choose your game folder",L"Elige la carpeta del juego"},{L"Local copy recognized",L"Copia local reconocida"},{L"Ready to prepare",L"Listo para preparar"},
+        {L"Version recognized. Files will be verified before saving.",L"Versión reconocida. Se verificarán los archivos antes de guardar."},
+        {L"Select the extracted game folder containing exefs and romfs, or its parent update folder.",L"Elige la carpeta extraída con exefs y romfs, o su carpeta de actualizaciones."},
+        {L"Open &log",L"Ver &registro"},{L"Cancel",L"Cancelar"},{L"&Save",L"&Guardar"},{L"Save and &play",L"Guardar y &jugar"},{L"Revert",L"Revertir"},
+        {L"Unsaved changes",L"Cambios sin guardar"},{L"No pending changes",L"Sin cambios pendientes"},{L"Reset section",L"Restablecer"},
+        {L"The game chooses its original output and internal resolution.",L"El juego elige la resolución de salida e interna originales."},
+        {L"Enter even WxH dimensions between 640x360 and 3840x2160.",L"Introduce dimensiones WxH pares entre 640x360 y 3840x2160."},
+        {L"Fortune’s Weave\nPC configuration",L"Fortune’s Weave\nConfiguración de PC"},
+        {L"Graphics preset",L"Perfil gráfico"},{L"Performance — 720p / 50%",L"Rendimiento — 720p / 50%"},{L"Balanced — 1080p / 66.67%",L"Equilibrado — 1080p / 66,67%"},{L"Quality — 1440p / 100%",L"Calidad — 1440p / 100%"},{L"Apply preset",L"Aplicar perfil"},
+        {L"Presets use temporal reconstruction and original timing. They are starting points, not performance guarantees.",L"Los perfiles usan reconstrucción temporal y ritmo original. Son puntos de partida; el rendimiento depende del PC."},
+        {L"Connected controller",L"Mando conectado"},{L"Rescan",L"Volver a buscar"},{L"No controller detected",L"Ningún mando detectado"},{L"Connect a controller by USB or Bluetooth. Detection refreshes automatically.",L"Conecta un mando por USB o Bluetooth. La detección se actualiza automáticamente."},
+        {L"Live input",L"Entradas en directo"},{L"Move sticks and press buttons to test. Values below are raw SDL input, before the game's deadzone.",L"Mueve los sticks y pulsa botones. Se muestran valores SDL sin aplicar la zona muerta del juego."},
+        {L"Left stick deadzone",L"Zona muerta izquierda"},{L"Right stick deadzone",L"Zona muerta derecha"},{L"Save controller profile",L"Guardar perfil del mando"},{L"Load controller profile",L"Cargar perfil del mando"},
+        {L"Profiles are stored per SDL hardware GUID. Load the connected model's profile, then Save to apply it to the game. Identical models share a profile.",L"Los perfiles usan el GUID de hardware SDL. Carga el perfil del modelo conectado y pulsa Guardar para aplicarlo. Los modelos idénticos comparten perfil."},
+        {L"Master volume",L"Volumen general"},{L"Mute when the game loses focus",L"Silenciar al perder el foco"},{L"Audio changes apply the next time you start the game. Your audio device and other runtime settings are preserved.",L"El audio se aplica al iniciar de nuevo el juego. Se conservan el dispositivo de audio y los demás ajustes del motor."},
+        {L"Interface language",L"Idioma del configurador"},{L"Independent of the game's dialogue language.",L"Independiente del idioma de los diálogos."},{L"Portable settings",L"Ajustes portátiles"},
+        {L"Export settings",L"Exportar ajustes"},{L"Import settings",L"Importar ajustes"},{L"Profiles include display, audio and deadzones. Game folders, game language, saves and controller bindings are excluded. Imports remain pending until Save.",L"Los perfiles incluyen imagen, audio y zonas muertas. Excluyen las rutas, el idioma del juego, las partidas y las asignaciones. Guarda para aplicar la importación."},
+        {L"Diagnostics",L"Diagnóstico"},{L"Export diagnostics",L"Exportar diagnóstico"},{L"Exports tool version, readiness, graphics choices and hardware IDs. No game files, saves, logs, personal paths or controller serial numbers. Review the report before sharing it.",L"Exporta la versión, el estado, los ajustes gráficos y los ID de hardware. Excluye archivos del juego, partidas, registros, rutas y números de serie. Revisa el informe antes de compartirlo."},
+        {L"Preparation stages",L"Etapas de preparación"},{L"No preparation running. Existing completed build work is reused on the next attempt.",L"No hay preparación en curso. El próximo intento reutilizará el trabajo completado."},
+        {L"Verifying your local copy",L"Verificando la copia local"},{L"Checking original files and the prepared copy before saving…",L"Comprobando los archivos originales y preparados antes de guardar…"},
+        {L"Preparing your local copy",L"Preparando la copia local"},{L"Stop preparation",L"Detener preparación"},{L"Settings need attention",L"Revisa la configuración"},{L"Preparation needs attention",L"Revisa la preparación"},
+        {L"First preparation may take around 30–40 minutes. Completed build work is kept if you stop and resume later.",L"La primera preparación puede tardar unos 30–40 minutos. Puedes detenerla y reanudar el trabajo completado."},
+        {L"Pending changes reverted. Saved settings were not modified.",L"Cambios pendientes revertidos. No se modificaron los ajustes guardados."},
+        {L"Section reset. Save to apply the changes.",L"Sección restablecida. Guarda para aplicar los cambios."},
+        {L"Settings imported. Review the choices and Save to apply them.",L"Ajustes importados. Revisa las opciones y guarda para aplicarlas."},
+        {L"Settings exported without game folders or saves.",L"Ajustes exportados sin rutas del juego ni partidas."},{L"Diagnostics exported. Review the report before sharing.",L"Diagnóstico exportado. Revisa el informe antes de compartirlo."},
+        {L"Controller profile saved for this hardware model.",L"Perfil guardado para este modelo de mando."},{L"Controller profile loaded. Save to apply its deadzones.",L"Perfil cargado. Guarda para aplicar las zonas muertas."},
+        {L"Graphics preset selected. Review the resolution summary, then Save.",L"Perfil gráfico seleccionado. Revisa la resolución y guarda."}
+    };
+    auto i=words.find(v); return i==words.end()?v:i->second;
+}
+}

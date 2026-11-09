@@ -34,7 +34,10 @@ public static class FEFWPrepareNative {
 }
 '@
 }
-function Stage([string]$Message) {
+$script:stageIndex = 0
+function Stage([string]$Message, [int]$Number = 0) {
+    if ($Number -gt 0) { $script:stageIndex = $Number }
+    [IO.File]::WriteAllText((Join-Path $GameDirectory 'preparation.progress'), "[preparation]`nstage=$script:stageIndex`n", [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText($status, $Message, [Text.UTF8Encoding]::new($false))
     Write-Output $Message
 }
@@ -64,14 +67,14 @@ try {
     if (!(Test-Path -LiteralPath (Join-Path $Project 'FireEmblemRecomp.ps1'))) { throw 'The public package project files are missing.' }
     . (Join-Path $Project 'tools/Initialize-BuildEnv.ps1')
     if ($CheckOnly) { Stage 'Main development tools are available.'; Stop-Transcript | Out-Null; exit 0 }
-    Stage 'Preparing local tools…'
+    Stage 'Preparing local tools…' 1
     if (!(Test-Path -LiteralPath (Join-Path $Work 'venv/Scripts/python.exe'))) { Action 'Bootstrap' }
     else { Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/bootstrap.py'), '--work', $Work, '--engine-only') }
-    Stage 'Verifying and normalizing your game copy…'
+    Stage 'Verifying and normalizing your game copy…' 2
     Action 'Prepare'
-    Stage 'Preparing libraries and the shader translator…'
+    Stage 'Preparing libraries and the shader translator…' 3
     & (Join-Path $Project 'tools/Prepare-Dependencies.ps1') -Work $Work -Project $Project
-    Stage 'Translating game code for this PC…'
+    Stage 'Translating game code for this PC…' 4
     & (Join-Path $Work 'venv/Scripts/python.exe') (Join-Path $Project 'tools/local_preparation.py') --work $Work
     if ($LASTEXITCODE -ne 0) { Action 'Cover'; Action 'Lift' }
     Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_runtime_patches.py'), '--work', $Work)
@@ -80,20 +83,20 @@ try {
     if (!(Test-Path -LiteralPath (Join-Path $cache 'results.tsv')) -or
         !(Test-Path -LiteralPath (Join-Path $Work 'shaders/corpus-expanded/unique.tsv')) -or
         @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count -ne 11977) {
-        Stage 'Extracting and checking shaders from your copy…'
+        Stage 'Extracting and checking shaders from your copy…' 5
         Action 'ExtractAllShaders'; Action 'BuildShaders'
         foreach ($check in @('ShaderTest','ComputeTest','NumericTest','ArrayTest','LiteralHandleTest','PoolTest','RootConstantsTest','GpuValidationTest')) { Action $check }
-        Stage 'Translating and validating the complete shader cache…'
+        Stage 'Translating and validating the complete shader cache…' 6
         Action 'TranslateAllShaders'; Action 'ValidateAllShaders'
     }
     $validatedCount = @(Get-ChildItem -LiteralPath $cache -Filter '*.spv' -File -ErrorAction SilentlyContinue).Count
     if ($validatedCount -ne 11977) {
         throw "The cache contains $validatedCount of 11977 shaders. Check shader-validation and shader-variants reports in project/reports before starting the game."
     }
-    Stage 'Checking cached shaders for the wide constant-load correction…'
+    Stage 'Checking cached shaders for the wide constant-load correction…' 7
     Checked (Join-Path $Work 'venv/Scripts/python.exe') @((Join-Path $Project 'tools/refresh_ldc64_shaders.py'),
         '--work', $Work, '--report', (Join-Path $Project 'reports/ldc64-refresh.json'))
-    Stage 'Finishing the local package…'
+    Stage 'Finishing the local package…' 8
     $build = Join-Path $Work 'build/fefw'
     foreach ($name in @('fefw.exe','fefw.map','fefw.pdb','astcdec-avx2-shared.dll','astcdec-sse2-shared.dll','astcdec-sse4.1-shared.dll')) {
         Copy-Local (Join-Path $build $name) (Join-Path $GameDirectory $name)
@@ -118,7 +121,7 @@ try {
     # The running configurator is deliberately not overwritten. It saves the
     # validated profile after this process exits successfully.
     [IO.File]::WriteAllText((Join-Path $GameDirectory 'fefw.features'), 'fefw-runtime-8', [Text.UTF8Encoding]::new($false))
-    Stage 'Local copy prepared. Saving settings…'
+    Stage 'Local copy prepared. Saving settings…' 9
     Stop-Transcript | Out-Null
     exit 0
 } catch {

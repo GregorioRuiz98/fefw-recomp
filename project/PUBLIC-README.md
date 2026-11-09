@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.7](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.7/FEFW-Recomp-Windows-x64-v0.1.0-preview.7.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.7)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.8](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.8/FEFW-Recomp-Windows-x64-v0.1.0-preview.8.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.8)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -32,7 +32,7 @@ The setup tool, preparation from an empty workspace and 3D prologue scenes have 
 
 Preview.6 adds built-in temporal reconstruction (TAAU), experimental 120 FPS with measured-time correction, game output and internal scale controls, and verified updates from setup. Vulkan, the F1 overlay, controller reconnection and resumable local preparation remain available. See the [integration notes](project/UPSTREAM-INTEGRATION.md) for source attribution and bounded validation.
 
-These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller testing remain outstanding. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
+These checks do not establish complete playability or equivalence with the console. Combat, saving/loading, extended stability and physical controller reconnection during gameplay remain outstanding. A USB DualShock 4 has been detected and its live axes read by the standalone configurator; automated virtual-device tests cover button input and reconnection. REV16 audio is experimental. Low internal resolution, reported text errors and flicker in other gameplay sequences remain under investigation. The memory and reconstruction changes are not a claim that all rendering issues are resolved.
 
 ## Requirements
 
@@ -58,7 +58,7 @@ If preview.3 stopped while building `libvpx` in a folder containing spaces, clos
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
-Setup uses a dark sidebar inspired by Goldoire's launcher, with **Game files**, **Picture**, **Performance**, **Window**, **Startup** and **Updates** sections. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** or **Ctrl+Shift+Tab** to switch sections. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
+Setup uses a dark sidebar inspired by Goldoire's launcher, with **Game files**, **Picture**, **Performance**, **Window**, **Controllers**, **Audio**, **Startup**, **Updates** and **Tools** sections. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** or **Ctrl+Shift+Tab** to switch sections. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
 
 **Window resolution** controls presentation size. **Game output (WxH)** changes the engine's output independently; enter even dimensions from 640x360 to 3840x2160, or keep **Original game output**. **Internal scale per dimension** controls the 3D resolution before TAAU: 50% of 1920x1080 is 960x540. Above 1440p output, the runtime caps internal rendering to half the output per dimension to stay within the title's existing render-target pool. Larger settings require more GPU memory. These options need a restart.
 
@@ -69,6 +69,20 @@ Setup uses a dark sidebar inspired by Goldoire's launcher, with **Game files**, 
 The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
 
 The footer shows whether there are **Unsaved changes**. **Revert** restores the form without changing saved settings. Picture shows the resulting 3D input and output dimensions for a custom resolution; Performance explains the selected target. Pending changes survive section switches. Closing with unsaved changes asks whether to discard them.
+
+## Controller testing, audio and portable preferences
+
+Open **Controllers** to select a connected device, rescan and see raw stick, trigger and button readings. Detection refreshes every second while setup is open. Both stick deadzones can be adjusted independently from 0% to 50%. **Save controller profile** stores the two values for the selected SDL hardware GUID; **Load controller profile** recalls them as pending changes. Press **Save** to use them in the game. Identical controller models can share a GUID and therefore a profile. Profiles do not automatically change the active controller or bindings during gameplay.
+
+**Audio** provides master volume from 0% to 100% and **Mute when the game loses focus**. Save and restart the game to apply these choices. The existing audio device, bindings and unrelated runtime options are preserved.
+
+**Picture → Graphics preset** offers Performance (1280x720 output, 50% internal scale), Balanced (1920x1080, 66.67%) and Quality (2560x1440, 100%). All three use TAAU, VSync and original frame timing. The nearby summary shows the resulting internal resolution. These are starting points; Quality can cost substantially more GPU time and memory. They are not benchmarked FPS guarantees.
+
+In **Tools**, choose **English** or **Español** for setup independently of the game language. **Export settings** writes a versioned INI profile with graphics, audio, deadzones and launcher preferences. **Import settings** validates it and leaves changes pending for review. Neither operation includes game-folder locations, game language, saves or controller bindings. **Reset section** resets the current section only; **Revert** restores the whole unsaved form.
+
+**Export diagnostics** creates a small INI report containing tool version, readiness flags, graphics choices, RAM size, controller count and a display hardware ID when available. It does not collect logs, screenshots, game files, saves, personal paths or controller serial numbers. Review the report before sharing it. Nothing is uploaded automatically.
+
+**Game files → Preparation stages** distinguishes completed or reused stages, the current stage and remaining stages. The indicator describes work stages, not elapsed-time percentage. An interrupted attempt reuses completed work after validation; first preparation can still take around 30–40 minutes.
 
 ## Frame-rate targets
 
@@ -99,7 +113,7 @@ Copy-Item work/setup/fefw_setup.exe ./fefw_setup.exe
 .\fefw_setup.exe
 ```
 
-Continue to the next step only after the previous one succeeds. Sources and resources are in `project/src/`, and the build is defined in `project/CMakeLists.txt`. The standalone setup tool does not link the runtime or translated game code.
+Continue to the next step only after the previous one succeeds. Sources and resources are in `project/src/`, and the build is defined in `project/CMakeLists.txt`. The standalone setup tool links the same pinned SDL controller library as the game, built from verified sources. It does not link the game runtime or translated game code. An internet connection or the cached SDL archive is needed for the first build.
 
 The game executable and its caches are generated later on your own machine. Do not attach them to issues, repositories, releases or CI artifacts.
 

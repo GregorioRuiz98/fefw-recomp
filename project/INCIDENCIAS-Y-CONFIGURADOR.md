@@ -37,4 +37,4 @@ Original files, normalized ExeFS/ROMFS, keys, textures, audio, video, extracted/
 
 ## Outstanding limitations
 
-Confirm flicker behavior in the user’s sequence, test a physical controller, combat, saving/loading and extended stability. REV16 audio remains experimental. The spatial DLSS substitute does not perform temporal reconstruction. Detailed private reports and binary fingerprints are generated locally as `reports/setup-and-flicker.md` and `reports/setup-delivery.json`; they are not included in the public repository.
+Confirm flicker behavior in the user’s sequence, test physical controller reconnection during gameplay, combat, saving/loading and extended stability. REV16 audio remains experimental. Built-in TAAU now performs temporal reconstruction; reported flicker and missing letters in unvisited sequences still require reproduction. Detailed private reports and binary fingerprints are generated locally as `reports/setup-and-flicker.md` and `reports/setup-delivery.json`; they are not included in the public repository.

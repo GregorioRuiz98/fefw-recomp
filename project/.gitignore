@@ -9,3 +9,7 @@ exefs/
 romfs/
 lift/
 shader_cache/
+
+/controller-profiles/
+/fefw-settings.ini
+/fefw-diagnostics.ini

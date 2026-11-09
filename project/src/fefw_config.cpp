@@ -194,6 +194,14 @@ Settings load(const fs::path& dir) {
     s.fps120 = ini.get("mods", "fps120", "0") == "1";
     s.fps60 = !s.fps120 && ini.get("mods", "fps60", "0") == "1";
     s.vsync = s.completed ? controls.get("display", "vsync", "1") != "0" : true;
+    s.ui_language = ini.get("launcher", "ui_language", "en") == "es" ? "es" : "en";
+    auto real = [](const std::string& v, double fallback, double max) {
+        try { size_t n=0; double d=std::stod(v,&n); return n==v.size()&&std::isfinite(d)&&d>=0&&d<=max?d:fallback; } catch (...) { return fallback; }
+    };
+    s.volume = real(ini.get("audio", "volume", controls.get("audio", "volume", "1")),1,1);
+    s.mute_unfocused = controls.get("audio", "mute_unfocused", "0") == "1";
+    s.deadzone = real(controls.get("pad", "deadzone", "0.10"),0.10,0.5);
+    s.right_deadzone = real(controls.get("pad", "right_deadzone", std::to_string(s.deadzone)),s.deadzone,0.5);
     return s;
 }
 std::vector<fs::path> candidates(const fs::path& selected) {
@@ -265,6 +273,16 @@ bool needs_setup(const fs::path& dir) {
     try { const auto s = load(dir); return !s.skip || !validate_ready(dir, s).ok; } catch (...) { return true; }
 }
 void edit_settings(const Settings& s, Ini& ini, Ini& controls) {
+    if ((s.ui_language!="en"&&s.ui_language!="es") || !std::isfinite(s.volume) || s.volume<0 || s.volume>1 ||
+        !std::isfinite(s.deadzone) || s.deadzone<0 || s.deadzone>0.5 ||
+        !std::isfinite(s.right_deadzone) || s.right_deadzone<0 || s.right_deadzone>0.5)
+        throw std::runtime_error("Invalid interface language, volume or controller deadzone.");
+    ini.set("launcher", "ui_language", s.ui_language);
+    ini.set("audio", "volume", std::to_string(s.volume));
+    controls.set("audio", "volume", std::to_string(s.volume));
+    controls.set("audio", "mute_unfocused", s.mute_unfocused?"1":"0");
+    controls.set("pad", "deadzone", std::to_string(s.deadzone));
+    controls.set("pad", "right_deadzone", std::to_string(s.right_deadzone));
     if (s.window_mode != "windowed" && s.window_mode != "borderless" && s.window_mode != "exclusive") throw std::runtime_error("Unknown display mode.");
     if (s.fps60 && s.fps120) throw std::runtime_error("Select one frame-rate target.");
     if (!std::isfinite(s.render_ratio) || (s.render_ratio != 0 && (s.render_ratio < 0.25 || s.render_ratio > 1))) throw std::runtime_error("Internal scale must be between 0.25 and 1.0, or 0 for the original size.");

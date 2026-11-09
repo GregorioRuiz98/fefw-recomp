@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "fefw_config.h"
+#include "fefw_preferences.h"
+#include "fefw_controllers.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <shobjidl.h>
@@ -10,31 +12,42 @@
 #include <set>
 #include <cmath>
 #include <map>
+#include <memory>
+#include <optional>
 #include "fefw_setup_theme.h"
+#include "fefw_setup_language.h"
 
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
 enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog, Upscaler,
-    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck, Revert, Dirty, RenderPreview, FrameHelp, Brand, BrandSub, BuildLabel, NavBase = 300 };
+    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck, Revert, Dirty, RenderPreview, FrameHelp, Brand, BrandSub, BuildLabel,
+    Pads, Rescan, PadState, PadValues, Deadzone, RightDeadzone, SavePad, LoadPad, Volume, Mute, UiLanguage, Export, Import, Diagnostics, Preset, ApplyPreset, ResetSection, Stages, NavBase = 300 };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
 HFONT font{}, title_font{}, heading_font{}, small_font{};
-constexpr int page_count = 6;
-const int nav_order[] = {0,1,4,5,2,3};
-const wchar_t* page_names[] = {L"Game files",L"Picture",L"Startup",L"Updates",L"Performance",L"Window"};
+constexpr int page_count = 9;
+const int nav_order[] = {0,1,4,5,6,7,2,3,8};
+const wchar_t* page_names[] = {L"Game files",L"Picture",L"Startup",L"Updates",L"Performance",L"Window",L"Controllers",L"Audio",L"Tools"};
 const wchar_t* page_descriptions[] = {
     L"Connect your extracted copy and choose its language.", L"Choose 3D detail and how frames are reconstructed.",
     L"Choose how the game opens and reconnect your controller.", L"Keep project tools current while preserving your local data.",
-    L"Choose a gameplay target. Performance depends on your PC.", L"Choose how the game appears on your display."};
+    L"Choose a gameplay target. Performance depends on your PC.", L"Choose how the game appears on your display.",
+    L"Test your controller and tune its sticks before playing.",L"Set master volume and background audio behavior.",L"Manage portable settings and export a private-data-free report."};
 namespace ui = fefw::setup::ui;
 struct SavedField { std::wstring value; int choice=-1; LRESULT checked=0; };
 std::map<int,SavedField> original_fields;
 bool form_ready=false, dirty=false;
 void changed();
 void select_page(int p);
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.7";
+void localize();
+s::Settings read_form();
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.8";
+std::map<HWND,std::wstring> captions;
+std::map<HWND,std::vector<std::wstring>> combo_labels;
+std::unique_ptr<s::Controllers> controllers;
+std::vector<s::Controller> pads;
 HWND pages[page_count]{}, parent{};
 HWND folder_tip{};
 std::wstring tip_text;
@@ -61,14 +74,23 @@ std::wstring text(HWND h) {
     const int n = GetWindowTextLengthW(h); std::wstring v(n + 1, L'\0');
     GetWindowTextW(h, v.data(), n + 1); v.resize(n); return v;
 }
+void caption(HWND h,const wchar_t* value) {
+    captions[h]=value?value:L""; const auto v=ui::translate(captions[h]);
+    if(text(h)!=v) SetWindowTextW(h,v.c_str());
+}
+#define SetWindowTextW caption
 void status(const std::wstring& v) { SetWindowTextW(item(Status), v.c_str()); }
-void state(const wchar_t* v) { SetWindowTextW(item(StatusTitle), v); }
+void state(const std::wstring& v) { SetWindowTextW(item(StatusTitle), v.c_str()); }
 void error(const std::string& v) { MessageBoxW(window, s::wide(v).c_str(), L"Fire Emblem Recomp", MB_OK | MB_ICONERROR); }
 void choose(HWND h, int n) { SendMessageW(h, CB_SETCURSEL, n, 0); }
 int selection(int id) { return static_cast<int>(SendMessageW(item(id), CB_GETCURSEL, 0, 0)); }
-void add(HWND h, const std::wstring& v) { SendMessageW(h, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(v.c_str())); }
+void add(HWND h, const std::wstring& v) {
+    auto& labels=combo_labels[h]; if(SendMessageW(h,CB_GETCOUNT,0,0)==0) labels.clear();
+    labels.push_back(v); const auto translated=ui::translate(v); SendMessageW(h, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(translated.c_str()));
+}
 void enabled(bool on) {
-    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler, GameOutput, RenderRatio, AutoCheck, CheckUpdates}) EnableWindow(item(id), on);
+    for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler, GameOutput, RenderRatio, AutoCheck, CheckUpdates,
+        Deadzone,RightDeadzone,Volume,Mute,UiLanguage,Export,Import,Diagnostics,SavePad,LoadPad,Preset,ApplyPreset,ResetSection}) EnableWindow(item(id), on);
     if (on) EnableWindow(item(Resolution), selection(Mode) == 0);
     EnableWindow(item(Save), on && !versions.empty() && !langs.empty());
     EnableWindow(item(SavePlay), on && !versions.empty() && !langs.empty());
@@ -76,6 +98,8 @@ void enabled(bool on) {
     EnableWindow(item(Lang), on && !langs.empty());
     EnableWindow(item(Recommended), on);
     EnableWindow(item(Revert),on&&dirty);
+    EnableWindow(item(SavePad),on&&!pads.empty()); EnableWindow(item(LoadPad),on&&!pads.empty());
+    EnableWindow(item(ResetSection),on&&active_page!=0);
     if (!on) EnableWindow(item(InstallUpdate), FALSE);
 }
 HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int w, int h, DWORD style = 0) {
@@ -83,9 +107,11 @@ HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int
     const bool button = std::wstring(cls)==L"BUTTON";
     if (combo) style |= CBS_OWNERDRAWFIXED | CBS_HASSTRINGS;
     if (button && (style & BS_TYPEMASK) != BS_AUTOCHECKBOX) style = (style & ~BS_TYPEMASK) | BS_OWNERDRAW;
-    HWND c = CreateWindowExW(cls == std::wstring(L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls, label,
+    const auto translated=ui::translate(label?label:L"");
+    HWND c = CreateWindowExW(cls == std::wstring(L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls, translated.c_str(),
         WS_CHILD | WS_VISIBLE | style, px(std::max(x, 0)), px(y), px(w > 0 ? w : 100), px(h), parent ? parent : window,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), GetModuleHandleW(nullptr), nullptr);
+    captions[c]=label?label:L"";
     SendMessageW(c, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
     if (button || combo) SetWindowTheme(c,L"",L"");
     if (button) SetWindowSubclass(c,ui::interactive,1,0);
@@ -110,7 +136,7 @@ void fonts() {
 }
 void move(HWND h, int x, int y, int w, int height) { MoveWindow(h, px(x), px(y), px(w), px(height), TRUE); }
 int logical(int v) { return MulDiv(v, 96, dpi); }
-int page_content_height(int p) { const int heights[]={344,524,350,390,322,330}; return heights[p]; }
+int page_content_height(int p) { const int heights[]={504,700,350,390,322,330,560,230,454}; return heights[p]; }
 void page_layout(int p) {
     RECT r{}; GetClientRect(pages[p], &r);
     const int width = logical(r.right), height = logical(r.bottom);
@@ -135,9 +161,11 @@ void layout() {
     const int side = w < 850 ? 162 : 204;
     move(item(Brand),18,26,side-32,26); move(item(BrandSub),18,56,side-32,48);
     move(item(BuildLabel),18,h-58,side-28,42);
-    for (int i=0;i<page_count;++i) move(item(NavBase+nav_order[i]),12,140+i*50,side-24,42);
+    const int nav_step=std::min(44,std::max(29,(h-260)/page_count));
+    for (int i=0;i<page_count;++i) move(item(NavBase+nav_order[i]),12,122+i*nav_step,side-24,nav_step-3);
     move(item(Title),side+32,24,w-side-64,42);
     move(item(Subtitle),side+32,74,w-side-64,40);
+    move(item(ResetSection),18,h-104,side-36,34);
     for (int p=0;p<page_count;++p) {
         move(pages[p],side+32,132,w-side-64,std::max(80,h-312)); page_layout(p);
     }
@@ -145,7 +173,7 @@ void layout() {
     move(item(Status),side+32,h-128,w-side-64,42);
     move(item(Progress),side+32,h-80,w-side-64,3);
     move(item(Dirty),side+32,h-60,std::max(100,w-470-side-44),20);
-    move(item(OpenLog),side+32,h-34,86,26);
+    move(item(OpenLog),side+32,h-34,116,26);
     move(item(Revert),w-470,h-58,90,36);
     move(item(IDCANCEL),w-370,h-58,90,36);
     move(item(Save),w-270,h-58,90,36);
@@ -159,6 +187,7 @@ void select_page(int p) {
     for (int i = 0; i < page_count; ++i) ShowWindow(pages[i], i == active_page ? SW_SHOW : SW_HIDE);
     SetWindowPos(pages[active_page], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     page_layout(active_page);
+    EnableWindow(item(ResetSection),active_page!=0&&!preparation);
 }
 void scroll_page(int p, int value) {
     scroll_offset[p] = std::max(0, value); page_layout(p);
@@ -291,15 +320,7 @@ void apply(bool play) {
     if (s::game_running(game_dir)) throw std::runtime_error("Close the game before changing its settings.");
     const int v = selection(Versions), l = selection(Lang), r = selection(Resolution);
     if (v < 0 || l < 0 || r < 0) throw std::runtime_error("Select a valid folder, resolution and language.");
-    pending = settings; pending.source = versions.at(v); pending.romfs = pending.source / L"romfs";
-    pending.language = langs.at(l).value; pending.width = sizes.at(r).first; pending.height = sizes.at(r).second;
-    pending.window_mode = selection(Mode) == 2 ? "exclusive" : selection(Mode) == 1 ? "borderless" : "windowed"; pending.skip = SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == BST_CHECKED;
-    pending.vsync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0) == BST_CHECKED;
-    pending.upscaler = selection(Upscaler) == 1 ? "bilinear" : "taau";
-    pending.check_updates = SendMessageW(item(AutoCheck), BM_GETCHECK, 0, 0) == BST_CHECKED;
-    pending.fps60 = selection(Fps60) == 1; pending.fps120 = selection(Fps60) == 2;
-    pending.output = text(item(GameOutput)) == L"Original game output" ? "console" : s::utf8(text(item(GameOutput)));
-    pending.render_ratio = selection(RenderRatio) == 0 ? 0 : std::stod(s::utf8(text(item(RenderRatio)))) / 100.0;
+    pending = read_form(); pending.source = versions.at(v); pending.romfs = pending.source / L"romfs";
     pending.completed = true; start_game = play;
     state(L"Verifying your local copy");
     status(L"Checking original files and the prepared copy before saving…"); UpdateWindow(window);
@@ -342,14 +363,18 @@ void update_tools(bool install) {
     if (install) { result = 0; DestroyWindow(window); }
     else SetTimer(window, 2, 400, nullptr);
 }
-const int fields[]={Folder,Versions,Lang,Mode,Resolution,Upscaler,Fps60,GameOutput,RenderRatio,Skip,Vsync,AutoCheck};
-bool checkbox(int id) { return id==Skip||id==Vsync||id==AutoCheck; }
-SavedField field_value(int id) { return {text(item(id)),selection(id),SendMessageW(item(id),BM_GETCHECK,0,0)}; }
+const int fields[]={Folder,Versions,Lang,Mode,Resolution,Upscaler,Fps60,GameOutput,RenderRatio,Skip,Vsync,AutoCheck,Volume,Mute,Deadzone,RightDeadzone,UiLanguage};
+bool checkbox(int id) { return id==Skip||id==Vsync||id==AutoCheck||id==Mute; }
+SavedField field_value(int id) {
+    const int index=selection(id); auto label=text(item(id));
+    auto i=combo_labels.find(item(id)); if(i!=combo_labels.end()&&index>=0&&static_cast<size_t>(index)<i->second.size()&&label==ui::translate(i->second[index])) label=i->second[index];
+    return {label,index,SendMessageW(item(id),BM_GETCHECK,0,0)};
+}
 void remember_form() { for(int id:fields) original_fields[id]=field_value(id); }
 void preview() {
     if(!item(RenderPreview)||!item(FrameHelp)) return;
     std::wstring message=selection(RenderRatio)==0?L"The game chooses its original output and internal resolution.":L"Original game output; 3D scale: "+text(item(RenderRatio))+L" per dimension.";
-    if(text(item(GameOutput))!=L"Original game output") {
+    if(text(item(GameOutput))!=ui::translate(L"Original game output")) {
         int w=0,h=0;
         wchar_t tail=0;
         if(swscanf_s(text(item(GameOutput)).c_str(),L"%dx%d%lc",&w,&h,&tail,1)==2 && w>=640 && h>=360 && w<=3840 && h<=2160 && !(w&1) && !(h&1)) {
@@ -382,7 +407,125 @@ void revert_form() {
         else if(id!=Folder) { choose(item(id),old.choice); if(old.choice<0) SetWindowTextW(item(id),old.value.c_str()); }
     }
     EnableWindow(item(Resolution),selection(Mode)==0); reconstruction_help();
-    form_ready=true; changed(); status(L"Pending changes reverted. Saved settings were not modified.");
+    form_ready=true; localize(); changed(); status(L"Pending changes reverted. Saved settings were not modified.");
+}
+s::Settings read_form() {
+    auto value=settings;
+    auto checked=[](int id){return SendMessageW(item(id),BM_GETCHECK,0,0)==BST_CHECKED;};
+    if(selection(Lang)>=0) value.language=langs.at(selection(Lang)).value;
+    if(selection(Resolution)>=0) {value.width=sizes.at(selection(Resolution)).first; value.height=sizes.at(selection(Resolution)).second;}
+    value.window_mode=selection(Mode)==2?"exclusive":selection(Mode)==1?"borderless":"windowed";
+    value.output=text(item(GameOutput))==ui::translate(L"Original game output")?"console":s::utf8(text(item(GameOutput)));
+    value.render_ratio=selection(RenderRatio)==0?0:std::wcstod(text(item(RenderRatio)).c_str(),nullptr)/100;
+    value.upscaler=selection(Upscaler)==1?"bilinear":"taau"; value.fps60=selection(Fps60)==1; value.fps120=selection(Fps60)==2;
+    value.skip=checked(Skip); value.vsync=checked(Vsync); value.check_updates=checked(AutoCheck); value.mute_unfocused=checked(Mute);
+    value.volume=std::wcstod(text(item(Volume)).c_str(),nullptr)/100;
+    value.deadzone=std::wcstod(text(item(Deadzone)).c_str(),nullptr)/100;
+    value.right_deadzone=std::wcstod(text(item(RightDeadzone)).c_str(),nullptr)/100;
+    value.ui_language=selection(UiLanguage)==1?"es":"en"; return value;
+}
+void localize() {
+    const bool was_ready=form_ready; form_ready=false;
+    std::map<HWND,SavedField> current_combos;
+    for(const auto& [h,labels]:combo_labels) {
+        auto current=text(h); int index=static_cast<int>(SendMessageW(h,CB_GETCURSEL,0,0));
+        if(index>=0&&static_cast<size_t>(index)<labels.size()&&current!=ui::translate(labels[index])) index=-1;
+        current_combos[h]={current,index,0};
+    }
+    ui::spanish=selection(UiLanguage)==1;
+    // Copy: caption() records source text; translations never become source keys.
+    const auto labels=captions;
+    for(const auto& [h,label]:labels) if(IsWindow(h)) {
+        wchar_t cls[40]{}; GetClassNameW(h,cls,40);
+        if(std::wstring(cls)!=L"EDIT"&&std::wstring(cls)!=L"COMBOBOX") SetWindowTextW(h,label.c_str());
+    }
+    for(const auto& [h,labels]:combo_labels) {
+        const auto& current=current_combos.at(h).value; const int index=current_combos.at(h).choice;
+        SendMessageW(h,CB_RESETCONTENT,0,0);
+        for(const auto& label:labels) {const auto t=ui::translate(label); SendMessageW(h,CB_ADDSTRING,0,reinterpret_cast<LPARAM>(t.c_str()));}
+        choose(h,index); if(index<0) SetWindowTextW(h,current.c_str());
+    }
+    reconstruction_help(); select_page(active_page); form_ready=was_ready; changed();
+}
+void percent(int id,double value) {
+    wchar_t label[32]{}; std::swprintf(label,32,L"%.4f%%",value*100);
+    int best=-1; const int count=static_cast<int>(SendMessageW(item(id),CB_GETCOUNT,0,0));
+    for(int i=0;i<count;++i) {wchar_t v[64]{}; SendMessageW(item(id),CB_GETLBTEXT,i,reinterpret_cast<LPARAM>(v)); if(std::abs(std::wcstod(v,nullptr)/100-value)<0.00001) best=i;}
+    if(best<0) {add(item(id),label); best=count;} choose(item(id),best);
+}
+void put_form(const s::Settings& v) {
+    const bool ready=form_ready; form_ready=false;
+    choose(item(Mode),v.window_mode=="exclusive"?2:v.window_mode=="borderless"?1:0);
+    auto size=std::pair{v.width,v.height}; auto pos=std::find(sizes.begin(),sizes.end(),size);
+    if(pos==sizes.end()) {sizes.push_back(size); add(item(Resolution),std::to_wstring(v.width)+L" × "+std::to_wstring(v.height)); pos=sizes.end()-1;}
+    choose(item(Resolution),static_cast<int>(pos-sizes.begin()));
+    if(v.output=="console") choose(item(GameOutput),0); else SetWindowTextW(item(GameOutput),s::wide(v.output).c_str());
+    if(v.render_ratio==0) choose(item(RenderRatio),0); else percent(RenderRatio,v.render_ratio);
+    choose(item(Upscaler),v.upscaler=="bilinear"?1:0); choose(item(Fps60),v.fps120?2:v.fps60?1:0);
+    for(auto [id,checked]:{std::pair{Skip,v.skip},{Vsync,v.vsync},{AutoCheck,v.check_updates},{Mute,v.mute_unfocused}}) SendMessageW(item(id),BM_SETCHECK,checked?BST_CHECKED:BST_UNCHECKED,0);
+    percent(Volume,v.volume); percent(Deadzone,v.deadzone); percent(RightDeadzone,v.right_deadzone); choose(item(UiLanguage),v.ui_language=="es"?1:0);
+    EnableWindow(item(Resolution),selection(Mode)==0); form_ready=ready; localize(); changed();
+}
+void scan_controllers(bool force=false) {
+    auto found=controllers->scan(); bool same=found.size()==pads.size();
+    if(same) for(size_t i=0;i<found.size();++i) if(found[i].id!=pads[i].id) same=false;
+    if(same&&!force) return;
+    SDL_JoystickID old=selection(Pads)>=0&&static_cast<size_t>(selection(Pads))<pads.size()?pads[selection(Pads)].id:0;
+    pads=std::move(found); SendMessageW(item(Pads),CB_RESETCONTENT,0,0); combo_labels[item(Pads)].clear(); int selected=0;
+    for(size_t i=0;i<pads.size();++i) {add(item(Pads),s::wide(pads[i].name)); if(pads[i].id==old) selected=static_cast<int>(i);}
+    if(!pads.empty()) choose(item(Pads),selected); controllers->select(pads.empty()?0:pads[selected].id);
+    EnableWindow(item(Pads),!pads.empty()); EnableWindow(item(SavePad),!pads.empty()&&!preparation); EnableWindow(item(LoadPad),!pads.empty()&&!preparation);
+    SetWindowTextW(item(PadState),pads.empty()?L"No controller detected":s::wide(pads[selected].name).c_str());
+    SetWindowTextW(item(PadValues),controllers->connected()?s::wide(controllers->sample()).c_str():L"—");
+}
+fs::path pick_profile(bool save,bool diagnostic=false) {
+    IFileDialog* dialog{};
+    HRESULT hr=save?CoCreateInstance(CLSID_FileSaveDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&dialog)):
+        CoCreateInstance(CLSID_FileOpenDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&dialog));
+    if(FAILED(hr)) throw std::runtime_error("Cannot open the file picker.");
+    COMDLG_FILTERSPEC filter{L"INI profile (*.ini)",L"*.ini"}; dialog->SetFileTypes(1,&filter); dialog->SetDefaultExtension(L"ini");
+    if(save) dialog->SetFileName(diagnostic?L"fefw-diagnostics.ini":L"fefw-settings.ini");
+    fs::path path;
+    if(SUCCEEDED(dialog->Show(window))) {IShellItem* item{}; if(SUCCEEDED(dialog->GetResult(&item))) {PWSTR p{}; if(SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH,&p))) {path=p; CoTaskMemFree(p);} item->Release();}}
+    dialog->Release();
+    if(!path.empty()) {
+        // Export must never replace runtime configuration, game files or saves.
+        auto name=path.filename().wstring(); std::transform(name.begin(),name.end(),name.begin(),towlower);
+        if(name==L"fefw.ini"||name==L"controls.ini"||path.extension()!=L".ini") throw std::runtime_error("Choose a separate .ini profile file.");
+        const auto normalized=fs::weakly_canonical(path).wstring();
+        auto inside=[&](const fs::path& root) {
+            if(root.empty()) return false;
+            auto prefix=fs::weakly_canonical(root).wstring(); if(prefix.back()!=L'\\') prefix+=L'\\';
+            return normalized.size()>=prefix.size()&&CompareStringOrdinal(normalized.c_str(),static_cast<int>(prefix.size()),prefix.c_str(),static_cast<int>(prefix.size()),TRUE)==CSTR_EQUAL;
+        };
+        if(inside(settings.source)) throw std::runtime_error("Keep exported profiles outside the original game folder.");
+        s::Ini ini(game_dir/L"fefw.ini"); fs::path saves=s::wide(ini.get("fs","save_dir","save")); if(saves.is_relative()) saves=game_dir/saves;
+        for(const auto& root:{saves,settings.exefs,settings.shaders,game_dir/L"work",game_dir/L"controller-profiles"}) if(!root.empty()) {
+            if(inside(root)) throw std::runtime_error("Choose a profile location outside game data, saves and build files.");
+        }
+    }
+    return path;
+}
+void reset_section() {
+    if(preparation||active_page==0) return;
+    auto v=read_form(); s::Settings defaults;
+    switch(active_page) {
+        case 1:v.output=defaults.output;v.render_ratio=0;v.upscaler=defaults.upscaler;break;
+        case 2:v.skip=true;break; case 3:v.check_updates=false;break; case 4:v.fps60=v.fps120=false;break;
+        case 5:v.width=1280;v.height=720;v.window_mode="windowed";v.vsync=true;break;
+        case 6:v.deadzone=v.right_deadzone=0.10;break;case 7:v.volume=1;v.mute_unfocused=false;break;case 8:v.ui_language="en";break;
+    }
+    put_form(v); status(L"Section reset. Save to apply the changes.");
+}
+void preparation_stage(int current) {
+    if(current<1||current>9) return;
+    const wchar_t* labels[]={L"Tools",L"Game verification",L"Libraries",L"Native code",L"Shader extraction",L"Shader translation",L"Shader correction",L"Local package",L"Save settings"};
+    const wchar_t* spanish[]={L"Herramientas",L"Verificación del juego",L"Bibliotecas",L"Código nativo",L"Extracción de shaders",L"Traducción de shaders",L"Corrección de shaders",L"Paquete local",L"Guardar ajustes"};
+    std::wstring stages=(ui::spanish?L"Completadas o reutilizadas: ":L"Completed or reused: ")+std::to_wstring(current-1)+L" / 9\n"+
+        (ui::spanish?L"En curso: ":L"Current: ")+std::to_wstring(current)+L". "+(ui::spanish?spanish[current-1]:labels[current-1])+L"\n"+
+        (ui::spanish?L"Pendientes después de esta etapa: ":L"Remaining after this stage: ")+std::to_wstring(9-current);
+    SetWindowTextW(item(Stages),stages.c_str());
+    state((ui::spanish?L"Etapa ":L"Stage ")+std::to_wstring(current)+L" / 9 — "+(ui::spanish?L"se reutiliza el trabajo completado":L"completed work is reused"));
 }
 void create_controls() {
     fonts();
@@ -450,7 +593,12 @@ void create_controls() {
     choose(item(Upscaler),settings.upscaler=="bilinear"?1:0);
     hint(control(L"STATIC",L"",UpscalerHelp,0,356,-1,48));
     hint(control(L"STATIC",L"Higher resolutions use more GPU memory. Above 1440p output, internal rendering is capped at 50%. Changes apply after restarting the game.",0,0,418,-1,48));
-    control(L"BUTTON",L"Use recommended &graphics",Recommended,0,484,254,32,WS_TABSTOP);
+    control(L"STATIC",L"Graphics preset",0,0,484,-1,22);
+    control(L"COMBOBOX",L"",Preset,0,512,-3,150,WS_TABSTOP|CBS_DROPDOWNLIST);
+    for(auto* label:{L"Performance — 720p / 50%",L"Balanced — 1080p / 66.67%",L"Quality — 1440p / 100%"}) add(item(Preset),label);
+    choose(item(Preset),1); control(L"BUTTON",L"Apply preset",ApplyPreset,-1,512,128,32,WS_TABSTOP);
+    hint(control(L"STATIC",L"Presets use temporal reconstruction and original timing. They are starting points, not performance guarantees.",0,0,558,-1,54));
+    control(L"BUTTON",L"Use recommended &graphics",Recommended,0,656,254,32,WS_TABSTOP);
     reconstruction_help();
 
     creating_page = 4; parent = pages[4];
@@ -508,7 +656,52 @@ void create_controls() {
     control(L"STATIC", L"Check for a newer release to see its changes. Installing closes setup; save pending settings first.", UpdateText, 0, 190, -1, 40);
     control(L"EDIT", L"", UpdateNotes, 0, 242, -1, 86, ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | WS_VSCROLL | WS_TABSTOP);
 
+    creating_page=6; parent=pages[6];
+    control(L"STATIC",L"Connected controller",0,0,0,-1,22);
+    control(L"COMBOBOX",L"",Pads,0,28,-3,160,WS_TABSTOP|CBS_DROPDOWNLIST);
+    control(L"BUTTON",L"Rescan",Rescan,-1,28,128,32,WS_TABSTOP);
+    hint(control(L"STATIC",L"No controller detected",PadState,0,74,-1,24));
+    hint(control(L"STATIC",L"Connect a controller by USB or Bluetooth. Detection refreshes automatically.",0,0,106,-1,40));
+    heading(control(L"STATIC",L"Live input",0,0,164,-1,28));
+    hint(control(L"STATIC",L"Move sticks and press buttons to test. Values below are raw SDL input, before the game's deadzone.",0,0,200,-1,44));
+    control(L"STATIC",L"—",PadValues,0,254,-1,76);
+    control(L"STATIC",L"Left stick deadzone",0,0,348,-2,22);
+    control(L"COMBOBOX",L"",Deadzone,0,376,-2,200,WS_TABSTOP|CBS_DROPDOWNLIST);
+    right(control(L"STATIC",L"Right stick deadzone",0,0,348,-2,22));
+    right(control(L"COMBOBOX",L"",RightDeadzone,0,376,-2,200,WS_TABSTOP|CBS_DROPDOWNLIST));
+    for(int id:{Deadzone,RightDeadzone}) for(int i=0;i<=50;i+=5) add(item(id),std::to_wstring(i)+L"%");
+    percent(Deadzone,settings.deadzone); percent(RightDeadzone,settings.right_deadzone);
+    control(L"BUTTON",L"Save controller profile",SavePad,0,432,-2,34,WS_TABSTOP);
+    right(control(L"BUTTON",L"Load controller profile",LoadPad,0,432,-2,34,WS_TABSTOP));
+    hint(control(L"STATIC",L"Profiles are stored per SDL hardware GUID. Load the connected model's profile, then Save to apply it to the game. Identical models share a profile.",0,0,486,-1,64));
+
+    creating_page=7; parent=pages[7];
+    heading(control(L"STATIC",L"Master volume",0,0,0,-1,28));
+    control(L"COMBOBOX",L"",Volume,0,46,-1,210,WS_TABSTOP|CBS_DROPDOWNLIST);
+    for(int i=0;i<=100;i+=5) add(item(Volume),std::to_wstring(i)+L"%"); percent(Volume,settings.volume);
+    control(L"BUTTON",L"Mute when the game loses focus",Mute,0,110,-1,28,WS_TABSTOP|BS_AUTOCHECKBOX);
+    SendMessageW(item(Mute),BM_SETCHECK,settings.mute_unfocused?BST_CHECKED:BST_UNCHECKED,0);
+    hint(control(L"STATIC",L"Audio changes apply the next time you start the game. Your audio device and other runtime settings are preserved.",0,0,166,-1,58));
+
+    creating_page=8; parent=pages[8];
+    control(L"STATIC",L"Interface language",0,0,0,-1,22);
+    control(L"COMBOBOX",L"",UiLanguage,0,28,-1,130,WS_TABSTOP|CBS_DROPDOWNLIST);
+    add(item(UiLanguage),L"English"); add(item(UiLanguage),L"Español"); choose(item(UiLanguage),settings.ui_language=="es"?1:0);
+    hint(control(L"STATIC",L"Independent of the game's dialogue language.",0,0,70,-1,26));
+    heading(control(L"STATIC",L"Portable settings",0,0,120,-1,28));
+    control(L"BUTTON",L"Export settings",Export,0,164,-2,34,WS_TABSTOP);
+    right(control(L"BUTTON",L"Import settings",Import,0,164,-2,34,WS_TABSTOP));
+    hint(control(L"STATIC",L"Profiles include display, audio and deadzones. Game folders, game language, saves and controller bindings are excluded. Imports remain pending until Save.",0,0,214,-1,64));
+    heading(control(L"STATIC",L"Diagnostics",0,0,302,-1,28));
+    control(L"BUTTON",L"Export diagnostics",Diagnostics,0,346,250,34,WS_TABSTOP);
+    hint(control(L"STATIC",L"Exports tool version, readiness, graphics choices and hardware IDs. No game files, saves, logs, personal paths or controller serial numbers. Review the report before sharing it.",0,0,396,-1,64));
+
+    creating_page=0; parent=pages[0];
+    heading(control(L"STATIC",L"Preparation stages",0,0,344,-1,28));
+    hint(control(L"STATIC",L"No preparation running. Existing completed build work is reused on the next attempt.",Stages,0,384,-1,110));
+
     creating_page = -1; parent = nullptr;
+    control(L"BUTTON",L"Reset section",ResetSection,18,600,168,34,WS_TABSTOP);
     heading(control(L"STATIC", L"Choose your game folder", StatusTitle, 24, 500, 760, 24));
     hint(control(L"STATIC", L"", Status, 24, 530, 760, 39));
     control(PROGRESS_CLASSW, L"", Progress, 24, 570, 760, 4, PBS_MARQUEE);
@@ -521,7 +714,7 @@ void create_controls() {
     control(L"STATIC",L"No pending changes",Dirty,0,0,200,20);
     hint(item(Dirty)); control(L"BUTTON",L"Revert",Revert,0,0,90,36,WS_TABSTOP);
     layout(); select_page(0); refresh_folder();
-    remember_form(); form_ready=true; changed();
+    remember_form(); form_ready=true; localize(); scan_controllers(true); SetTimer(window,3,50,nullptr); changed();
 }
 
 bool capture_ui(const wchar_t* name) {
@@ -556,6 +749,29 @@ bool check_ui() {
     check(SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED), "stored startup preference");
     check(selection(Fps60) == (settings.fps120 ? 2 : settings.fps60 ? 1 : 0), "stored FPS preference");
     check(!dirty&&!IsWindowEnabled(item(Revert)),"initial form has no pending changes");
+    const auto original=read_form(); const auto original_folder=text(item(Folder)); const int original_language=selection(Lang);
+    const double test_volume=original.volume==0.35?0.40:0.35;
+    percent(Volume,test_volume); SendMessageW(item(Mute),BM_SETCHECK,BST_CHECKED,0); percent(Deadzone,0.20); percent(RightDeadzone,0.25); changed();
+    check(dirty&&read_form().volume==test_volume&&read_form().mute_unfocused&&read_form().deadzone==0.20&&read_form().right_deadzone==0.25,"audio and controller controls feed runtime settings");
+    revert_form(); check(!dirty&&read_form().volume==original.volume&&read_form().deadzone==original.deadzone,"revert restores audio and deadzones");
+    SetWindowTextW(item(GameOutput),L"2048x1152"); choose(item(UiLanguage),1); localize();
+    check(ui::spanish&&text(item(NavBase+6))==L"Mandos"&&text(item(SavePlay))==L"Guardar y &jugar","Spanish interface is applied to native navigation and actions");
+    check(text(item(Folder))==original_folder&&text(item(GameOutput))==L"2048x1152"&&selection(Lang)==original_language,"language switch preserves custom output, folder and game language");
+    select_page(8); check(capture_ui(L"setup-ui-spanish.bmp"),"capture Spanish tools page");
+    revert_form(); check(read_form().ui_language==original.ui_language&&!dirty,"revert restores interface language without false dirty state");
+    select_page(7); percent(Volume,0.35); reset_section();
+    check(read_form().volume==1&&read_form().output==original.output&&read_form().language==original.language,"reset audio section preserves unrelated settings");
+    revert_form();
+    select_page(1); choose(item(Preset),1); SendMessageW(window,WM_COMMAND,MAKEWPARAM(ApplyPreset,BN_CLICKED),reinterpret_cast<LPARAM>(item(ApplyPreset)));
+    check(read_form().output=="1920x1080"&&text(item(RenderPreview)).find(L"1280")!=std::wstring::npos&&!read_form().fps120,"balanced preset exposes real internal resolution and original timing");
+    revert_form();
+    SDL_VirtualJoystickDesc controller{};SDL_INIT_INTERFACE(&controller);controller.type=SDL_JOYSTICK_TYPE_GAMEPAD;controller.naxes=6;controller.nbuttons=SDL_GAMEPAD_BUTTON_COUNT;
+    controller.axis_mask=63;controller.button_mask=(1u<<SDL_GAMEPAD_BUTTON_COUNT)-1;controller.name="FEFW UI test controller";
+    auto virtual_id=SDL_AttachVirtualJoystick(&controller);scan_controllers(true);
+    check(std::any_of(pads.begin(),pads.end(),[&](const auto& p){return p.id==virtual_id;})&&IsWindowEnabled(item(Pads)),"controller panel discovers hotplug while already open");
+    SDL_DetachVirtualJoystick(virtual_id);scan_controllers(true);
+    check(std::none_of(pads.begin(),pads.end(),[&](const auto& p){return p.id==virtual_id;}),"controller panel removes disconnected devices");
+    select_page(0);
     const int before_fps=selection(Fps60);
     choose(item(Fps60),(before_fps+1)%3); changed();
     check(dirty&&IsWindowEnabled(item(Revert)),"editing a setting exposes pending changes");
@@ -574,7 +790,7 @@ bool check_ui() {
         MapWindowPoints(nullptr, window, &origin, 1);
         check(ChildWindowFromPoint(window, origin) == pages[p], "selected page is above tab background");
     };
-    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp", L"setup-ui-updates.bmp",L"setup-ui-performance.bmp",L"setup-ui-window.bmp"};
+    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp", L"setup-ui-updates.bmp",L"setup-ui-performance.bmp",L"setup-ui-window.bmp",L"setup-ui-controllers.bmp",L"setup-ui-audio.bmp",L"setup-ui-tools.bmp"};
     for (int p = 0; p < page_count; ++p) {
         tab(p);
         RECT client{}, view{}; GetClientRect(window, &client); GetClientRect(pages[p], &view);
@@ -617,6 +833,9 @@ bool check_ui() {
     MapWindowPoints(nullptr, pages[1], reinterpret_cast<POINT*>(&button), 2);
     check(button.top >= 0 && button.bottom <= view.bottom, "last graphics action stays reachable");
     check(capture_ui(L"setup-ui-compact.bmp"), "capture compact settings");
+    const int old_interface=selection(UiLanguage);choose(item(UiLanguage),1);localize();tab(8);
+    check(capture_ui(L"setup-ui-compact-spanish.bmp"),"capture compact Spanish settings");
+    choose(item(UiLanguage),old_interface);localize();tab(1);
     SetWindowPos(window, nullptr, normal.left, normal.top, normal.right - normal.left, normal.bottom - normal.top, SWP_NOZORDER | SWP_NOACTIVATE);
     scroll_page(1, 0);
     const int old_dpi = dpi;
@@ -625,6 +844,8 @@ bool check_ui() {
     check(dpi == 144 && capture_ui(L"setup-ui-dpi144.bmp"), "DPI change relayout and capture");
     SendMessageW(window, WM_DPICHANGED, MAKEWPARAM(old_dpi, old_dpi), reinterpret_cast<LPARAM>(&normal));
     enabled(false); state(L"Preparing your local copy");
+    tab(0); preparation_stage(4);
+    check(text(item(Stages)).find(L"3 / 9")!=std::wstring::npos&&text(item(Stages)).find(L"5")!=std::wstring::npos,"preparation shows completed and remaining stages without a time percentage");
     status(L"First preparation may take around 30–40 minutes. Open log shows the current stage.");
     ShowWindow(item(Progress), SW_SHOW);
     check(!IsWindowEnabled(item(Save)) && !IsWindowEnabled(item(Recommended)) && IsWindowEnabled(item(IDCANCEL)), "preparation blocks edits and allows stopping");
@@ -690,6 +911,29 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                 if(LOWORD(w)>=NavBase&&LOWORD(w)<NavBase+page_count) { select_page(LOWORD(w)-NavBase); return 0; }
                 if(form_ready && (HIWORD(w)==EN_CHANGE || HIWORD(w)==CBN_SELCHANGE || HIWORD(w)==CBN_EDITCHANGE || HIWORD(w)==BN_CLICKED)) changed();
                 switch (LOWORD(w)) {
+                    case UiLanguage: if(HIWORD(w)==CBN_SELCHANGE) localize(); return 0;
+                    case ResetSection: reset_section(); return 0;
+                    case Rescan: scan_controllers(true); return 0;
+                    case Pads: if(HIWORD(w)==CBN_SELCHANGE&&selection(Pads)>=0) {
+                        controllers->select(pads.at(selection(Pads)).id); SetWindowTextW(item(PadState),s::wide(pads.at(selection(Pads)).name).c_str());
+                    } return 0;
+                    case SavePad: case LoadPad: {
+                        if(preparation) return 0;
+                        if(selection(Pads)<0) throw std::runtime_error("Select a connected controller.");
+                        auto value=read_form(); s::controller_profile(game_dir,pads.at(selection(Pads)).guid,value,LOWORD(w)==SavePad);
+                        if(LOWORD(w)==LoadPad) put_form(value);
+                        status(LOWORD(w)==SavePad?L"Controller profile saved for this hardware model.":L"Controller profile loaded. Save to apply its deadzones."); return 0;
+                    }
+                    case ApplyPreset: { if(preparation) return 0; auto value=read_form(); s::graphics_preset(value,selection(Preset)); put_form(value);
+                        status(L"Graphics preset selected. Review the resolution summary, then Save."); return 0; }
+                    case Export: case Import: case Diagnostics: {
+                        if(preparation) return 0;
+                        const auto path=pick_profile(LOWORD(w)!=Import,LOWORD(w)==Diagnostics); if(path.empty()) return 0;
+                        auto value=read_form();
+                        if(LOWORD(w)==Import) {put_form(s::import_preferences(path,value)); status(L"Settings imported. Review the choices and Save to apply them.");}
+                        else if(LOWORD(w)==Export) {s::export_preferences(path,value);status(L"Settings exported without game folders or saves.");}
+                        else {s::export_diagnostics(path,game_dir,value,static_cast<int>(pads.size()));status(L"Diagnostics exported. Review the report before sharing.");} return 0;
+                    }
                     case Browse: browse(); return 0;
                     case Folder: if (HIWORD(w) == EN_KILLFOCUS) refresh_folder(); return 0;
                     case Versions: if (HIWORD(w) == CBN_SELCHANGE) refresh_languages(); return 0;
@@ -714,6 +958,11 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     case IDCANCEL: SendMessageW(h, WM_CLOSE, 0, 0); return 0;
                 } break;
             case WM_TIMER:
+                if(w==3) {
+                    static int ticks=0; if(++ticks%20==0) scan_controllers();
+                    if(active_page==6) SetWindowTextW(item(PadValues),controllers->connected()?s::wide(controllers->sample()).c_str():L"—");
+                    return 0;
+                }
                 if (w == 2) {
                     refresh_update();
                     if (update_process && WaitForSingleObject(update_process, 0) == WAIT_OBJECT_0) {
@@ -735,6 +984,9 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     } else {
                         std::ifstream in(game_dir / L"preparation.status", std::ios::binary);
                         std::string line; if (std::getline(in, line) && !line.empty()) status(s::wide(line));
+                        s::Ini progress(game_dir/L"preparation.progress"); int current=0;
+                        try {current=std::stoi(progress.get("preparation","stage","0"));} catch(...) {}
+                        preparation_stage(current);
                     }
                 } return 0;
             case WM_CLOSE:
@@ -749,6 +1001,7 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                 }
                 return ui::colors(msg,w,l,small_font);
             case WM_DESTROY:
+                controllers.reset();
                 if (job) { CloseHandle(job); job = nullptr; }
                 if (preparation) { CloseHandle(preparation); preparation = nullptr; }
                 for (HFONT f : {font, title_font, heading_font, small_font}) if (f) DeleteObject(f);
@@ -766,9 +1019,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if ((!out || out == INVALID_HANDLE_VALUE) && AttachConsole(ATTACH_PARENT_PROCESS)) { std::freopen("CONOUT$", "w", stdout); std::freopen("CONOUT$", "w", stderr); }
         int argc = 0; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         game_dir = s::executable_dir(); fs::path source;
-        bool validate = false, apply_cli = false, status_cli = false;
+        bool validate = false, apply_cli = false, status_cli = false, probe=false, controller_test=false;
         int width = 0, height = 0; std::string language, upscaler; int skip = -1, vsync = -1, fps60 = -1, fps = -1;
         std::string window_mode, output; double ratio = -1;
+        std::string interface_language;std::optional<double> volume,left_deadzone,right_deadzone;int mute=-1;
         for (int i = 1; i < argc; ++i) {
             const std::wstring arg(argv[i]);
             auto next = [&]() -> std::wstring { if (i + 1 >= argc) throw std::runtime_error("Missing argument"); return argv[++i]; };
@@ -789,10 +1043,35 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             else if (arg == L"--window-mode") window_mode = s::utf8(next());
             else if (arg == L"--output") output = s::utf8(next());
             else if (arg == L"--render-ratio") ratio = std::stod(next());
+            else if (arg == L"--ui-language") interface_language=s::utf8(next());
+            else if (arg == L"--volume") volume=std::stod(next());
+            else if (arg == L"--deadzone") left_deadzone=std::stod(next());
+            else if (arg == L"--right-deadzone") right_deadzone=std::stod(next());
+            else if (arg == L"--mute-unfocused") {mute=std::stoi(next());if(mute!=0&&mute!=1) throw std::runtime_error("Mute must be 0 or 1.");}
             else if (arg == L"--test-ui") test_ui = true;
+            else if (arg == L"--probe-controllers") probe=true;
+            else if (arg == L"--test-controllers") controller_test=true;
             else throw std::runtime_error("Unknown argument: " + s::utf8(arg));
         }
         LocalFree(argv);
+        if(probe||controller_test) {
+            s::Controllers device; auto found=device.scan();
+            for(const auto& pad:found) {device.select(pad.id); std::printf("controller=%s guid=%s connected=%d\n%s\n",pad.name.c_str(),pad.guid.c_str(),device.connected(),device.sample().c_str());}
+            std::printf("physical_controllers=%zu\n",found.size());
+            if(!controller_test) return device.error.empty()?0:2;
+            SDL_VirtualJoystickDesc description{}; SDL_INIT_INTERFACE(&description); description.type=SDL_JOYSTICK_TYPE_GAMEPAD;
+            description.naxes=SDL_GAMEPAD_AXIS_COUNT; description.nbuttons=SDL_GAMEPAD_BUTTON_COUNT;
+            description.axis_mask=(1u<<SDL_GAMEPAD_AXIS_COUNT)-1; description.button_mask=(1u<<SDL_GAMEPAD_BUTTON_COUNT)-1; description.name="FEFW test controller";
+            auto id=SDL_AttachVirtualJoystick(&description); auto virtual_pad=SDL_OpenJoystick(id);
+            auto list=device.scan(); bool detected=std::any_of(list.begin(),list.end(),[&](const auto& p){return p.id==id;});
+            bool opened=device.select(id); SDL_SetJoystickVirtualAxis(virtual_pad,0,16384); SDL_SetJoystickVirtualButton(virtual_pad,SDL_GAMEPAD_BUTTON_SOUTH,true); SDL_UpdateJoysticks();
+            auto sample=device.sample(); bool input=sample.find("+0.50")!=std::string::npos&&sample.find(SDL_GetGamepadStringForButton(SDL_GAMEPAD_BUTTON_SOUTH))!=std::string::npos;
+            SDL_DetachVirtualJoystick(id); device.scan(); bool disconnected=!device.connected(); SDL_CloseJoystick(virtual_pad);
+            id=SDL_AttachVirtualJoystick(&description); list=device.scan(); bool reconnected=device.select(id)&&device.connected();
+            SDL_DetachVirtualJoystick(id); device.scan(); device.select(0);
+            bool ok=detected&&opened&&input&&disconnected&&reconnected;
+            std::printf("detected=%d opened=%d input=%d disconnected=%d reconnected=%d controller_valid=%d\n",detected,opened,input,disconnected,reconnected,ok); return ok?0:2;
+        }
         if (validate) { const auto v = s::validate_source(source, true); std::printf("%s\n", v.ok ? "VALID" : v.error.c_str()); return v.ok ? 0 : 2; }
         settings = s::load(game_dir); if (!source.empty()) { settings.source = source; settings.romfs = source / L"romfs"; }
         if (width) settings.width = width; if (height) settings.height = height;
@@ -807,6 +1086,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (!window_mode.empty()) settings.window_mode = window_mode;
         if (!output.empty()) settings.output = output;
         if (ratio >= 0) settings.render_ratio = ratio;
+        if(!interface_language.empty()) settings.ui_language=interface_language;
+        if(volume) settings.volume=*volume; if(left_deadzone) settings.deadzone=*left_deadzone; if(right_deadzone) settings.right_deadzone=*right_deadzone;
+        if(mute>=0) settings.mute_unfocused=mute==1;
         if (status_cli) {
             const auto v = s::validate_ready(game_dir, settings);
             std::printf("ready=%d skip=%d show_setup=%d width=%d height=%d language=%s fps60=%d\n%s\n", v.ok, settings.skip, s::needs_setup(game_dir), settings.width, settings.height, settings.language.c_str(), settings.fps60, v.error.c_str());
@@ -816,6 +1098,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         const HANDLE lock = CreateMutexW(nullptr, FALSE, (s::game_mutex_name(game_dir) + L"_setup").c_str());
         if (lock && GetLastError() == ERROR_ALREADY_EXISTS) return 0;
         CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+        controllers=std::make_unique<s::Controllers>();
         INITCOMMONCONTROLSEX cc{sizeof cc, ICC_STANDARD_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES}; InitCommonControlsEx(&cc);
         dpi = static_cast<int>(GetDpiForSystem()); ui::init();
         WNDCLASSEXW wc{sizeof wc}; wc.hInstance = instance; wc.lpfnWndProc = proc; wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
@@ -850,7 +1133,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         std::fprintf(stderr, "%s\n", e.what());
         // CLI validation/preparation is unattended and communicates through its exit status.
         const std::wstring cmd(GetCommandLineW());
-        const bool cli = cmd.find(L"--validate") != std::wstring::npos || cmd.find(L"--apply") != std::wstring::npos || cmd.find(L"--status") != std::wstring::npos || cmd.find(L"--test-ui") != std::wstring::npos;
+        const bool cli = cmd.find(L"--validate") != std::wstring::npos || cmd.find(L"--apply") != std::wstring::npos || cmd.find(L"--status") != std::wstring::npos || cmd.find(L"--test-ui") != std::wstring::npos || cmd.find(L"--probe-controllers")!=std::wstring::npos || cmd.find(L"--test-controllers")!=std::wstring::npos;
         if (!cli) MessageBoxW(nullptr, s::wide(e.what()).c_str(), L"Fire Emblem Recomp", MB_OK | MB_ICONERROR);
         return 2;
     }

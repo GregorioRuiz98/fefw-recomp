@@ -62,7 +62,7 @@ def main():
     assert 'ui_valid=1' in ui and 'ui_checks=' in ui
     assert before == (game_ini.read_bytes(), control_ini.read_bytes())
     assert (folder / 'setup-ui.bmp').stat().st_size > 100000
-    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing', 'updates', 'performance', 'window'):
+    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing', 'updates', 'performance', 'window', 'controllers', 'audio', 'tools', 'spanish'):
         assert (folder / f'setup-ui-{state}.bmp').stat().st_size > 100000
     run('save_show_setup', ['--apply', '--source', str(a.source), '--width', '1600', '--height', '900', '--language', 'Spanish', '--skip', '0', '--vsync', '1'])
     text = run('show_setup_preference', ['--status'])
@@ -104,6 +104,17 @@ def main():
     assert before == (game_ini.read_bytes(), control_ini.read_bytes())
     run('select_temporal', ['--apply', '--upscaler', 'taau'])
     assert read(game_ini)['dlss']['upscaler'] == 'taau'
+    run('audio_controller_and_interface_preferences', ['--apply', '--volume', '0.35', '--mute-unfocused', '1', '--deadzone', '0.2', '--right-deadzone', '0.25', '--ui-language', 'es'])
+    assert read(game_ini)['launcher']['ui_language'] == 'es' and read(game_ini)['system']['language'] == 'Spanish'
+    assert read(game_ini)['audio']['volume'] == read(control_ini)['audio']['volume'] == '0.350000'
+    assert read(control_ini)['audio']['mute_unfocused'] == '1' and read(control_ini)['pad']['right_deadzone'] == '0.250000'
+    run('spanish_interface_restores_preferences', ['--test-ui'])
+    before_preferences = game_ini.read_bytes(), control_ini.read_bytes()
+    for option, value in (('--volume', 'nan'), ('--deadzone', '-0.1'), ('--right-deadzone', '0.6'), ('--ui-language', 'unknown')):
+        run('reject_' + option.removeprefix('--'), ['--apply', option, value], 2)
+    assert before_preferences == (game_ini.read_bytes(), control_ini.read_bytes())
+    run('restore_interface_defaults', ['--apply', '--volume', '1', '--mute-unfocused', '0', '--deadzone', '0.1', '--right-deadzone', '0.1', '--ui-language', 'en'])
+    assert 'controller_valid=1' in run('standalone_controller_hotplug', ['--test-controllers'])
     (folder / 'fefw.features').unlink()
     run('old_executable_requires_update', ['--status'], 2)
     (folder / 'fefw.features').write_text('fefw-runtime-5', encoding='utf-8')
