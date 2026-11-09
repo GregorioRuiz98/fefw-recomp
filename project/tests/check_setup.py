@@ -62,7 +62,7 @@ def main():
     assert 'ui_valid=1' in ui and 'ui_checks=' in ui
     assert before == (game_ini.read_bytes(), control_ini.read_bytes())
     assert (folder / 'setup-ui.bmp').stat().st_size > 100000
-    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing', 'updates'):
+    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing', 'updates', 'performance', 'window'):
         assert (folder / f'setup-ui-{state}.bmp').stat().st_size > 100000
     run('save_show_setup', ['--apply', '--source', str(a.source), '--width', '1600', '--height', '900', '--language', 'Spanish', '--skip', '0', '--vsync', '1'])
     text = run('show_setup_preference', ['--status'])

@@ -44,13 +44,13 @@
     },
     {
       "path": "README.md",
-      "bytes": 12853,
-      "sha256": "678d29d988450809ce7f172212d0bf7a9e8c36fbebd3bcf18b3c528605d3c1d8"
+      "bytes": 13320,
+      "sha256": "9e95d7489cf33bcfcdd7ea26b045caa25cd7579cb7c3595f726e356e5c3d85d3"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 3192,
-      "sha256": "162689344486a64e18915424c5e33288470004e0e5288e8cc2435cc7c537acb3"
+      "bytes": 3251,
+      "sha256": "ce9efe9b090f65db7945c5a51371140098343b1f08691cfffeae33e75d867ee7"
     },
     {
       "path": "project/.gitignore",
@@ -59,8 +59,8 @@
     },
     {
       "path": "project/CMakeLists.txt",
-      "bytes": 10152,
-      "sha256": "ff3efd07faec366cbbe85f8c29d9ab7ca3f1c002c5b2c0aea0f02348371fd2c8"
+      "bytes": 10167,
+      "sha256": "f4d8219b08a4bbd9624217a04af4c380aafa36cba7d7bdfa302053740a737d6f"
     },
     {
       "path": "project/CONTRIBUTING.md",
@@ -109,18 +109,18 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 12853,
-      "sha256": "678d29d988450809ce7f172212d0bf7a9e8c36fbebd3bcf18b3c528605d3c1d8"
+      "bytes": 13320,
+      "sha256": "9e95d7489cf33bcfcdd7ea26b045caa25cd7579cb7c3595f726e356e5c3d85d3"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
-      "bytes": 3192,
-      "sha256": "162689344486a64e18915424c5e33288470004e0e5288e8cc2435cc7c537acb3"
+      "bytes": 3251,
+      "sha256": "ce9efe9b090f65db7945c5a51371140098343b1f08691cfffeae33e75d867ee7"
     },
     {
       "path": "project/UPSTREAM-INTEGRATION.md",
-      "bytes": 7987,
-      "sha256": "f359b356d6171b780a646cc7307d0ce29175445fd47784edddaa899308943f5d"
+      "bytes": 8923,
+      "sha256": "392ecef84840859b414acb1de82ae65b81dd3566e8c81f4462a570f7ecd6134b"
     },
     {
       "path": "project/config.py",
@@ -218,6 +218,11 @@
       "sha256": "8b41be4fb76ed23ff0e324df587dba58be1bf4a36385d546e52e8e21301550cb"
     },
     {
+      "path": "project/src/SETTINGS-DESIGN.md",
+      "bytes": 1773,
+      "sha256": "635d35d599f01d2294fc8473ca38c6c42beca778e515211029dc64e4b58d79b4"
+    },
+    {
       "path": "project/src/fefw_config.cpp",
       "bytes": 20336,
       "sha256": "27e0f882ccdc248bd475cb37788b23e29f88638dd91c1bfd1242baec7e6e55c8"
@@ -274,8 +279,8 @@
     },
     {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 52215,
-      "sha256": "3934044184eb010f34ebde2853aa767bc3e2b508d294beab806fde71471ed8a0"
+      "bytes": 60692,
+      "sha256": "c69f1aa19b8e52f8e2966e601f80cc974cacdd688f4ccf9ed1ff1286644dc701"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -286,6 +291,11 @@
       "path": "project/src/fefw_setup.rc",
       "bytes": 474,
       "sha256": "1c29b0bde08ca232e4347b38b294f5a1247eddfaafe16b7c397ede72ab8bcb80"
+    },
+    {
+      "path": "project/src/fefw_setup_theme.h",
+      "bytes": 6033,
+      "sha256": "c6d11c290cf9096bb7a2fa70f2b7a3518daa10765644eb6ce3f472ba301c290c"
     },
     {
       "path": "project/src/fefw_supported.h.in",
@@ -354,8 +364,8 @@
     },
     {
       "path": "project/tests/check_setup.py",
-      "bytes": 9453,
-      "sha256": "341bd865b5b28e0854192b665e9ff431126854229dd00e8b56a538477c580b75"
+      "bytes": 9478,
+      "sha256": "4353d49205a0dcc61ddace269af5487689570b77525f29331e59224a51f8226d"
     },
     {
       "path": "project/tests/check_shader_textures.py",
@@ -550,7 +560,7 @@
     {
       "path": "project/tools/Update-Release.ps1",
       "bytes": 3250,
-      "sha256": "7d2860c64d59bc907422802b2d8599bbac71f8f8f80135554ffb7614b5cde1c5"
+      "sha256": "4f49f5b3764917fe0c99f3c6e6b753979379cb175fc0385b6377af233c265b5f"
     },
     {
       "path": "project/tools/audit_public_repo.py",

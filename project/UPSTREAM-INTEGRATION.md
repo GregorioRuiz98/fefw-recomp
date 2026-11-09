@@ -58,3 +58,9 @@ Reviewed the later upstream master at `45a1904ca81995bfea39cb7aa1012851d3aa84d8`
 Preview.6 validation: 46 Python tests, all 11 native CTest groups, 29 setup integration checks, 76 UI checks on the packaged standalone executable, and 34 updater transaction checks pass. A real preview.5 package was downloaded, verified and installed into an isolated fixture without changing its existing settings. The final ZIP also passes the updater's extraction/manifest checks.
 
 The final game executable ran for about 152 seconds with GPU-assisted validation, 1920x1080 game output, 1280x720 internal rendering and the 120 FPS target. Six captures show prologue/cinematic content; the log confirms the gameplay target and menu interval accounting, with no instrumented out-of-bounds access, guest trap or device loss. A separate original-target run also reports no instrumented out-of-bounds access. These runs do not demonstrate sustained 120 FPS, full-game compatibility or correction of every reported visual issue.
+
+## Preview.7 native configurator
+
+The standalone Win32 configurator now follows the palette and information grouping of Goldoire's launcher: navy surfaces, teal accent, persistent sidebar, and separate Picture, Performance and Window sections. Game files, Startup and Updates retain our local preparation workflow. Field explanations, a derived resolution summary, pending-change state, Revert and discard confirmation make the settings easier to review before saving.
+
+The theme source credits Goldoire's `launcher/src/theme.css`; no game artwork, Tauri runtime or additional vendor upscaler is distributed. Native control roles, keyboard navigation and the existing INI-preserving editor are retained. See `src/SETTINGS-DESIGN.md`. Normal/compact/144-DPI captures and 29 setup integration checks pass, including dirty/revert and custom-resolution preview checks. This release does not alter the game executable, shaders or renderer.

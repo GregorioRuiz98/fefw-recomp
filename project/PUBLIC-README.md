@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.6](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.6/FEFW-Recomp-Windows-x64-v0.1.0-preview.6.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.6)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.7](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.7/FEFW-Recomp-Windows-x64-v0.1.0-preview.7.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.7)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -58,7 +58,7 @@ If preview.3 stopped while building `libvpx` in a folder containing spaces, clos
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
-Setup has **Game**, **Graphics**, **Startup** and **Updates** tabs. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** to switch tabs. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
+Setup uses a dark sidebar inspired by Goldoire's launcher, with **Game files**, **Picture**, **Performance**, **Window**, **Startup** and **Updates** sections. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** or **Ctrl+Shift+Tab** to switch sections. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
 
 **Window resolution** controls presentation size. **Game output (WxH)** changes the engine's output independently; enter even dimensions from 640x360 to 3840x2160, or keep **Original game output**. **Internal scale per dimension** controls the 3D resolution before TAAU: 50% of 1920x1080 is 960x540. Above 1440p output, the runtime caps internal rendering to half the output per dimension to stay within the title's existing render-target pool. Larger settings require more GPU memory. These options need a restart.
 
@@ -68,9 +68,11 @@ Setup has **Game**, **Graphics**, **Startup** and **Updates** tabs. The window c
 
 The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
 
+The footer shows whether there are **Unsaved changes**. **Revert** restores the form without changing saved settings. Picture shows the resulting 3D input and output dimensions for a custom resolution; Performance explains the selected target. Pending changes survive section switches. Closing with unsaved changes asks whether to discard them.
+
 ## Frame-rate targets
 
-In **Graphics → Frame-rate target**, choose **Original (30 / 60 FPS)**, **60 FPS** or **120 FPS**, then save and restart. Original is the default. Higher targets are experimental; they do not guarantee sustained performance or correct behavior throughout the game.
+In **Performance → Frame-rate target**, choose **Original (30 / 60 FPS)**, **60 FPS** or **120 FPS**, then save and restart. Original is the default. Higher targets are experimental; they do not guarantee sustained performance or correct behavior throughout the game.
 
 The 60 FPS option retains both checked changes from [Kompas9's patch](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave). The 120 FPS option adapts Goldoire's native hooks: gameplay target 120, display interval accounting at 120 Hz, menus retaining their target of 60, and correction of accumulated timing error when actual frame times vary. Movies retain their encoded frame rate. Hook instructions and the supported Build ID are checked before enabling the feature.
 

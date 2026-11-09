@@ -42,7 +42,7 @@ target_compile_definitions(fefw_config PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN _CRT_
 target_link_libraries(fefw_config PUBLIC bcrypt)
 enable_language(RC)
 add_executable(fefw_setup WIN32 src/fefw_setup.cpp src/fefw_setup.rc)
-target_link_libraries(fefw_setup PRIVATE fefw_config comctl32 ole32 shell32)
+target_link_libraries(fefw_setup PRIVATE fefw_config comctl32 ole32 shell32 uxtheme dwmapi)
 target_link_options(fefw_setup PRIVATE /MANIFEST:NO)
 enable_testing()
 add_executable(fefw_config_tests tests/test_config.cpp)

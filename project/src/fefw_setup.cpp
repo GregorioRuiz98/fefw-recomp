@@ -9,18 +9,32 @@
 #include <fstream>
 #include <set>
 #include <cmath>
+#include <map>
+#include "fefw_setup_theme.h"
 
 namespace s = fefw::setup;
 namespace fs = std::filesystem;
 namespace {
 enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog, Upscaler,
-    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck };
+    Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck, Revert, Dirty, RenderPreview, FrameHelp, Brand, BrandSub, BuildLabel, NavBase = 300 };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
 HFONT font{}, title_font{}, heading_font{}, small_font{};
-constexpr int page_count = 4;
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.6";
+constexpr int page_count = 6;
+const int nav_order[] = {0,1,4,5,2,3};
+const wchar_t* page_names[] = {L"Game files",L"Picture",L"Startup",L"Updates",L"Performance",L"Window"};
+const wchar_t* page_descriptions[] = {
+    L"Connect your extracted copy and choose its language.", L"Choose 3D detail and how frames are reconstructed.",
+    L"Choose how the game opens and reconnect your controller.", L"Keep project tools current while preserving your local data.",
+    L"Choose a gameplay target. Performance depends on your PC.", L"Choose how the game appears on your display."};
+namespace ui = fefw::setup::ui;
+struct SavedField { std::wstring value; int choice=-1; LRESULT checked=0; };
+std::map<int,SavedField> original_fields;
+bool form_ready=false, dirty=false;
+void changed();
+void select_page(int p);
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.7";
 HWND pages[page_count]{}, parent{};
 HWND folder_tip{};
 std::wstring tip_text;
@@ -61,13 +75,21 @@ void enabled(bool on) {
     EnableWindow(item(Versions), on && !versions.empty());
     EnableWindow(item(Lang), on && !langs.empty());
     EnableWindow(item(Recommended), on);
+    EnableWindow(item(Revert),on&&dirty);
     if (!on) EnableWindow(item(InstallUpdate), FALSE);
 }
 HWND control(const wchar_t* cls, const wchar_t* label, int id, int x, int y, int w, int h, DWORD style = 0) {
+    const bool combo = std::wstring(cls)==L"COMBOBOX";
+    const bool button = std::wstring(cls)==L"BUTTON";
+    if (combo) style |= CBS_OWNERDRAWFIXED | CBS_HASSTRINGS;
+    if (button && (style & BS_TYPEMASK) != BS_AUTOCHECKBOX) style = (style & ~BS_TYPEMASK) | BS_OWNERDRAW;
     HWND c = CreateWindowExW(cls == std::wstring(L"EDIT") ? WS_EX_CLIENTEDGE : 0, cls, label,
         WS_CHILD | WS_VISIBLE | style, px(std::max(x, 0)), px(y), px(w > 0 ? w : 100), px(h), parent ? parent : window,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), GetModuleHandleW(nullptr), nullptr);
     SendMessageW(c, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+    if (button || combo) SetWindowTheme(c,L"",L"");
+    if (button) SetWindowSubclass(c,ui::interactive,1,0);
+    if (combo) { SetWindowSubclass(c,ui::combo_frame,2,0); SendMessageW(c,CB_SETITEMHEIGHT,static_cast<WPARAM>(-1),px(28)); SendMessageW(c,CB_SETITEMHEIGHT,0,px(28)); }
     if (creating_page >= 0) placements.push_back({c, creating_page, x, y, w, h, false});
     return c;
 }
@@ -78,7 +100,7 @@ void fonts() {
     const HFONT old[] = {font, title_font, heading_font, small_font};
     auto make = [](int height, int weight) { return CreateFontW(-px(height), 0, 0, 0, weight, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH, L"Segoe UI"); };
-    font = make(16, FW_NORMAL); title_font = make(25, FW_SEMIBOLD);
+    font = make(16, FW_NORMAL); title_font = make(30, FW_SEMIBOLD);
     heading_font = make(18, FW_SEMIBOLD); small_font = make(14, FW_NORMAL);
     EnumChildWindows(window, [](HWND h, LPARAM) -> BOOL { SendMessageW(h, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE); return TRUE; }, 0);
     for (HWND h : headings) SendMessageW(h, WM_SETFONT, reinterpret_cast<WPARAM>(heading_font), TRUE);
@@ -88,7 +110,7 @@ void fonts() {
 }
 void move(HWND h, int x, int y, int w, int height) { MoveWindow(h, px(x), px(y), px(w), px(height), TRUE); }
 int logical(int v) { return MulDiv(v, 96, dpi); }
-int page_content_height(int p) { return p == 1 ? 522 : p == 2 ? 338 : 328; }
+int page_content_height(int p) { const int heights[]={344,524,350,390,322,330}; return heights[p]; }
 void page_layout(int p) {
     RECT r{}; GetClientRect(pages[p], &r);
     const int width = logical(r.right), height = logical(r.bottom);
@@ -110,27 +132,30 @@ void layout() {
     if (!item(Tabs) || !pages[2]) return;
     RECT r{}; GetClientRect(window, &r);
     const int w = logical(r.right), h = logical(r.bottom);
-    move(item(Title), 24, 18, w - 48, 34);
-    move(item(Subtitle), 24, 58, w - 48, 24);
-    move(item(Tabs), 24, 98, w - 48, h - 254);
-    RECT content{}; GetClientRect(item(Tabs), &content); TabCtrl_AdjustRect(item(Tabs), FALSE, &content);
-    POINT origin{content.left, content.top}; MapWindowPoints(item(Tabs), window, &origin, 1);
-    for (int p = 0; p < page_count; ++p) {
-        MoveWindow(pages[p], origin.x + px(20), origin.y + px(20),
-            std::max<int>(px(100), content.right - content.left - px(40)),
-            std::max<int>(px(80), content.bottom - content.top - px(28)), TRUE);
-        page_layout(p);
+    const int side = w < 850 ? 162 : 204;
+    move(item(Brand),18,26,side-32,26); move(item(BrandSub),18,56,side-32,48);
+    move(item(BuildLabel),18,h-58,side-28,42);
+    for (int i=0;i<page_count;++i) move(item(NavBase+nav_order[i]),12,140+i*50,side-24,42);
+    move(item(Title),side+32,24,w-side-64,42);
+    move(item(Subtitle),side+32,74,w-side-64,40);
+    for (int p=0;p<page_count;++p) {
+        move(pages[p],side+32,132,w-side-64,std::max(80,h-312)); page_layout(p);
     }
-    move(item(StatusTitle), 24, h - 140, w - 48, 24);
-    move(item(Status), 24, h - 111, w - 48, 39);
-    move(item(Progress), 24, h - 64, w - 48, 4);
-    move(item(OpenLog), 24, h - 48, 112, 34);
-    move(item(IDCANCEL), w - 420, h - 48, 112, 34);
-    move(item(Save), w - 296, h - 48, 112, 34);
-    move(item(SavePlay), w - 172, h - 48, 148, 34);
+    move(item(StatusTitle),side+32,h-158,w-side-64,24);
+    move(item(Status),side+32,h-128,w-side-64,42);
+    move(item(Progress),side+32,h-80,w-side-64,3);
+    move(item(Dirty),side+32,h-60,std::max(100,w-470-side-44),20);
+    move(item(OpenLog),side+32,h-34,86,26);
+    move(item(Revert),w-470,h-58,90,36);
+    move(item(IDCANCEL),w-370,h-58,90,36);
+    move(item(Save),w-270,h-58,90,36);
+    move(item(SavePlay),w-170,h-58,138,36);
+    InvalidateRect(window,nullptr,FALSE);
 }
 void select_page(int p) {
     active_page = std::clamp(p, 0, page_count - 1); TabCtrl_SetCurSel(item(Tabs), active_page);
+    SetWindowTextW(item(Title),page_names[active_page]); SetWindowTextW(item(Subtitle),page_descriptions[active_page]);
+    for (int i=0;i<page_count;++i) InvalidateRect(item(NavBase+i),nullptr,TRUE);
     for (int i = 0; i < page_count; ++i) ShowWindow(pages[i], i == active_page ? SW_SHOW : SW_HIDE);
     SetWindowPos(pages[active_page], HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     page_layout(active_page);
@@ -142,7 +167,9 @@ LRESULT CALLBACK page_proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     const int p = static_cast<int>(GetWindowLongPtrW(h, GWLP_USERDATA));
     switch (msg) {
         case WM_COMMAND: return SendMessageW(window, msg, w, l);
-        case WM_CTLCOLORSTATIC: return SendMessageW(window, msg, w, l);
+        case WM_CTLCOLORSTATIC: case WM_CTLCOLOREDIT: case WM_CTLCOLORLISTBOX: case WM_CTLCOLORBTN:
+        case WM_DRAWITEM: case WM_MEASUREITEM: return SendMessageW(window,msg,w,l);
+        case WM_ERASEBKGND: { RECT r{}; GetClientRect(h,&r); FillRect(reinterpret_cast<HDC>(w),&r,ui::background); return 1; }
         case WM_VSCROLL: {
             SCROLLINFO si{sizeof si, SIF_ALL}; GetScrollInfo(h, SB_VERT, &si);
             int v = si.nPos;
@@ -161,7 +188,7 @@ LRESULT CALLBACK page_proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
 void reconstruction_help() {
     SetWindowTextW(item(UpscalerHelp), selection(Upscaler) == 1
         ? L"Bilinear enlarges each frame separately. Use it to compare against temporal reconstruction."
-        : L"Recommended. Combines frames using motion and depth to smooth 3D edges. Restart the game after changing this.");
+        : L"Smooths 3D edges using detail from successive frames. Built in; no extra downloads needed. Restart the game after changing this.");
 }
 void recommended() {
     choose(item(Mode), 0); choose(item(Upscaler), 0);
@@ -271,7 +298,7 @@ void apply(bool play) {
     pending.upscaler = selection(Upscaler) == 1 ? "bilinear" : "taau";
     pending.check_updates = SendMessageW(item(AutoCheck), BM_GETCHECK, 0, 0) == BST_CHECKED;
     pending.fps60 = selection(Fps60) == 1; pending.fps120 = selection(Fps60) == 2;
-    pending.output = selection(GameOutput) == 0 ? "console" : s::utf8(text(item(GameOutput)));
+    pending.output = text(item(GameOutput)) == L"Original game output" ? "console" : s::utf8(text(item(GameOutput)));
     pending.render_ratio = selection(RenderRatio) == 0 ? 0 : std::stod(s::utf8(text(item(RenderRatio)))) / 100.0;
     pending.completed = true; start_game = play;
     state(L"Verifying your local copy");
@@ -296,6 +323,7 @@ void refresh_update() {
 }
 void update_tools(bool install) {
     if (preparation || (update_process && WaitForSingleObject(update_process, 0) != WAIT_OBJECT_0)) return;
+    if (install && dirty && MessageBoxW(window,L"Install the update and discard unsaved settings?",L"Unsaved settings",MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2)!=IDYES) return;
     if (install && s::game_running(game_dir)) throw std::runtime_error("Close the game before installing updates.");
     fs::path script = game_dir / L"project/tools/Update-Release.ps1";
     if (!fs::is_regular_file(script)) script = game_dir / L"tools/Update-Release.ps1";
@@ -314,13 +342,56 @@ void update_tools(bool install) {
     if (install) { result = 0; DestroyWindow(window); }
     else SetTimer(window, 2, 400, nullptr);
 }
+const int fields[]={Folder,Versions,Lang,Mode,Resolution,Upscaler,Fps60,GameOutput,RenderRatio,Skip,Vsync,AutoCheck};
+bool checkbox(int id) { return id==Skip||id==Vsync||id==AutoCheck; }
+SavedField field_value(int id) { return {text(item(id)),selection(id),SendMessageW(item(id),BM_GETCHECK,0,0)}; }
+void remember_form() { for(int id:fields) original_fields[id]=field_value(id); }
+void preview() {
+    if(!item(RenderPreview)||!item(FrameHelp)) return;
+    std::wstring message=selection(RenderRatio)==0?L"The game chooses its original output and internal resolution.":L"Original game output; 3D scale: "+text(item(RenderRatio))+L" per dimension.";
+    if(text(item(GameOutput))!=L"Original game output") {
+        int w=0,h=0;
+        wchar_t tail=0;
+        if(swscanf_s(text(item(GameOutput)).c_str(),L"%dx%d%lc",&w,&h,&tail,1)==2 && w>=640 && h>=360 && w<=3840 && h<=2160 && !(w&1) && !(h&1)) {
+            double ratio=selection(RenderRatio)==0?0.5:std::wcstod(text(item(RenderRatio)).c_str(),nullptr)/100;
+            if(w*h>2560*1440) ratio=std::min(ratio,0.5);
+            const int rw=static_cast<int>(std::lround(w*ratio/2))*2,rh=static_cast<int>(std::lround(h*ratio/2))*2;
+            message=L"3D input: "+std::to_wstring(rw)+L" × "+std::to_wstring(rh)+L"  →  Output: "+std::to_wstring(w)+L" × "+std::to_wstring(h);
+        } else message=L"Enter even WxH dimensions between 640x360 and 3840x2160.";
+    }
+    SetWindowTextW(item(RenderPreview),message.c_str());
+    SetWindowTextW(item(FrameHelp),selection(Fps60)==2?L"120 FPS target with measured-time correction. Menus keep their 60 FPS target. Requires a fast CPU and GPU; sustained 120 FPS is not guaranteed.":selection(Fps60)==1?L"60 FPS target using the checked timing patch. Performance and compatibility depend on your PC and the scene.":L"Recommended for original timing. The game selects its own frame rate (typically 30 FPS in gameplay and 60 FPS in menus).");
+}
+void changed() {
+    if(!form_ready) return;
+    dirty=false;
+    for(int id:fields) {
+        auto now=field_value(id); const auto& old=original_fields.at(id);
+        if(checkbox(id)?now.checked!=old.checked:now.value!=old.value) dirty=true;
+    }
+    SetWindowTextW(item(Dirty),dirty?L"Unsaved changes":L"No pending changes");
+    EnableWindow(item(Revert),dirty&&!preparation); preview();
+}
+void revert_form() {
+    if(preparation) return;
+    form_ready=false;
+    SetWindowTextW(item(Folder),original_fields.at(Folder).value.c_str()); refresh_folder(true);
+    for(int id:fields) {
+        const auto& old=original_fields.at(id);
+        if(checkbox(id)) SendMessageW(item(id),BM_SETCHECK,old.checked,0);
+        else if(id!=Folder) { choose(item(id),old.choice); if(old.choice<0) SetWindowTextW(item(id),old.value.c_str()); }
+    }
+    EnableWindow(item(Resolution),selection(Mode)==0); reconstruction_help();
+    form_ready=true; changed(); status(L"Pending changes reverted. Saved settings were not modified.");
+}
 void create_controls() {
     fonts();
     control(L"STATIC", L"Fire Emblem Recomp", Title, 24, 18, 760, 34);
     SendMessageW(item(Title), WM_SETFONT, reinterpret_cast<WPARAM>(title_font), TRUE);
     control(L"STATIC", L"Settings for your local copy. A controller is required to play.", Subtitle, 24, 58, 760, 24);
     control(WC_TABCONTROLW, L"", Tabs, 24, 98, 760, 330, WS_TABSTOP | WS_CLIPSIBLINGS);
-    const wchar_t* names[] = {L"Game", L"Graphics", L"Startup", L"Updates"};
+    ShowWindow(item(Tabs),SW_HIDE);
+    const auto& names=page_names;
     for (int p = 0; p < page_count; ++p) {
         TCITEMW tab{}; tab.mask = TCIF_TEXT; tab.pszText = const_cast<wchar_t*>(names[p]);
         TabCtrl_InsertItem(item(Tabs), p, &tab);
@@ -331,6 +402,10 @@ void create_controls() {
         SetWindowLongPtrW(pages[p], GWLP_USERDATA, p);
     }
 
+    control(L"STATIC",L"FIRE EMBLEM",Brand,18,26,170,26);
+    hint(control(L"STATIC",L"Fortune’s Weave\nPC configuration",BrandSub,18,56,170,48));
+    hint(control(L"STATIC",tools_version,BuildLabel,18,700,170,40));
+    for(int i=0;i<page_count;++i) control(L"BUTTON",page_names[i],NavBase+i,12,140,180,42,WS_TABSTOP);
     creating_page = 0; parent = pages[0];
     heading(control(L"STATIC", L"Game files", 0, 0, 0, -1, 26));
     control(L"STATIC", L"Choose the folder containing exefs and romfs, or the parent folder containing the supported update. Original game files are preserved.", 0, 0, 34, -1, 44);
@@ -350,12 +425,52 @@ void create_controls() {
     hint(control(L"STATIC", L"First preparation can take around 30–40 minutes, depending on your PC and existing caches. Later launches reuse the prepared files. Open log shows preparation details.", 0, 0, 252, -1, 64));
 
     creating_page = 1; parent = pages[1];
-    control(L"STATIC", L"Display &mode", 0, 0, 0, -2, 22);
-    control(L"COMBOBOX", L"", Mode, 0, 26, -2, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
-    add(item(Mode), L"Windowed"); add(item(Mode), L"Borderless (desktop)"); add(item(Mode), L"Fullscreen (exclusive)");
-    choose(item(Mode), settings.window_mode == "exclusive" ? 2 : settings.window_mode == "borderless" ? 1 : 0);
-    right(control(L"STATIC", L"&Window resolution", 0, 0, 0, -2, 22));
-    right(control(L"COMBOBOX", L"", Resolution, 0, 26, -2, 180, WS_TABSTOP | CBS_DROPDOWNLIST));
+    heading(control(L"STATIC",L"Resolution",0,0,0,-1,28));
+    hint(control(L"STATIC",L"Output includes the interface. Internal scale changes 3D detail before reconstruction.",0,0,38,-1,40));
+    control(L"STATIC",L"Game &output (WxH)",0,0,94,-2,22);
+    control(L"COMBOBOX",L"",GameOutput,0,122,-2,180,WS_TABSTOP|CBS_DROPDOWN|ES_AUTOHSCROLL);
+    add(item(GameOutput),L"Original game output");
+    for (auto* size : {L"1280x720",L"1600x900",L"1920x1080",L"2560x1440",L"3840x2160"}) add(item(GameOutput),size);
+    if (settings.output=="console") choose(item(GameOutput),0); else SetWindowTextW(item(GameOutput),s::wide(settings.output).c_str());
+    right(control(L"STATIC",L"Internal &scale",0,0,94,-2,22));
+    right(control(L"COMBOBOX",L"",RenderRatio,0,122,-2,180,WS_TABSTOP|CBS_DROPDOWNLIST));
+    add(item(RenderRatio),L"Original (usually 50%)");
+    int ratio_index=0; const double ratios[]={0.5,2.0/3.0,0.75,1.0};
+    for(int i=0;i<4;++i) {
+        add(item(RenderRatio),i==1?L"66.67%":std::to_wstring(static_cast<int>(ratios[i]*100))+L"%");
+        if(std::abs(settings.render_ratio-ratios[i])<0.006) ratio_index=i+1;
+    }
+    if(settings.render_ratio>0&&!ratio_index) { add(item(RenderRatio),std::to_wstring(settings.render_ratio*100)+L"%"); ratio_index=5; }
+    choose(item(RenderRatio),ratio_index);
+    hint(control(L"STATIC",L"",RenderPreview,0,166,-1,48));
+    heading(control(L"STATIC",L"Reconstruction",0,0,238,-1,28));
+    control(L"STATIC",L"3D &reconstruction",0,0,282,-1,22);
+    control(L"COMBOBOX",L"",Upscaler,0,310,-1,160,WS_TABSTOP|CBS_DROPDOWNLIST);
+    add(item(Upscaler),L"Built-in temporal (TAAU) — recommended"); add(item(Upscaler),L"Bilinear — no temporal history");
+    choose(item(Upscaler),settings.upscaler=="bilinear"?1:0);
+    hint(control(L"STATIC",L"",UpscalerHelp,0,356,-1,48));
+    hint(control(L"STATIC",L"Higher resolutions use more GPU memory. Above 1440p output, internal rendering is capped at 50%. Changes apply after restarting the game.",0,0,418,-1,48));
+    control(L"BUTTON",L"Use recommended &graphics",Recommended,0,484,254,32,WS_TABSTOP);
+    reconstruction_help();
+
+    creating_page = 4; parent = pages[4];
+    heading(control(L"STATIC",L"Gameplay frame rate",0,0,0,-1,28));
+    hint(control(L"STATIC",L"Choose the original timing or an experimental higher target. The runtime adjusts game timing with the target.",0,0,40,-1,48));
+    control(L"STATIC",L"Frame-rate &target",0,0,110,-1,22);
+    control(L"COMBOBOX",L"",Fps60,0,138,-1,180,WS_TABSTOP|CBS_DROPDOWNLIST);
+    for(auto* label:{L"Original (30 / 60 FPS)",L"60 FPS (experimental)",L"120 FPS (experimental)"}) add(item(Fps60),label);
+    choose(item(Fps60),settings.fps120?2:settings.fps60?1:0);
+    hint(control(L"STATIC",L"",FrameHelp,0,188,-1,80));
+    hint(control(L"STATIC",L"Restart after changing the target. Movies retain their encoded frame rate.",0,0,280,-1,40));
+
+    creating_page = 5; parent = pages[5];
+    heading(control(L"STATIC",L"Presentation",0,0,0,-1,28));
+    control(L"STATIC",L"Display &mode",0,0,54,-1,22);
+    control(L"COMBOBOX",L"",Mode,0,82,-1,150,WS_TABSTOP|CBS_DROPDOWNLIST);
+    for(auto* label:{L"Windowed",L"Borderless (desktop)",L"Fullscreen (exclusive)"}) add(item(Mode),label);
+    choose(item(Mode),settings.window_mode=="exclusive"?2:settings.window_mode=="borderless"?1:0);
+    control(L"STATIC",L"&Window resolution",0,0,142,-1,22);
+    control(L"COMBOBOX",L"",Resolution,0,170,-1,180,WS_TABSTOP|CBS_DROPDOWNLIST);
     std::set<std::pair<int, int>> choices{{1280,720}, {settings.width,settings.height}};
     DEVMODEW dm{}; dm.dmSize = sizeof dm; DWORD maxw = 1280, maxh = 720;
     for (DWORD i = 0; EnumDisplaySettingsW(nullptr, i, &dm); ++i) { maxw = std::max(maxw, dm.dmPelsWidth); maxh = std::max(maxh, dm.dmPelsHeight); }
@@ -368,39 +483,9 @@ void create_controls() {
         if (size.first == settings.width && size.second == settings.height) index = static_cast<int>(sizes.size() - 1);
     }
     choose(item(Resolution), index); EnableWindow(item(Resolution), settings.window_mode == "windowed");
-    hint(control(L"STATIC", L"Window size controls presentation. Borderless and fullscreen use the desktop. Game output and internal scale below control 3D detail.", 0, 0, 66, -1, 36));
-    control(L"STATIC", L"3D &reconstruction", 0, 0, 112, -1, 22);
-    control(L"COMBOBOX", L"", Upscaler, 0, 138, -1, 130, WS_TABSTOP | CBS_DROPDOWNLIST);
-    add(item(Upscaler), L"Temporal anti-aliasing (TAAU) — recommended");
-    add(item(Upscaler), L"Bilinear — comparison mode");
-    choose(item(Upscaler), settings.upscaler == "bilinear" ? 1 : 0);
-    hint(control(L"STATIC", L"", UpscalerHelp, 0, 176, -1, 42));
-    control(L"STATIC", L"Frame-rate &target", 0, 0, 232, -2, 22);
-    control(L"COMBOBOX", L"", Fps60, 0, 258, -2, 160, WS_TABSTOP | CBS_DROPDOWNLIST);
-    for (const auto* label : {L"Original (30 / 60 FPS)", L"60 FPS (experimental)", L"120 FPS (experimental)"}) add(item(Fps60), label);
-    choose(item(Fps60), settings.fps120 ? 2 : settings.fps60 ? 1 : 0);
-    right(control(L"BUTTON", L"&Vertical synchronization", Vsync, 0, 258, -2, 28, WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY));
-    SendMessageW(item(Vsync), BM_SETCHECK, settings.vsync ? BST_CHECKED : BST_UNCHECKED, 0);
-    hint(control(L"STATIC", L"Higher targets also adjust game timing. Restart required. Actual FPS depends on your PC and scene; movies keep their encoded frame rate.", 0, 0, 298, -1, 40));
-    control(L"STATIC", L"Game &output (WxH)", 0, 0, 354, -2, 22);
-    control(L"COMBOBOX", L"", GameOutput, 0, 380, -2, 180, WS_TABSTOP | CBS_DROPDOWN | ES_AUTOHSCROLL);
-    add(item(GameOutput), L"Original game output");
-    for (const auto* size : {L"1280x720", L"1600x900", L"1920x1080", L"2560x1440", L"3840x2160"}) add(item(GameOutput), size);
-    if (settings.output == "console") choose(item(GameOutput), 0); else SetWindowTextW(item(GameOutput), s::wide(settings.output).c_str());
-    right(control(L"STATIC", L"Internal &scale per dimension", 0, 0, 354, -2, 22));
-    right(control(L"COMBOBOX", L"", RenderRatio, 0, 380, -2, 180, WS_TABSTOP | CBS_DROPDOWNLIST));
-    add(item(RenderRatio), L"Original (usually 50%)");
-    int ratio_index = 0;
-    const double ratios[] = {0.5, 2.0/3.0, 0.75, 1.0};
-    for (int i = 0; i < 4; ++i) {
-        add(item(RenderRatio), i == 1 ? L"66.67%" : std::to_wstring(static_cast<int>(ratios[i] * 100)) + L"%");
-        if (std::abs(settings.render_ratio - ratios[i]) < 0.006) ratio_index = i + 1;
-    }
-    if (settings.render_ratio > 0 && !ratio_index) { add(item(RenderRatio), std::to_wstring(settings.render_ratio * 100) + L"%"); ratio_index = 5; }
-    choose(item(RenderRatio), ratio_index);
-    hint(control(L"STATIC", L"TAAU reconstructs 3D to game output. Larger sizes cost GPU memory. Above 1440p output, internal rendering is capped at 50% to protect the game's target pool.", 0, 0, 420, -1, 48));
-    control(L"BUTTON", L"Use recommended &graphics", Recommended, 0, 480, 254, 32, WS_TABSTOP);
-    reconstruction_help();
+    hint(control(L"STATIC",L"Window size controls presentation, independently of 3D detail. Borderless and fullscreen use the desktop.",0,0,218,-1,48));
+    control(L"BUTTON",L"&Vertical synchronization",Vsync,0,288,-1,28,WS_TABSTOP|BS_AUTOCHECKBOX|BS_NOTIFY);
+    SendMessageW(item(Vsync),BM_SETCHECK,settings.vsync?BST_CHECKED:BST_UNCHECKED,0);
 
     creating_page = 2; parent = pages[2];
     heading(control(L"STATIC", L"Launch behavior", 0, 0, 0, -1, 26));
@@ -414,7 +499,7 @@ void create_controls() {
 
     creating_page = 3; parent = pages[3];
     heading(control(L"STATIC", (std::wstring(L"Project tools ") + tools_version).c_str(), 0, 0, 0, -1, 26));
-    hint(control(L"STATIC", L"Updates come from GregorioRuiz98/fefw-recomp. SHA256 and the package manifest are verified before installation. Game files, builds, saves and caches are preserved.", 0, 0, 38, -1, 54));
+    hint(control(L"STATIC", L"Updates come from this project. Verified downloads preserve your game files, builds, settings, saves and caches. Review the changes before installing.", 0, 0, 38, -1, 54));
     control(L"BUTTON", L"Check for updates when setup &opens", AutoCheck, 0, 100, -1, 28, WS_TABSTOP | BS_AUTOCHECKBOX);
     SendMessageW(item(AutoCheck), BM_SETCHECK, settings.check_updates ? BST_CHECKED : BST_UNCHECKED, 0);
     control(L"BUTTON", L"&Check now", CheckUpdates, 0, 144, 145, 32, WS_TABSTOP);
@@ -433,7 +518,10 @@ void create_controls() {
     control(L"BUTTON", L"Cancel", IDCANCEL, 390, 594, 112, 34, WS_TABSTOP);
     control(L"BUTTON", L"&Save", Save, 514, 594, 112, 34, WS_TABSTOP);
     control(L"BUTTON", L"Save and &play", SavePlay, 638, 594, 148, 34, WS_TABSTOP | BS_DEFPUSHBUTTON);
+    control(L"STATIC",L"No pending changes",Dirty,0,0,200,20);
+    hint(item(Dirty)); control(L"BUTTON",L"Revert",Revert,0,0,90,36,WS_TABSTOP);
     layout(); select_page(0); refresh_folder();
+    remember_form(); form_ready=true; changed();
 }
 
 bool capture_ui(const wchar_t* name) {
@@ -467,6 +555,15 @@ bool check_ui() {
     check(LOWORD(SendMessageW(window, DM_GETDEFID, 0, 0)) == SavePlay, "keyboard default action");
     check(SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED), "stored startup preference");
     check(selection(Fps60) == (settings.fps120 ? 2 : settings.fps60 ? 1 : 0), "stored FPS preference");
+    check(!dirty&&!IsWindowEnabled(item(Revert)),"initial form has no pending changes");
+    const int before_fps=selection(Fps60);
+    choose(item(Fps60),(before_fps+1)%3); changed();
+    check(dirty&&IsWindowEnabled(item(Revert)),"editing a setting exposes pending changes");
+    revert_form(); check(!dirty&&selection(Fps60)==before_fps,"revert restores saved form without writing");
+    SetWindowTextW(item(GameOutput),L"1920x1080"); choose(item(RenderRatio),1);
+    SendMessageW(window,WM_COMMAND,MAKEWPARAM(GameOutput,CBN_EDITCHANGE),reinterpret_cast<LPARAM>(item(GameOutput)));
+    check(dirty&&text(item(RenderPreview)).find(L"960")!=std::wstring::npos,"custom resolution edits update the preview and dirty state");
+    revert_form();
     const int language = selection(Lang), mode = selection(Mode), resolution = selection(Resolution), upscale = selection(Upscaler);
     const LRESULT sync = SendMessageW(item(Vsync), BM_GETCHECK, 0, 0), fps = selection(Fps60);
     auto tab = [&](int p) {
@@ -477,7 +574,7 @@ bool check_ui() {
         MapWindowPoints(nullptr, window, &origin, 1);
         check(ChildWindowFromPoint(window, origin) == pages[p], "selected page is above tab background");
     };
-    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp", L"setup-ui-updates.bmp"};
+    const wchar_t* names[] = {L"setup-ui-game.bmp", L"setup-ui-graphics.bmp", L"setup-ui-startup.bmp", L"setup-ui-updates.bmp",L"setup-ui-performance.bmp",L"setup-ui-window.bmp"};
     for (int p = 0; p < page_count; ++p) {
         tab(p);
         RECT client{}, view{}; GetClientRect(window, &client); GetClientRect(pages[p], &view);
@@ -512,7 +609,7 @@ bool check_ui() {
     check(capture_ui(L"setup-ui-empty.bmp"), "capture empty folder state");
     SetWindowTextW(item(Folder), folder.c_str()); refresh_folder();
     RECT normal{}; GetWindowRect(window, &normal);
-    SetWindowPos(window, nullptr, 0, 0, px(700), px(460), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    SetWindowPos(window, nullptr, 0, 0, px(820), px(560), SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
     tab(1); scroll_page(1, page_content_height(1));
     SCROLLINFO si{sizeof si, SIF_ALL}; GetScrollInfo(pages[1], SB_VERT, &si);
     check(si.nMax >= static_cast<int>(si.nPage) && si.nPos > 0, "small window has usable scrolling");
@@ -541,15 +638,30 @@ bool check_ui() {
 LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     try {
         switch (msg) {
-            case WM_CREATE: window = h; create_controls(); return 0;
+            case WM_CREATE: {
+                window=h; const BOOL dark=!ui::contrast;
+                DwmSetWindowAttribute(h,20,&dark,sizeof dark); create_controls(); return 0;
+            }
+            case WM_ERASEBKGND: {
+                HDC dc=reinterpret_cast<HDC>(w); RECT r{}; GetClientRect(h,&r); FillRect(dc,&r,ui::background);
+                const int side=logical(r.right)<850?162:204; RECT nav=r; nav.right=px(side); FillRect(dc,&nav,ui::sidebar);
+                return 1;
+            }
+            case WM_MEASUREITEM: reinterpret_cast<MEASUREITEMSTRUCT*>(l)->itemHeight=px(28); return TRUE;
+            case WM_DRAWITEM: {
+                auto& d=*reinterpret_cast<DRAWITEMSTRUCT*>(l);
+                if(d.CtlType==ODT_COMBOBOX) ui::combo(d,font);
+                else ui::button(d,font,d.CtlID==SavePlay,d.CtlID>=NavBase,d.CtlID==NavBase+active_page);
+                return TRUE;
+            }
             case DM_GETDEFID: return MAKELONG(SavePlay, DC_HASDEFID);
             case DM_SETDEFID: return TRUE;
             case WM_SIZE: layout(); return 0;
             case WM_GETMINMAXINFO: {
                 RECT work{}; SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
                 auto* info = reinterpret_cast<MINMAXINFO*>(l);
-                info->ptMinTrackSize.x = std::min<int>(px(700), work.right - work.left);
-                info->ptMinTrackSize.y = std::min<int>(px(460), work.bottom - work.top);
+                info->ptMinTrackSize.x = std::min<int>(px(820), work.right - work.left);
+                info->ptMinTrackSize.y = std::min<int>(px(560), work.bottom - work.top);
                 return 0;
             }
             case WM_DPICHANGED: {
@@ -575,13 +687,16 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     if (r.top < 0) scroll_page(active_page, scroll_offset[active_page] + logical(r.top) - 8);
                     else if (r.top + height > view.bottom) scroll_page(active_page, scroll_offset[active_page] + logical(r.top + height - view.bottom) + 8);
                 }
+                if(LOWORD(w)>=NavBase&&LOWORD(w)<NavBase+page_count) { select_page(LOWORD(w)-NavBase); return 0; }
+                if(form_ready && (HIWORD(w)==EN_CHANGE || HIWORD(w)==CBN_SELCHANGE || HIWORD(w)==CBN_EDITCHANGE || HIWORD(w)==BN_CLICKED)) changed();
                 switch (LOWORD(w)) {
                     case Browse: browse(); return 0;
                     case Folder: if (HIWORD(w) == EN_KILLFOCUS) refresh_folder(); return 0;
                     case Versions: if (HIWORD(w) == CBN_SELCHANGE) refresh_languages(); return 0;
                     case Mode: if (HIWORD(w) == CBN_SELCHANGE) EnableWindow(item(Resolution), selection(Mode) == 0); return 0;
                     case Upscaler: if (HIWORD(w) == CBN_SELCHANGE) reconstruction_help(); return 0;
-                    case Recommended: recommended(); return 0;
+                    case Recommended: recommended(); changed(); return 0;
+                    case Revert: revert_form(); return 0;
                     case CheckUpdates: update_tools(false); return 0;
                     case InstallUpdate: update_tools(true); return 0;
                     case OpenInstall:
@@ -625,11 +740,14 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             case WM_CLOSE:
                 if (preparation && MessageBoxW(h, L"Stop preparing this copy?\n\nCompleted build work is kept. Reopen setup and save to resume later.",
                         L"Stop preparation", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return 0;
+                if(!preparation&&dirty&&!test_ui&&MessageBoxW(h,L"Discard unsaved changes?",L"Unsaved settings",MB_YESNO|MB_ICONQUESTION|MB_DEFBUTTON2)!=IDYES) return 0;
                 DestroyWindow(h); return 0;
-            case WM_CTLCOLORSTATIC:
-                SetTextColor(reinterpret_cast<HDC>(w), GetSysColor(COLOR_WINDOWTEXT));
-                SetBkMode(reinterpret_cast<HDC>(w), TRANSPARENT);
-                return reinterpret_cast<LRESULT>(GetSysColorBrush(COLOR_WINDOW));
+            case WM_CTLCOLORSTATIC: case WM_CTLCOLOREDIT: case WM_CTLCOLORLISTBOX: case WM_CTLCOLORBTN:
+                if(GetDlgCtrlID(reinterpret_cast<HWND>(l))==Brand || GetDlgCtrlID(reinterpret_cast<HWND>(l))==BrandSub || GetDlgCtrlID(reinterpret_cast<HWND>(l))==BuildLabel) {
+                    SetTextColor(reinterpret_cast<HDC>(w),GetDlgCtrlID(reinterpret_cast<HWND>(l))==Brand?ui::fg:ui::muted);
+                    SetBkColor(reinterpret_cast<HDC>(w),ui::inset); return reinterpret_cast<LRESULT>(ui::sidebar);
+                }
+                return ui::colors(msg,w,l,small_font);
             case WM_DESTROY:
                 if (job) { CloseHandle(job); job = nullptr; }
                 if (preparation) { CloseHandle(preparation); preparation = nullptr; }
@@ -699,13 +817,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         if (lock && GetLastError() == ERROR_ALREADY_EXISTS) return 0;
         CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         INITCOMMONCONTROLSEX cc{sizeof cc, ICC_STANDARD_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES}; InitCommonControlsEx(&cc);
-        dpi = static_cast<int>(GetDpiForSystem());
+        dpi = static_cast<int>(GetDpiForSystem()); ui::init();
         WNDCLASSEXW wc{sizeof wc}; wc.hInstance = instance; wc.lpfnWndProc = proc; wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-        wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION); wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1); wc.lpszClassName = L"FEFW_Configuration";
+        wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION); wc.hbrBackground = nullptr; wc.lpszClassName = L"FEFW_Configuration";
         RegisterClassExW(&wc);
         WNDCLASSEXW page_class = wc; page_class.lpfnWndProc = page_proc; page_class.lpszClassName = L"FEFW_SettingsPage";
         RegisterClassExW(&page_class);
-        RECT rect{0, 0, px(820), px(850)}, work_area{};
+        RECT rect{0, 0, px(1120), px(860)}, work_area{};
         const DWORD style = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN;
         AdjustWindowRectEx(&rect, style, FALSE, WS_EX_CONTROLPARENT);
         SystemParametersInfoW(SPI_GETWORKAREA, 0, &work_area, 0);
@@ -721,8 +839,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         } else { ShowWindow(h, show); refresh_update(); if (settings.check_updates) update_tools(false); }
         MSG msg{}; while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
             if (msg.message == WM_KEYDOWN && msg.wParam == VK_TAB && GetKeyState(VK_CONTROL) < 0) {
-                select_page((active_page + (GetKeyState(VK_SHIFT) < 0 ? page_count - 1 : 1)) % page_count);
-                SetFocus(item(Tabs)); continue;
+                int index=0; while(nav_order[index]!=active_page) ++index;
+                select_page(nav_order[(index+(GetKeyState(VK_SHIFT)<0?page_count-1:1))%page_count]);
+                SetFocus(item(NavBase+active_page)); continue;
             }
             if (!IsDialogMessageW(h, &msg)) { TranslateMessage(&msg); DispatchMessageW(&msg); }
         }
