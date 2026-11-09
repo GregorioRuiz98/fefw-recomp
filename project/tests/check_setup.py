@@ -58,9 +58,12 @@ def main():
     run('source_identity', ['--validate', str(a.source)])
     run('first_run_requires_setup', ['--status'], 2)
     before = game_ini.read_bytes(), control_ini.read_bytes()
-    run('real_ui_and_cancel', ['--test-ui'])
+    ui = run('real_ui_and_cancel', ['--test-ui'])
+    assert 'ui_valid=1' in ui and 'ui_checks=' in ui
     assert before == (game_ini.read_bytes(), control_ini.read_bytes())
     assert (folder / 'setup-ui.bmp').stat().st_size > 100000
+    for state in ('game', 'graphics', 'startup', 'empty', 'compact', 'dpi144', 'preparing'):
+        assert (folder / f'setup-ui-{state}.bmp').stat().st_size > 100000
     run('save_show_setup', ['--apply', '--source', str(a.source), '--width', '1600', '--height', '900', '--language', 'Spanish', '--skip', '0', '--vsync', '1'])
     text = run('show_setup_preference', ['--status'])
     assert 'ready=1' in text and 'show_setup=1' in text

@@ -58,6 +58,8 @@ If preview.3 stopped while building `libvpx` in a folder containing spaces, clos
 
 **Skip setup on startup** allows subsequent launches through `fefw.exe`. The setup tool remains available and opens again if required resources are missing. Existing controller mappings and local saves in `save` are preserved.
 
+Current-source builds organize setup into **Game**, **Graphics** and **Startup** tabs. The window can be resized; smaller windows scroll the settings while keeping Save and Save and play visible. Use **Ctrl+Tab** to switch tabs. Hover over the game-folder field to read its full path. **Use recommended graphics** selects windowed 1280 × 720, TAAU, vertical synchronization and the original frame limit; these choices take effect only when saved. Stopping an active preparation asks for confirmation and keeps completed build work for the next attempt.
+
 Output resolution controls the window size; the game’s internal resolution keeps its original value. Fullscreen uses your desktop resolution. The initial configuration enables vertical synchronization. See the [controller guide](project/CONTROLES-MANDO.md).
 
 In builds containing the Goldoire integration, **3D reconstruction → Temporal anti-aliasing (TAAU)** combines successive 3D frames using the game's motion and depth data, before the UI is composed. **Bilinear** provides a comparison with temporal history disabled. Save and restart the game after changing it. This is a built-in host upscaler, not NVIDIA DLSS. It does not increase the game's original rendering resolution or promise higher FPS.

@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 10964,
-      "sha256": "07b75dd87eeecc530632fce75e7016ad66c19cad91f0c5ca770742071a49dab1"
+      "bytes": 11519,
+      "sha256": "721315f8a7f3bf5838384b5de376a7dd86be05c4f1aa7f5aa941a6ec5d49c7c5"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -109,8 +109,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 10964,
-      "sha256": "07b75dd87eeecc530632fce75e7016ad66c19cad91f0c5ca770742071a49dab1"
+      "bytes": 11519,
+      "sha256": "721315f8a7f3bf5838384b5de376a7dd86be05c4f1aa7f5aa941a6ec5d49c7c5"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -249,13 +249,13 @@
     },
     {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 23240,
-      "sha256": "63e464f28282f80bd253d387fd17e798f0d2da6777f16b7d4c8bba0894da6ab7"
+      "bytes": 44430,
+      "sha256": "642f779ce3c9fc019ba7e434b89ddb9fa18a706fd0ee75b1ab2ef5e1eb66e678"
     },
     {
       "path": "project/src/fefw_setup.manifest",
-      "bytes": 978,
-      "sha256": "40a1ec59505ed92da2b154064c0c81c560331191c82a47917f90056a0d1f9c5a"
+      "bytes": 1096,
+      "sha256": "c0a8311ed530a7c8fd02bc66a3baa14e91f1e0f0a4b21498b9d3e57f7433fb9e"
     },
     {
       "path": "project/src/fefw_setup.rc",
@@ -324,8 +324,8 @@
     },
     {
       "path": "project/tests/check_setup.py",
-      "bytes": 8165,
-      "sha256": "380228bb5ab78816314a45877dcb9395954433c8af5b63fe40dc39495ed00ed6"
+      "bytes": 8390,
+      "sha256": "4ae99ef90391f77d703cc697a79df75471750f661bfaa7c7f104afe733efe425"
     },
     {
       "path": "project/tests/check_shader_textures.py",
