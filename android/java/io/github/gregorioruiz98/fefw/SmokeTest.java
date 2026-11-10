@@ -14,7 +14,7 @@ public final class SmokeTest extends Instrumentation {
     private int checks;
     private boolean testLocalModules;
     private void check(boolean value, String label) {
-        ++checks; if (!value) throw new AssertionError(label);
+        ++checks; android.util.Log.i("FEFWTests", "Check " + checks + ": " + label + " = " + value); if (!value) throw new AssertionError(label);
     }
     @Override public void onCreate(Bundle arguments) {
         super.onCreate(arguments);
@@ -38,6 +38,10 @@ public final class SmokeTest extends Instrumentation {
             check(probe.getInt("gpu_count") > 0,"Vulkan device enumerated");
             activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             final MainActivity screen=activity;
+            NativeBridge.setRuntimeFocus(false);
+            check(!NativeBridge.runtimeInFocus(),"Android background state reaches applet manager");
+            NativeBridge.setRuntimeFocus(true);
+            check(NativeBridge.runtimeInFocus(),"Android foreground state reaches applet manager");
             for(int i=0;i<100 && screen.nativeReport.isEmpty();++i) Thread.sleep(100);
             check(!screen.nativeReport.isEmpty(),"activity loads JNI diagnostics");
             waitForIdleSync();
@@ -52,8 +56,8 @@ public final class SmokeTest extends Instrumentation {
             for(int i=0;i<1800 && screen.coreReport.equals("Not run");++i) Thread.sleep(100);
             JSONObject core = new JSONObject(screen.coreReport);
             check(core.getString("status").equals("PASS"),"Android module core: "+screen.coreReport);
-            check(core.getInt("abi_version")==3 && core.getInt("cases_passed")==221 && core.getInt("cases_failed")==0,"all execution, guest thread, synchronization, IPC and logger cases pass in app sandbox");
-            check(core.getBoolean("bootstrap_kernel_available") && core.getBoolean("guest_worker_threads_available") && core.getBoolean("ipc_transport_available") && core.getBoolean("log_manager_available"),"thread, IPC and logger capabilities are integrated");
+            check(core.getInt("abi_version")==3 && core.getInt("cases_passed")==253 && core.getInt("cases_failed")==0,"all execution, guest thread, synchronization, IPC and logger cases pass in app sandbox");
+            check(core.getBoolean("bootstrap_kernel_available") && core.getBoolean("guest_worker_threads_available") && core.getBoolean("ipc_transport_available") && core.getBoolean("log_manager_available") && core.getBoolean("applet_services_available") && core.getBoolean("time_services_available"),"thread, IPC and logger capabilities are integrated");
             check(core.getBoolean("cleanup_verified") && !core.getBoolean("game_runtime_available"),"module core does not claim a playable engine");
             JSONObject missing = new JSONObject(NativeBridge.inspectModules(new int[]{-1,-1,-1,-1,-1,-1}));
             check(missing.getString("status").equals("FAIL") && missing.getBoolean("cleanup_verified"),"invalid file descriptors fail with cleanup");

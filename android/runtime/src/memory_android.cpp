@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <limits>
 #include <map>
@@ -296,6 +297,35 @@ uint64_t alloc_kernel(uint64_t size, uint64_t alignment) {
     if (!commit_pages(address, size, Prot::RW)) return 0;
     state.kernel_next = address + size;
     return address;
+}
+int create_shared_backing(uint64_t address,uint64_t size) {
+    std::lock_guard lock(state.mutex);
+    if (!size || (address | size) % kPage || address < kKernelBase
+        || address-kKernelBase > kKernelSize || size > kKernelSize-(address-kKernelBase)) return -1;
+    auto* mapping=containing(address,address+size);
+    if (!mapping || mapping->kind!=Kind::Fixed) return -1;
+    for(uint64_t page=(address-mapping->base)/kPage; page<(address+size-mapping->base)/kPage; ++page)
+        if ((mapping->pages[page] & (kPresent | PROT_READ | PROT_WRITE)) != (kPresent | PROT_READ | PROT_WRITE)) return -1;
+    Descriptor descriptor;
+    descriptor.value=static_cast<int>(syscall(SYS_memfd_create,"nxrt-service-shared",1));
+    if(descriptor.value<0 || ftruncate(descriptor.value,static_cast<off_t>(size))) return -1;
+    // Preserve initial bytes before replacing only pages owned by this runtime.
+    std::vector<uint8_t> initial(size);
+    std::memcpy(initial.data(),pointer(address),size);
+    if(mmap(pointer(address),size,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_FIXED,descriptor.value,0)==MAP_FAILED) return -1;
+    std::memcpy(pointer(address),initial.data(),size);
+    return std::exchange(descriptor.value,-1);
+}
+bool map_shared_backing(int descriptor,uint64_t address,uint64_t size,Prot protection) {
+    std::lock_guard lock(state.mutex);
+    constexpr uint64_t map_base=0x8000000ull;
+    // The SDK randomizes mappings throughout the free ASLR range below main.
+    // mmap uses an exact hint and never replaces another mapping.
+    const bool allowed=address>=map_base && address<kMainBase && size<=kMainBase-address;
+    if(descriptor<0 || !size || (address | size)%kPage || !allowed) return false;
+    if(!map_new(address,size,Kind::Fixed,descriptor)) return false;
+    if(!commit_pages(address,size,protection)) { state.mappings.erase(address); return false; }
+    return true;
 }
 bool is_mapped(uint64_t address, uint64_t size) {
     std::lock_guard lock(state.mutex);

@@ -11,7 +11,11 @@ Java_io_github_gregorioruiz98_fefw_NativeBridge_runtimeMemoryTest(JNIEnv* enviro
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_io_github_gregorioruiz98_fefw_NativeBridge_runtimeCoreTest(JNIEnv* environment, jclass) {
+Java_io_github_gregorioruiz98_fefw_NativeBridge_runtimeCoreTest(JNIEnv* environment, jclass, jstring directory) {
+    if (!directory) return environment->NewStringUTF("{\"status\":\"FAIL\",\"game_runtime_available\":false}");
+    const char* path=environment->GetStringUTFChars(directory,nullptr);
+    if (!path) return nullptr;
+    nxtest::set_temporary_directory(path);environment->ReleaseStringUTFChars(directory,path);
     try { return environment->NewStringUTF(nxtest::run_core_tests().c_str()); }
     catch (...) { return environment->NewStringUTF("{\"status\":\"FAIL\",\"game_runtime_available\":false}"); }
 }

@@ -60,6 +60,10 @@ def main():
     assets=output/'assets';assets.mkdir(exist_ok=True)
     shutil.copy2(project/'supported-build.json',assets/'supported-build.json')
     shutil.copy2(project/'LICENSE',assets/'LICENSE.txt')
+    notice_files=[project/'THIRD_PARTY_NOTICES.md',
+        project/'licenses/goldoire-runtime-THIRD-PARTY-NOTICES.md',
+        project/'licenses/SuperMarioWonderRecomp-MIT.txt',project/'licenses/Ryubing-MIT.txt']
+    (assets/'THIRD-PARTY-NOTICES.txt').write_text('\n\n'.join(path.read_text(encoding='utf-8') for path in notice_files),encoding='utf-8')
     shutil.copy2(ndk/'NOTICE',assets/'NDK-NOTICE.txt')
     shutil.copy2(ndk/'NOTICE.toolchain',assets/'NDK-TOOLCHAIN-NOTICE.txt')
     dependency=source/'runtime/third_party/zbic'
@@ -69,7 +73,7 @@ def main():
     generated=output/'generated';generated.mkdir(exist_ok=True)
     unsigned=output/'unsigned.apk'
     run([tools/'aapt2.exe','link','-o',unsigned,'-I',android_jar,'--manifest',source/'AndroidManifest.xml',
-         '--java',generated,'-A',assets,'--version-code','7','--version-name','0.1.6-android-threads-ipc',
+         '--java',generated,'-A',assets,'--version-code','8','--version-name','0.1.7-android-application-services',
          '--min-sdk-version','30','--target-sdk-version',str(args.api),output/'resources.zip'],env)
     classes=output/'classes';classes.mkdir(exist_ok=True)
     java_files=sorted((source/'java').rglob('*.java'))+sorted(generated.rglob('*.java'))
@@ -93,7 +97,7 @@ def main():
     if not key.exists():
         run([java/'keytool.exe','-genkeypair','-noprompt','-keystore',key,'-storetype','PKCS12','-storepass','android',
              '-alias','androiddebugkey','-keyalg','RSA','-keysize','2048','-validity','3650','-dname','CN=FEFW Android Diagnostics,O=Local Development,C=ES'],env)
-    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.6.apk'
+    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.7.apk'
     run([java/'java.exe','-jar',tools/'lib/apksigner.jar','sign','--ks',key,'--ks-key-alias','androiddebugkey',
          '--ks-pass','pass:android','--v1-signing-enabled','false','--v2-signing-enabled','true',
          '--v3-signing-enabled','true','--out',apk,aligned],env)
@@ -102,14 +106,15 @@ def main():
     with zipfile.ZipFile(apk) as z:
         assert set(z.namelist())=={'AndroidManifest.xml','classes.dex','resources.arsc','res/drawable/app_icon.png',
             'assets/supported-build.json','assets/LICENSE.txt','assets/NDK-NOTICE.txt','assets/NDK-TOOLCHAIN-NOTICE.txt',
-            'assets/ZBIC-NOTICES.txt',f'lib/{args.abi}/libfefw_android.so'}
+            'assets/ZBIC-NOTICES.txt','assets/THIRD-PARTY-NOTICES.txt',f'lib/{args.abi}/libfefw_android.so'}
     digest=hashlib.sha256(apk.read_bytes()).hexdigest()
     (apk.with_suffix('.apk.sha256')).write_text(digest+'  '+apk.name+'\n',encoding='utf-8')
     report={'kind':'android-platform-diagnostics-only','apk':str(apk),'sha256':digest,'abi':args.abi,
         'target_fps':30,'pacing_scope':'diagnostic-colour-test-only',
         'memory_backend_available':True,'module_loader_available':True,'bootstrap_kernel_available':True,
         'guest_worker_threads_available':True,'ipc_transport_available':True,'log_manager_available':True,
-        'runtime_port_stage':'guest-threads-synchronization-ipc-sm-lm',
+        'applet_services_available':True,'time_services_available':True,
+        'runtime_port_stage':'applet-clock-shared-memory-services',
         'game_runtime_available':False,'game_files_included':False,'signed':True,'zip_alignment_16kb':True}
     (output/'build-report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report))

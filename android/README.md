@@ -2,11 +2,9 @@
 
 **This APK does not run Fire Emblem yet.** It is the first installable Android porting milestone, built for `arm64-v8a` (the intended Galaxy S23 Ultra) with a separate `x86_64` build for emulator tests. No game executable, game code, shaders or assets are included. The Windows release remains separate.
 
-Version **0.1.6** integrates **guest worker threads, synchronization and IPC**, including the SM service manager and LM logging service. Inside the installed app, **33 memory cases and 221 runtime-core cases pass** (254 native cases total). The 81 new cases cover 26 adapted upstream synchronization cases, 10 HIPC parser/guard-page cases, 29 IPC/session cases, 11 Android thread/IPC regressions and five real logger-output cases. The opt-in local-copy instrumentation run has **27 checks**.
+Version **0.1.7** integrates the application proxy, focus/mode events, UTC clocks, coherent shared memory, configuration queries, secure random bytes and a read-only RomFS storage backend. The native suite has **33 memory cases and 253 runtime-core cases** (286 total), including 32 new service/filesystem/lifecycle regressions. The installed-app test has 26 checks, or 29 with the optional local-module inspection.
 
-A separate private test now executes the locally recompiled **SDK Start function itself**, beyond the earlier rtld checkpoint. It completes SM registration, obtains a real LM logger and reaches **appletOE command 10**, which is not implemented. The guest correctly refuses that service error. The run records **74 SVC calls with no unsupported SVC numbers**; this does not mean every requested game service is implemented. **SDK initialization and full guest linking remain incomplete.** Neither this private executable nor game files/code are included in the APK or repository.
-
-The memory backend requires **4 KB host pages**. The ARM64 APK is built and signed; physical Galaxy execution and gameplay FPS remain unverified.
+A separate private test now registers **all six locally recompiled modules**, executes the original SDK startup, completes `nninitStartup` and enters the game's actual **`nnMain`**. It then stops while mounting game files: the probe has no native RomFS path configured, and its fallback `fsp-srv` command 2 is not implemented. The recorded run has 247 SVC calls, zero unknown SVC numbers, eight verified rtld self-relocations and six guest workers joined on shutdown. Reaching `nnMain` is startup progress, **not a rendered or playable game**. The private executable, generated game code and game data are not included in this APK or repository.
 
 ## Implemented
 
@@ -46,7 +44,7 @@ From this repository's root:
 python android/build.py --sdk <ANDROID_SDK> --ndk <ANDROID_NDK> --java-home <JDK> --project project --work work/android --abi arm64-v8a
 ```
 
-The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.6.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
+The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.7.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
 
 The build follows the official [AAPT2](https://developer.android.com/tools/aapt2), [D8](https://developer.android.com/tools/d8), [apksigner](https://developer.android.com/tools/apksigner) and [16 KB page-size](https://developer.android.com/guide/practices/page-sizes) documentation. It does not require Gradle or Android Studio.
 
@@ -63,9 +61,9 @@ The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Andro
 
 ## What remains before the game can boot
 
-1. Complete SDK initialization and the applet/game services, starting with `appletOE` command 10, then filesystems and audio. The bootstrap memory/process SVCs, calling-thread TLS, loader, dispatch, hooks and guest exception machinery are integrated; the graphics write tracker is not ported yet.
+1. Connect the selected Android SAF folder to native game filesystem access; implement writable save data, the remaining game services and audio. The private SDK boot now reaches `nnMain`. The bootstrap memory/process SVCs, calling-thread TLS, loader, dispatch, hooks and guest exception machinery are integrated; the graphics write tracker is not ported yet.
 2. Implement guest sub-page permissions/aliases on 16 KB hosts. The memory backend currently refuses those hosts explicitly; 16 KB ELF alignment is a separate installation property. Its 4 KB-host contract results do not establish 16 KB-host compatibility.
-3. All six locally generated game modules compile and link into a private ARM64 integration library. Complete the remaining SVC/kernel services and game runtime to execute them beyond the current SDK/applications-service block. Successful linking is not proof that guest services or rendering work. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
+3. All six locally generated game modules compile and link into a private ARM64 integration library. Complete the remaining SVC/kernel services and game runtime to execute them beyond the current filesystem mount block. Successful linking is not proof that guest services or rendering work. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
 4. Port SDL/game lifecycle integration and the game's NVN/Vulkan renderer, including mobile-driver feature limits and an appropriate path when host-memory import is unavailable.
 5. Prepare shaders and textures locally, integrate the movie/audio path, and test actual GPU memory use, input, saves and lifecycle on the Galaxy. Vulkan 1.3 alone does not guarantee all renderer features.
 

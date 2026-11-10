@@ -15,20 +15,24 @@ NSO loading handles LZ4 and the ZBIC format found in the supported copy. ZBIC us
 ## Implemented
 
 - Exact-address reservations without overwriting occupied host mappings. Anonymous decommit replaces only a range already owned by this backend.
+
 - Anonymous commit/decommit/protection and aligned kernel allocations.
+
 - A sparse `memfd` heap, shared aliases and separately owned private views. Committing previously untouched backing makes it visible in all existing views. Decommitting the primary view preserves alias contents, as in the original section contract.
+
 - Heap commit accounting, page-state queries, epoch changes and Horizon VM block records.
+
 - Ownership and cleanup of every mapping and descriptor, with serialized metadata changes. Protection changes validate the whole range before applying and restore prior protection if an OS operation fails.
 
 The Switch 2 default heap reservation is 12 GiB of **virtual** address space. This does not allocate or require 12 GiB of resident RAM on startup. It is not evidence that the full game's eventual memory use will fit a 12 GB phone.
 
 ## Verified and pending
 
-All **33 memory cases** and **221 runtime-core cases** pass on the Android 15 x86_64 virtual phone through the installed application's JNI/UI worker. Default application instrumentation has **24 checks**. The opt-in local-copy run passes **27 checks**, including read-only loading of all six original ZBIC NSOs, analysis of **287,544 relocations**, one explicitly deferred TLS descriptor, and complete cleanup. That test does not execute the guest dynamic linker or any game code. The same sources compile/link into the ARM64 APK; physical Galaxy execution remains unverified.
+All **33 memory cases** and **253 runtime-core cases** pass on the Android 15 x86_64 virtual phone through the installed application's JNI/UI worker. Default application instrumentation has **26 checks**. The opt-in local-copy run passes **29 checks**, including read-only loading of all six original ZBIC NSOs, analysis of **287,544 relocations**, one explicitly deferred TLS descriptor, and complete cleanup. That test does not execute the guest dynamic linker or any game code. The same sources compile/link into the ARM64 APK; physical Galaxy execution remains unverified.
 
 This first backend requires a **4 KB host page size**. It refuses initialization on 16 KB hosts, where independent guest sub-page permissions/aliases remain unimplemented. ELF/ZIP alignment at 16 KB permits installation; it does not solve guest page semantics. See Android's [page-size documentation](https://developer.android.com/guide/practices/page-sizes).
 
-The Win32 runtime, its write tracker and game graphics driver are not replaced by this target yet. Remaining integration includes the appletOE application proxy and subsequent SDK/game services, storage/saves, audio, SDL/lifecycle and NVN/Vulkan rendering. Unknown system registers and untranslated instructions fail explicitly. The full game modules are not linked into this APK. `game_runtime_available` remains false.
+The Win32 runtime, its write tracker and game graphics driver are not replaced by this target yet. Remaining integration includes Android SAF-to-native filesystem access, writable saves, subsequent game services, audio and NVN/Vulkan rendering. Android foreground/background transitions now reach the applet manager. Unknown system registers and untranslated instructions fail explicitly. The full game modules are not linked into this APK. `game_runtime_available` remains false.
 
 The native test executable is `nxrt_android_memory_tests` in the NDK build directory. Its default suite tests memory; `--core` tests the loader/registry/dispatcher/NSO path, without game data. The APK exposes **Test runtime memory**, **Test threads, IPC and execution core**, and **Test selected game modules**. All test mappings are released before returning. A shared runtime lock prevents diagnostics from destroying a live future session's state.
 
@@ -57,3 +61,17 @@ The HIPC parser, IPC service/session/domain router, SM service and packet-based 
 **11 Android regressions** verify native stack size, TLS/arguments, thread exit, timeout/join, reset refusal, worker error propagation, priority/core SVCs, event persistence, invalid pointers and refusal of empty-success stub overrides. **Five logger cases** check object creation, completed output, multipart assembly, invalid buffers and separate logger sessions. These 81 additions bring the core suite to 221 cases, with the existing 33 memory cases tested separately.
 
 The private SDK progress probe registers the real 45,806-function SDK descriptor and calls its real Start implementation. SM handles three requests and LM OpenLogger completes; `appletOE` command 10 then returns the explicit missing-service result. The proof records the SDK as **blocked**, not initialized, and still reports `game_runtime_available=false`. It executes 74 SVC calls, including 37 QueryMemory and 24 GetInfo calls, with zero unknown SVC numbers. The earlier eight rtld self-relocations remain verified. This private probe does not establish full module linking, game startup, graphics or Galaxy compatibility.
+
+## Application services, shared memory and RomFS (0.1.7)
+
+The Android adaptation of the pinned runtime's applet manager supplies OpenApplicationProxy/OpenApplicationProxy2, the common-state queue, focus and operation/performance modes, window IDs, self-controller settings, audio-volume metadata, locks, byte storage and application configuration/events. Unsupported library applets are refused explicitly. Android lifecycle callbacks update the actual applet focus state. Host focus survives a guest-state reset; handheld/1280×720 is the default console mode, without claiming a game frame rate.
+
+Service-shared memory uses owned memfd backing. A service keeps a writable kernel view while clients map coherent read-only or read/write views at free addresses in the SDK's ASLR range. MapSharedMemory/UnmapSharedMemory validate objects, sizes, permissions and ownership, and never replace an occupied host mapping. Multiple views remain coherent. Clock shared-memory updates reach existing read-only guest views. Time services implement the upstream clock contexts and calendar conversion with an explicit UTC zone on Android. CSRNG uses Android getrandom rather than a pseudo-random stand-in.
+
+The read-only RomFS builder preserves the pinned upstream's tables, hashes, layout, metadata and on-demand reads, with UTF-8 POSIX paths and pread replacing Win32 file APIs. A shortened source file is an error. The Android folder backend excludes NUP packages, refuses symlinks, and exposes a real read-only IStorage through fsp-srv. It currently accepts an explicitly configured native path; wiring the selected SAF tree to this backend and implementing writable saves remain unfinished. Missing commands still return the explicit missing-service result.
+
+Cooperative shutdown wakes kernel waits and long guest sleeps, rejects subsequent dispatch/SVC calls, and joins the SDK's workers before unmapping memory. It cannot forcibly interrupt a lifted loop that never reaches those boundaries.
+
+The 32 new cases cover application objects/events/state, locks/storage, descriptor validation, shared-memory coherence/protections/ownership, clock permissions and updates, UTC conversion, background-state reset, worker shutdown, RomFS layout/reads/shrinking files/symlink refusal, readonly filesystem commands, random-output bounds and configured language codes. The core suite grows from 221 to 253 cases.
+
+The separate six-module private probe now completes nninitStartup and enters the original nnMain. Its recorded path uses 247 SVC calls with zero unknown SVC numbers, verifies eight rtld self-relocations and joins six workers. It stops at game filesystem mounting; no game frames or physical Galaxy performance have been verified. The earlier 0.1.6 SDK/appletOE block above is historical and has been resolved. Public and APK outputs still contain no generated game code.

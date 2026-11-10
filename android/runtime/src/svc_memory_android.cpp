@@ -83,6 +83,35 @@ void fail(::Ctx* c, const char* what, uint32_t rc, uint64_t a, uint64_t b, uint6
     svc_ret(c, rc);
 }
 
+struct SharedView { uint64_t size; std::shared_ptr<kernel::KSharedMemory> object; };
+std::map<uint64_t, SharedView> shared_views;
+void map_shared_memory(Ctx* c) {
+    const auto object=kernel::handle_as<kernel::KSharedMemory>(static_cast<uint32_t>(reg(c,0)));
+    const auto address=reg(c,1), size=reg(c,2), permission=reg(c,3);
+    if(!object) return svc_ret(c,kernel::kInvalidHandle);
+    if(address & kPageMask) return svc_ret(c,kernel::kInvalidAddress);
+    if(!size || (size & kPageMask) || size!=object->size) return svc_ret(c,kernel::kInvalidSize);
+    if(permission!=kPermR && permission!=kPermRW) return svc_ret(c,kernel::kInvalidPermission);
+    std::lock_guard lock(g_mu);
+    if(!mem::map_shared_backing(object->backing_fd,address,size,permission==kPermR?mem::Prot::R:mem::Prot::RW))
+        return svc_ret(c,kernel::kInvalidMemoryState);
+    shared_views.emplace(address,SharedView{size,object});
+    mem::vm_set(address,size,mem::kMemShared,static_cast<uint32_t>(permission)); svc_ret(c,0);
+}
+void unmap_shared_memory(Ctx* c) {
+    const auto object=kernel::handle_as<kernel::KSharedMemory>(static_cast<uint32_t>(reg(c,0)));
+    const auto address=reg(c,1), size=reg(c,2);
+    if(!object) return svc_ret(c,kernel::kInvalidHandle);
+    if(address & kPageMask) return svc_ret(c,kernel::kInvalidAddress);
+    if(!size || (size & kPageMask)) return svc_ret(c,kernel::kInvalidSize);
+    std::lock_guard lock(g_mu);
+    auto found=shared_views.find(address);
+    if(found==shared_views.end() || found->second.size!=size || found->second.object!=object)
+        return svc_ret(c,kernel::kInvalidMemoryState);
+    if(!mem::release_fixed(address)) return svc_ret(c,kernel::kInvalidMemoryState);
+    shared_views.erase(found); mem::vm_set(address,size,mem::kMemFree,0); svc_ret(c,0);
+}
+
 // ---- SetHeapSize (0x01) ------------------------------------------------------------------------------------------------------
 void set_heap_size(::Ctx* c) {
     const uint64_t size = reg(c, 1);
@@ -356,9 +385,12 @@ void svc_register_memory_group() {
     svc_register(0x04, map_memory);
     svc_register(0x05, unmap_memory);
     svc_register(0x06, query_memory);
+    svc_register(0x13, map_shared_memory);
+    svc_register(0x14, unmap_shared_memory);
 }
 void svc_memory_reset_for_tests() {
     std::lock_guard lock(g_mu);
+    shared_views.clear();
     g_maps.clear(); g_perm_locked.clear(); g_heap_cur = 0;
 }
 } // namespace nxrt

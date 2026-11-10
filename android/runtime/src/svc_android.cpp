@@ -2,6 +2,7 @@
 // Android bootstrap dispatcher, preserving nxrt's SVC ABI and unknown-call records.
 #include "nxrt/svc.h"
 #include "nxrt/kernel.h"
+#include "nxrt/android_kernel.h"
 #include "nxrt/log.h"
 #include <algorithm>
 #include <array>
@@ -41,6 +42,7 @@ void svc_init() {
 }
 void svc_set_busy_hook(void(*hook)()) { busy.store(hook); }
 void svc_dispatch(::Ctx* context, uint32_t number, uint64_t pc) {
+    if (android_stop_requested()) throw AndroidThreadExit{};
     if (auto hook = busy.load()) hook();
     if (number < kSvcCount) calls[number].fetch_add(1);
     if (auto handler = svc_handler(number)) { handler(context); return; }

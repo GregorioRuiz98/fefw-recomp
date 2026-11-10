@@ -53,6 +53,10 @@ bool is_readable(uint64_t addr, uint64_t size);              // Android guest in
 bool is_writable(uint64_t addr, uint64_t size);              // Android guest output pointer validation
 bool is_committed(uint64_t addr, uint64_t size);             // owned guest pages, including PROT_NONE
 
+// Android shared-memory backing: coherent service RW and guest R/RW views.
+int create_shared_backing(uint64_t kernel_address, uint64_t size);
+bool map_shared_backing(int descriptor, uint64_t address, uint64_t size, Prot protection);
+
 // ---- heap section ---------------------------------------------------------------------------------------------------
 // One pagefile-backed section (SEC_RESERVE, nothing is charged until committed) with a primary view at kHeapBase. Under Wine
 // ([memory] heap_section = auto) it is plain private memory instead: Wine backs sections with shared files, and Linux GPU drivers

@@ -17,6 +17,9 @@
 #include <stdexcept>
 
 namespace nxtest {
+namespace { std::string test_directory="/data/local/tmp"; }
+void set_temporary_directory(std::string path) { test_directory=std::move(path); }
+const std::string& temporary_directory() { return test_directory; }
 std::vector<Case>& cases() { static std::vector<Case> value; return value; }
 std::vector<Child>& children() { static std::vector<Child> value; return value; }
 void fail(const char*, int line, const char* expression, const std::string& detail) {
@@ -69,7 +72,7 @@ static std::string run_tests(bool core) {
                && nxrt::modules().empty() && !nxrt::fn_count() && !nxrt::hle_count()
                && !nxrt::hook_count() && !nxrt::kernel::handle_count() && !nxrt::kernel::current_thread() && nxrt::kernel::threads().empty()
                && nxrt::eh::detail::catch_stack().empty() ? "true" : "false")
-           << ",\"game_runtime_available\":false,\"failures\":[" << errors.str() << "]}";
+           << ",\"applet_services_available\":true,\"time_services_available\":true,\"game_runtime_available\":false,\"failures\":[" << errors.str() << "]}";
     return report.str();
 }
 std::string run_memory_tests() { return run_tests(false); }

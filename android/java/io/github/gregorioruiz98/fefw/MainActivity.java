@@ -57,6 +57,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
     }
 
     @Override public void onCreate(Bundle state) {
+        android.util.Log.i("FEFW", "Activity onCreate");
         super.onCreate(state);
         ScrollView scroll = new ScrollView(this); scroll.setFillViewport(true); scroll.setBackgroundColor(0xff101822);
         content = new LinearLayout(this); content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(22), dp(12), dp(22), dp(24));
@@ -66,7 +67,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
         text("FEFW / ANDROID", 25, 0xfff2e8dc);
-        text("Native port • threads and IPC preview 0.1.6", 14, 0xffb7c4d0);
+        text("Native port • application services preview 0.1.7", 14, 0xffb7c4d0);
         text("This build tests Android files, controllers, memory and Vulkan. It does not run the game yet.", 16, 0xffe8b879);
         heading("Your game folder");
         String saved = getPreferences(MODE_PRIVATE).getString("tree", "");
@@ -96,12 +97,12 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         memoryStatus = text("The real nxrt memory backend is linked. Test its fixed module addresses, sparse heap, shared aliases and protections. Full game startup is still pending; this backend currently requires 4 KB host pages.", 14, 0xffc9d3dc);
         memoryButton = button("Test runtime memory", v -> testRuntimeMemory());
         heading("Module loader and execution core");
-        coreStatus = text("Guest workers, TLS, events, mutex handoff, condition variables, address waits, IPC sessions and SM/LM services are integrated. Stress tests can take about one minute in the emulator. Applet services and game graphics remain pending.", 14, 0xffc9d3dc);
-        coreButton = button("Test threads, IPC and execution core", v -> testRuntimeCore());
+        coreStatus = text("Guest workers, TLS, events, mutex handoff, condition variables, address waits, IPC sessions and SM/LM services are integrated. Stress tests can take about one minute in the emulator. Application proxy, lifecycle, clocks and coherent shared memory are integrated. Game graphics remain pending.", 14, 0xffc9d3dc);
+        coreButton = button("Test system services and execution core", v -> testRuntimeCore());
         loaderStatus = text("Use your verified local copy to map all six real modules and analyse relocations. Files are opened read-only. Final guest linking and game execution remain pending.", 14, 0xffc9d3dc);
         loaderButton = button("Test selected game modules", v -> inspectGameModules());
         heading("Development status and credits");
-        text("A private Android test now executes the real SDK Start function and initializes its SM connection and LM logger. It stops at the unimplemented appletOE command 10. SDK initialization is incomplete; applet/game services, audio and rendering are pending. This APK contains no game code and is not playable.", 14, 0xffc9d3dc);
+        text("A private Android test now executes the real SDK Start function and initializes its SM connection and LM logger. The application proxy, clocks and shared-memory mappings now work. A private test reaches the original game nnMain after SDK startup. Selected-folder integration, saves, audio and game rendering remain pending. This APK contains no game code and is not playable.", 14, 0xffc9d3dc);
         text("Runtime foundation: Goldoire, drakolordx7 and featureJosh. Patch reference: Kompas9. Android integration: GregorioRuiz98, with Codex assistance. Woven Shield is original project artwork. No game files are included.", 13, 0xffb7c4d0);
         button("Export device report", v -> {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").putExtra(Intent.EXTRA_TITLE, "fefw-android-diagnostics.json");
@@ -190,7 +191,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         worker.execute(() -> {
             String result, message;
             try {
-                result = NativeBridge.runtimeCoreTest();
+                result = NativeBridge.runtimeCoreTest(getCacheDir().getAbsolutePath());
                 JSONObject report = new JSONObject(result);
                 message = report.getString("status").equals("PASS")
                     ? report.getInt("cases_passed") + " runtime core tests passed. Guest game services and rendering are still pending."
@@ -235,8 +236,8 @@ public final class MainActivity extends Activity implements InputManager.InputDe
     @Override public void onInputDeviceAdded(int id) { scanControllers(); }
     @Override public void onInputDeviceChanged(int id) { scanControllers(); }
     @Override public void onInputDeviceRemoved(int id) { scanControllers(); inputStatus.setText("Device list changed. Press a button on the active controller."); }
-    @Override protected void onResume() { super.onResume(); if (inputs != null) { inputs.registerInputDeviceListener(this, null); scanControllers(); } }
-    @Override protected void onPause() { if (inputs != null) inputs.unregisterInputDeviceListener(this); super.onPause(); }
+    @Override protected void onResume() { android.util.Log.i("FEFW", "Activity onResume"); super.onResume(); NativeBridge.setRuntimeFocus(true); if (inputs != null) { inputs.registerInputDeviceListener(this, null); scanControllers(); } }
+    @Override protected void onPause() { NativeBridge.setRuntimeFocus(false); if (inputs != null) inputs.unregisterInputDeviceListener(this); super.onPause(); }
     @Override protected void onDestroy() { worker.shutdownNow(); super.onDestroy(); }
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
         if (gamepad(event.getDevice()) && KeyEvent.isGamepadButton(event.getKeyCode())) {

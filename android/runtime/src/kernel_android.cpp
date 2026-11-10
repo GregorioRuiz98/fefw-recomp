@@ -3,6 +3,7 @@
 // A guest main thread is the calling host thread, with real guest stack and TLS.
 #include "nxrt/android_kernel.h"
 #include "nxrt/android_time.h"
+#include "nxrt/android_services.h"
 #include "nxrt/kernel.h"
 #include "nxrt/game.h"
 #include "nxrt/memory.h"
@@ -28,9 +29,18 @@ namespace services { void register_android_log_service(); }
 namespace {
 std::mutex failure_lock;
 std::string worker_failure;
+std::atomic<bool> stop_requested{false};
+std::mutex sleep_lock;
+std::condition_variable sleep_changed;
 }
 std::string android_thread_failure() { std::lock_guard lock(failure_lock); return worker_failure; }
+bool android_stop_requested() { return stop_requested.load(std::memory_order_relaxed); }
+void android_request_stop() {
+    { std::lock_guard lock(sleep_lock); stop_requested=true; }
+    sleep_changed.notify_all(); kernel::detail::notify_failure();
+}
 void android_check_thread_failure() {
+    if (android_stop_requested()) throw AndroidThreadExit{};
     const auto failure=android_thread_failure();
     if(!failure.empty()) trap(failure.c_str(),0);
 }
@@ -41,9 +51,16 @@ void android_configure_fefw() {
     game::set_current(&info);
     svc_init();
     services::register_android_log_service();
+    services::register_am();
+    services::am_reset();
+    services::register_time();
+    services::time_reset();
+    services::register_android_boot_services();
+    services::register_android_fs();
 }
 }
 namespace nxrt::kernel {
+KSharedMemory::~KSharedMemory() { if (backing_fd >= 0) close(backing_fd); }
 namespace {
 std::mutex table_lock;
 std::unordered_map<uint32_t, std::shared_ptr<KObject>> handles;
@@ -234,7 +251,7 @@ void kernel_reset() {
         trap("Cannot join an Android guest thread during reset",thread->entry);
     detail::sync_reset(); handles_reset();
     { std::lock_guard lock(list_lock); all_threads.clear(); }
-    { std::lock_guard lock(failure_lock); worker_failure.clear(); }
+    { std::lock_guard lock(failure_lock); worker_failure.clear(); stop_requested=false; }
 }
 bool thread_set_priority(KThread& thread,int priority) {
     if(priority<0 || priority>63) return false;
@@ -260,6 +277,11 @@ uint64_t tick_hz() { return kAndroidSwitch2TickHz; }
 uint64_t system_tick() { return android_system_tick(); }
 void sleep_ns(int64_t value) {
     if (value <= 0) std::this_thread::yield();
-    else std::this_thread::sleep_for(std::chrono::nanoseconds(value));
+    else {
+        std::unique_lock lock(sleep_lock);
+        sleep_changed.wait_for(lock,std::chrono::nanoseconds(value),[]{ return android_stop_requested(); });
+        lock.unlock();
+    }
+    android_check_thread_failure();
 }
 } // namespace nxrt::kernel

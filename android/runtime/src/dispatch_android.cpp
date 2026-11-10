@@ -2,6 +2,7 @@
 // Function table + HLE thunks. Pattern from smo-recomp runtime/core/hostrt.c (open-addressing hash, hostfn thunks) and
 // SuperMarioWonderRecomp runtime/src/loader.cpp (thunks, logging stub for unknown imports).
 #include "nxrt/dispatch.h"
+#include "nxrt/android_kernel.h"
 
 #include <sys/mman.h>
 #include <dlfcn.h>
@@ -323,6 +324,7 @@ void trap(const char* what, uint64_t addr) {
 }
 
 void dispatch_call(::Ctx* c, uint64_t addr) {
+    if (android_stop_requested()) throw AndroidThreadExit{};
     // HLE thunks live in their own address range, away from every lifted function: no hash lookup for them
     const bool in_hle_range = addr - mem::kHleBase < mem::kHleSize;
     if (!in_hle_range) {

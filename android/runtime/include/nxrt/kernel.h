@@ -68,6 +68,8 @@ struct KEvent : KObject {                                  // readable and writa
 };
 
 struct KSharedMemory : KObject {
+    int backing_fd = -1;
+    ~KSharedMemory() override;
     uint64_t size = 0;
     uint64_t host = 0;           // backing memory (kernel region) the service writes to
     std::string name;

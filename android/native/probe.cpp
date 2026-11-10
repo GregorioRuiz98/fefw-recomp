@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Independent Android platform probes, with no translated game code.
+#include "nxrt/android_lifecycle.h"
 #include <jni.h>
+#include <android/log.h>
 #include <vulkan/vulkan.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
@@ -65,16 +67,20 @@ Java_io_github_gregorioruiz98_fefw_NativeBridge_probe(JNIEnv* env, jclass) {
     report << ",\"page_size\":" << page
            << ",\"shared_memory_alias\":" << (page > 0 && alias_test(page) ? "true" : "false")
            << ",\"main_address_page\":" << (page > 0 && fixed_address_test(page) ? "true" : "false")
-           << ",\"memory_backend_available\":true,\"game_runtime_available\":false";
+           << ",\"memory_backend_available\":true,\"game_runtime_available\":false"
+           << ",\"applet_in_focus\":" << (nxrt::services::amctl::in_focus()?"true":"false");
     VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
     app.pApplicationName = "FEFW Android diagnostics";
     app.apiVersion = VK_API_VERSION_1_1;
     VkInstanceCreateInfo create{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     create.pApplicationInfo = &app;
     VkInstance instance{};
+    __android_log_print(ANDROID_LOG_INFO,"FEFW","Vulkan diagnostics: creating instance");
     VkResult result = vkCreateInstance(&create, nullptr, &instance);
+    __android_log_print(ANDROID_LOG_INFO,"FEFW","Vulkan diagnostics: instance result %d",result);
     uint32_t count = 0;
     if (result == VK_SUCCESS) result = vkEnumeratePhysicalDevices(instance, &count, nullptr);
+    __android_log_print(ANDROID_LOG_INFO,"FEFW","Vulkan diagnostics: enumeration result %d, count %u",result,count);
     if (result == VK_SUCCESS && count > 0) {
         std::vector<VkPhysicalDevice> devices(count);
         result = vkEnumeratePhysicalDevices(instance, &count, devices.data());
@@ -109,6 +115,18 @@ Java_io_github_gregorioruiz98_fefw_NativeBridge_probe(JNIEnv* env, jclass) {
         }
     }
     report << ",\"vulkan_result\":" << result << ",\"gpu_count\":" << count << "}";
+    __android_log_print(ANDROID_LOG_INFO,"FEFW","Vulkan diagnostics: destroying instance");
     if (instance) vkDestroyInstance(instance, nullptr);
+    __android_log_print(ANDROID_LOG_INFO,"FEFW","Vulkan diagnostics: probe complete");
     return env->NewStringUTF(report.str().c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_io_github_gregorioruiz98_fefw_NativeBridge_setRuntimeFocus(JNIEnv*, jclass, jboolean focused) {
+    nxrt::services::amctl::set_focus(focused == JNI_TRUE);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_io_github_gregorioruiz98_fefw_NativeBridge_runtimeInFocus(JNIEnv*, jclass) {
+    return nxrt::services::amctl::in_focus()?JNI_TRUE:JNI_FALSE;
 }

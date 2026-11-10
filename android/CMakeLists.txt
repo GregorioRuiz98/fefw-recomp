@@ -17,7 +17,8 @@ add_library(nxrt_android STATIC runtime/src/memory_android.cpp
     runtime/src/svc_info_android.cpp runtime/src/svc_process_android.cpp
     runtime/src/kernel_sync_android.cpp runtime/src/svc_threads_android.cpp
     runtime/src/hipc.cpp runtime/src/ipc.cpp runtime/src/ipc_sm.cpp runtime/src/ipc_stub.cpp runtime/src/svc_ipc_android.cpp
-    runtime/src/log_service_android.cpp)
+    runtime/src/log_service_android.cpp runtime/src/am_android.cpp runtime/src/time_android.cpp runtime/src/timezone.cpp
+    runtime/src/boot_services_android.cpp runtime/src/fs_android.cpp runtime/src/fs_romfs_android.cpp)
 set_target_properties(nxrt_android PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(nxrt_android PUBLIC runtime/include)
 target_compile_features(nxrt_android PUBLIC cxx_std_20)
@@ -36,7 +37,7 @@ set(memory_tests runtime/tests/test_memory.cpp runtime/tests/test_runner.cpp
     runtime/tests/test_nso_android.cpp runtime/tests/test_hooks.cpp
     runtime/tests/test_eh.cpp runtime/tests/test_eh_abi3.cpp runtime/tests/test_eh_typeinfo.cpp runtime/tests/test_abi_android.cpp
     runtime/tests/test_svc_android.cpp runtime/tests/test_kernel_sync.cpp runtime/tests/test_hipc.cpp runtime/tests/test_ipc.cpp
-    runtime/tests/test_threads_android.cpp runtime/tests/test_log_service_android.cpp)
+    runtime/tests/test_threads_android.cpp runtime/tests/test_log_service_android.cpp runtime/tests/test_services_android.cpp)
 add_library(nxrt_android_contract_tests OBJECT ${memory_tests})
 set_target_properties(nxrt_android_contract_tests PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(nxrt_android_contract_tests PRIVATE nxrt_android)
