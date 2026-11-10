@@ -20,7 +20,8 @@ def refresh(work):
     entries = sorted(set(int(a, 16) for a in re.findall(r'\{ 0x([0-9a-f]+)ULL, f_[0-9a-f]+ \}',
                                                        (folder / 'module_main.cpp').read_text())))
     wanted = {}
-    sites = {0x71007bf1c0: 0xb901dd09, 0x710180ef44: 0xbd416a60}
+    sites = {0x71007bf1c0: 0xb901dd09, 0x710180ef44: 0xbd416a60,
+             0x7101906550: 0x9404f500, 0x7101906634: 0xb98f5261}
     for pc, (old, new) in cfg.runtime_instruction_patches.items():
         if image.word(pc) != old:
             raise ValueError('Unsupported original instruction for native patch at ' + hex(pc))

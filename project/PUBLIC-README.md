@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.10](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.10/FEFW-Recomp-Windows-x64-v0.1.0-preview.10.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.10)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.11](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.11/FEFW-Recomp-Windows-x64-v0.1.0-preview.11.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.11)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -22,6 +22,8 @@ Initial preparation requires the tools listed below and compiles `fefw.exe` and 
 
 Preview.10 uses Goldoire’s complete v0.1.5 graphics and memory implementation, matching ASTC/BC7 converter, shader extractor and shader translator. The standalone configurator, controller-only gameplay, reconnection support and local settings workflow remain ours. This replaces the earlier collection of individual graphics patches.
 
+**Preview.11 fixes the crash before the opening battle cinematic when starting a new game.** The host AV1 decoder now receives CPU-backed frames, and the player allocates all four buffers before registering them. Existing installations rebuild the local executable once; the shader cache and saves are reused.
+
 An upgrade requires a local rebuild and a new shader cache. Preparation writes it to `shader_cache/goldoire-v015`; the older cache is preserved. The first run can still pause while textures and driver pipelines are prepared. Full-game rendering compatibility has not been established by this project. See [integration details](project/UPSTREAM-INTEGRATION.md).
 
 ## Package contents
@@ -34,7 +36,7 @@ The package does not distribute ROMs, keys, firmware, proprietary SDKs, game upd
 
 ## Status
 
-Preview.10 replaces the previous renderer with the complete Goldoire v0.1.5 implementation and matching shader tools. The private local build has loaded an existing save and reached the prologue scene with readable dialogue. Automated checks cover the upstream reconstruction/resource-binding/rendered-scene tests and our configuration, controller reconnection, audio, memory and filesystem contracts.
+Preview.11 retains the complete Goldoire v0.1.5 runtime and matching shader tools introduced in preview.10, and adds its required movie-player hooks. The private local build has loaded an existing save and reached the prologue scene with readable dialogue. Automated checks also verify movie-player buffer selection/count and hook generation for fresh and resumed local builds, alongside the existing configuration, controller, audio, memory and filesystem checks.
 
 CUDA reconstruction kernels found in the dump are handled by the runtime’s native reconstruction path. They are not required Vulkan shader programs. The cache preparation verifies all 11,977 NVN shaders separately and records its upstream source revision before allowing setup to finish.
 

@@ -1,12 +1,18 @@
 # Goldoire integration
 
-## Current implementation: preview.10
+## Current implementation: preview.11
 
 The full runtime, memory-pool implementation, Vulkan backend, built-in temporal upscaler, ASTC/BC7 source converter, shader extractor and shader translator now come from [Goldoire v0.1.5, a538375a80070e8a6bf5476b03b3dd877a13ea9d](https://github.com/Goldoire/fefw-recomp/tree/a538375a80070e8a6bf5476b03b3dd877a13ea9d). `tools/bootstrap.py` prepares this separately in `work/renderer-engine`, leaving the earlier pinned nxrecomp checkout intact. `patches/renderer.patch` contains only controller discovery, controller-only gameplay and the previously tested audio compatibility adjustments. It also replaces a literal NUL in the upstream platform source with the equivalent escaped C++ character. The NVN, texture, memory-pool and temporal implementations are otherwise unchanged from that revision.
 
 Preparation uses the upstream extractor as well as its translator. The former local extractor omitted 85 ambiguous code identities from its one-row index; those omissions produce black frames with the replacement renderer. They must not be reused as a complete upstream corpus. The new cache has its own directory and a commit/count provenance record. Shader validation and source hashes must complete before it is marked ready.
 
 The Win32 configurator, supported-build checks, existing account/save location, controller mappings and verified game-code/FPS hooks are retained. Runtime title facts select the upstream heap-backed NVN allocation path and SDK 22 driver constants. Original game files are read locally and never included in public packages.
+
+### New-game cinematic integration
+
+Preview.10 enabled the upstream AV1 decoder but omitted two title-specific player hooks from `runtime/games/fefw/fefw_play.cpp`. A new game then selected native GPU images instead of CPU frame buffers: decoding produced a zero-capacity frame and the retail player crashed while importing it. Loading the existing prologue save did not exercise this path.
+
+Preview.11 adapts those hooks in `src/fefw_movie.cpp`: select CPU frames at main offset `0x1906550`, and set the frame count to four at `0x1906634`, before allocation. Both original instructions are checked before either hook is installed. `src/main.sites` handles fresh translations; `tools/refresh_runtime_patches.py` validates and adds the same call sites to existing generated C++ without modifying the user's original game files. Native regression tests exercise both callbacks through the actual hook dispatcher and reject incompatible instructions. The host decoder and graphics backend remain unchanged.
 
 The graphical test target now builds the upstream reconstruction, resource binding, sampler, texture-builder and rendered-scene fixtures. Historical fixtures for the retired renderer remain available in source, behind `FEFW_BUILD_LEGACY_RENDERER_TESTS`; they rely on APIs and SPIR-V rewrites that are no longer used. Native controls, audio, filesystem, memory and thread regressions remain enabled.
 

@@ -8,10 +8,25 @@ sys.path.insert(0, str(Path(os.environ.get('FEFW_ENGINE', Path(__file__).resolve
 from nxrecomp.config import load_game
 from nxrecomp.image import Image
 from nxrecomp.lift import Lifter
-from nxrecomp.program import Env, lift_function, runtime_patch_stmt
+from nxrecomp.program import Env, lift_function, load_sites, runtime_patch_stmt
 
 
 class RuntimePatchTests(unittest.TestCase):
+    def test_fresh_translation_calls_movie_hooks_before_the_instructions(self):
+        sites = Path(__file__).resolve().parents[1] / 'src/main.sites'
+        for pc, word in ((0x7101906550, 0x9404f500), (0x7101906634, 0xb98f5261)):
+            with self.subTest(pc=hex(pc)):
+                image = Image('synthetic', pc, word.to_bytes(4, 'little'), (0, 4))
+                env = Env(image, load_game('fefw'), full=False)
+                load_sites(sites, env)
+                env.ends[pc], env.starts = pc + 4, [pc]
+                text, _, bad, _ = lift_function(env, pc)
+                hook = 'nx_site_inline(c, 0x%xULL);' % pc
+                self.assertIn(hook, text)
+                self.assertFalse(bad)
+                instruction = Lifter(pc, pc + 4, env).lift(word, pc)
+                self.assertLess(text.index(hook), text.index(instruction))
+
     def test_both_variants_are_compiled_and_selected_from_mapped_text(self):
         cfg = load_game('fefw')
         for pc, (old, new) in cfg.runtime_instruction_patches.items():

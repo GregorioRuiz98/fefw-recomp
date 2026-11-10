@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace fefw::mods {
-inline constexpr const char* kFeatures = "fefw-runtime-10";
+inline constexpr const char* kFeatures = "fefw-runtime-11";
 inline constexpr const char* kBuild = "db93b0125f4850601d61c3edde012f8eb2ecfe77000000000000000000000000";
 static_assert(std::string_view(kBuild).size() == 64);
 std::string nso_build_id(const std::filesystem::path& path);

@@ -1,3 +1,6 @@
 # Update 131072 / DB93B012. Goldoire fefw_play.cpp, GPL-3.0-or-later.
 inline 0x71007bf1c0
 inline 0x710180ef44
+# Host AV1 decoder: CPU frames and four buffers before allocation/registration.
+inline 0x7101906550
+inline 0x7101906634

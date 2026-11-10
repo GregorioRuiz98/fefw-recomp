@@ -3,11 +3,13 @@
 #include "fefw_pc.h"
 #include "fefw_pc_policy.h"
 #include "fefw_mods.h"
+#include "fefw_movie.h"
 #include "nxrt/config.h"
 #include "nxrt/frame_limiter.h"
 #include "nxrt/hooks.h"
 #include "nxrt/log.h"
 #include "nxrt/memory.h"
+#include "nxrt/movie_vdec.h"
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -48,6 +50,7 @@ void step_hook(::Ctx* c, uint64_t, void*) {
 }
 void install(std::string_view build) {
     if (build != mods::kBuild) throw std::runtime_error("PC options require update 131072 / DB93B012.");
+    if (nxrt::media::movie_decoder_enabled()) movie_install(base);
     if (nxrt::config_get_bool("mods", "fps120", false)) {
         uint32_t target = 0, step = 0;
         if (!read(base + 0x7bf1c0, target) || target != 0xb901dd09 || !read(base + 0x180ef44, step) || step != 0xbd416a60)

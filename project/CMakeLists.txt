@@ -99,6 +99,7 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     target_link_options(fefw_write_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
     add_test(NAME fefw_write_tracking COMMAND fefw_write_tests)
     add_executable(fefw_runtime_tests
+        tests/test_movie_player.cpp src/fefw_movie.cpp
         tests/test_audio_revision.cpp
         tests/test_applet22.cpp
         "${FEFW_RUNTIME_ENGINE}/runtime/tests/test_main.cpp"
@@ -125,6 +126,7 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     add_test(NAME fefw_audio_revision COMMAND fefw_runtime_tests audio_revision)
     add_test(NAME fefw_applet22 COMMAND fefw_runtime_tests applet22)
     add_test(NAME fefw_audio_types COMMAND fefw_runtime_tests svc_audren_types)
+    add_test(NAME fefw_movie_player COMMAND fefw_runtime_tests movie_player)
 
     add_executable(fefw_input_tests tests/test_interactive_input.cpp src/fefw_game.cpp "${FEFW_RUNTIME_ENGINE}/runtime/tests/test_main.cpp")
     target_include_directories(fefw_input_tests PRIVATE src "${FEFW_RUNTIME_ENGINE}/runtime/tests" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx")
@@ -183,11 +185,11 @@ foreach(module main sdk subsdk0 subsdk1 subsdk2 rtld)
     list(APPEND FEFW_MODULE_TARGETS fefw_${module})
 endforeach()
 
-add_executable(fefw src/fefw_main.cpp src/fefw_game.cpp src/fefw_pc.cpp src/fefw_resolution.cpp)
+add_executable(fefw src/fefw_main.cpp src/fefw_game.cpp src/fefw_pc.cpp src/fefw_resolution.cpp src/fefw_movie.cpp)
 add_dependencies(fefw fefw_setup)
 target_include_directories(fefw PRIVATE "${FEFW_RUNTIME_ENGINE}/runtime/include" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx" src)
 target_compile_definitions(fefw PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS
-    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.10")
+    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.11")
 target_link_libraries(fefw PRIVATE ${FEFW_MODULE_TARGETS} nxrt_gfx nxrt fefw_config fefw_mods)
 target_link_options(fefw PRIVATE /MAP /STACK:134217728 /HIGHENTROPYVA:NO /DEBUG)
 option(FEFW_GUI_SUBSYSTEM "Launch the game without a console window" ON)
