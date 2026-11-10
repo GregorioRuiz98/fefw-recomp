@@ -2,6 +2,8 @@
 
 An experimental static recompilation project for Windows x64, using nxrecomp from [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7) and the complete runtime and shader tools from [Goldoire/fefw-recomp v0.1.5](https://github.com/Goldoire/fefw-recomp/tree/a538375a80070e8a6bf5476b03b3dd877a13ea9d). These tools translate and compile code and shaders locally from a folder supplied by the user.
 
+**Credits:** [Goldoire](https://github.com/Goldoire/fefw-recomp) provides the current Fire Emblem runtime and graphics/shader implementation; [drakolordx7](https://github.com/drakolordx7/pokopia-recomp) provides the nxrecomp/Pokopia foundation, with additional Pokopia lineage from [featureJosh](https://github.com/featureJosh/pokopia-recomp). [Kompas9](https://github.com/Kompas9/Switch-Game-Patches) provides the referenced 60 FPS patch. [GregorioRuiz98](https://github.com/GregorioRuiz98/fefw-recomp) maintains this integration, its Win32 configurator and public packages. See the detailed credits below.
+
 **This distribution includes tools, source code and patches. It does not include the game.** You need a lawfully obtained copy and the rights required for the copying, extraction, transformation and use you perform. Owning the game does not guarantee that every such activity is permitted in your jurisdiction. See [LEGAL.md](LEGAL.md).
 
 This project is not affiliated with, sponsored by or approved by Nintendo, Intelligent Systems or any other rights holder. Fire Emblem and Nintendo are named to identify compatibility; their trademarks and other rights belong to their respective holders.
@@ -132,6 +134,28 @@ Continue to the next step only after the previous one succeeds. Sources and reso
 The game executable and its caches are generated later on your own machine. Do not attach them to issues, repositories, releases or CI artifacts.
 
 ## Licenses, credits and contributions
+
+### Main contributors and upstream projects
+
+| Contributor / project | Contribution used here |
+| --- | --- |
+| [Goldoire / fefw-recomp](https://github.com/Goldoire/fefw-recomp/tree/a538375a80070e8a6bf5476b03b3dd877a13ea9d) | The complete v0.1.5 runtime, Vulkan renderer, memory-pool implementation, texture converter and shader extraction/translation tools. Also the built-in temporal reconstruction, movie-player and FPS-hook work, font-based controller symbols, and launcher design that informed this configurator. Original code and notices are retained. |
+| [drakolordx7 / nxrecomp](https://github.com/drakolordx7/nxrecomp) and [pokopia-recomp](https://github.com/drakolordx7/pokopia-recomp/tree/2c29515b23a6d78d967775fd7e9f24f50402cca7) | The static recompiler, original runtime/tooling foundation and pinned base used for local translation. |
+| [featureJosh / pokopia-recomp](https://github.com/featureJosh/pokopia-recomp) | Additional Pokopia runtime, tools and launcher lineage acknowledged by Goldoire's upstream project. |
+| [Kompas9 / Switch-Game-Patches](https://github.com/Kompas9/Switch-Game-Patches/tree/9e553571c986fbd45ef55202cb8ec0e1179a3db9/games/Fire-Emblem-Fortunes-Weave) | The checked 60 FPS patch locations and findings used by this integration. The upstream runtime also acknowledges Kompas9's ultrawide patch. |
+| [GregorioRuiz98 / this repository](https://github.com/GregorioRuiz98/fefw-recomp) | Title/build validation, local preparation and packaging, the standalone Win32 configurator, controller-only policy and discovery adaptations, settings/update workflow, integration fixes and verification. |
+
+### Dependencies and inherited work
+
+The recompiler and runtime also incorporate or acknowledge work from **BelmanteGu / SuperMarioWonderRecomp**, **smo-recomp**, **ScarletNX**, **ssbu-recomp**, **seedds / nxnative**, **Ryujinx / Ryubing**, **Mesa NAK**, **yuzu / Eden**, **libnx** and **LLVM libc++abi**. Their original attribution and license scope remain in the upstream notices.
+
+Thanks to the maintainers of **SDL**, **Vulkan-Headers**, **volk**, **VulkanMemoryAllocator**, **Dear ImGui**, **Zstandard**, **dav1d**, **libvpx**, **ARM astc-encoder**, **bc7enc_rdo**, **ISPC** and **DejaVu fonts**. The current graphics runtime also carries notices for the AMD and NVIDIA open-source headers or components it uses. This list describes the build's dependency lineage; the standalone setup executable links only its declared subset.
+
+Full component notices, license texts and pinned source references are in [THIRD_PARTY_NOTICES.md](https://github.com/GregorioRuiz98/fefw-recomp/blob/codex/public-release/THIRD_PARTY_NOTICES.md), [NOTICE.md](https://github.com/GregorioRuiz98/fefw-recomp/blob/codex/public-release/NOTICE.md) and [project/licenses](https://github.com/GregorioRuiz98/fefw-recomp/tree/codex/public-release/project/licenses). Current runtime notices are preserved separately from the earlier Pokopia notices.
+
+### Development assistance and original icon
+
+OpenAI Codex assisted with implementation, investigation, documentation and verification in this integration. The **Woven Shield** application icon was generated with OpenAI's image generation tool without game files or reference artwork. Its complete exported source and provenance are in [fefw_icon.json](https://github.com/GregorioRuiz98/fefw-recomp/blob/codex/public-release/project/src/fefw_icon.json) and [APP-ICON.md](https://github.com/GregorioRuiz98/fefw-recomp/blob/codex/public-release/project/src/APP-ICON.md).
 
 The base project’s [GNU GPL v3](LICENSE) and each file’s license notices are retained, including the later-version option where applicable. Third-party components retain their licenses: see [provenance](NOTICE.md) and [attributions](THIRD_PARTY_NOTICES.md). These licenses cover the identified software and do not grant rights to the game.
 

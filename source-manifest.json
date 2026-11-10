@@ -39,18 +39,18 @@
     },
     {
       "path": "NOTICE.md",
-      "bytes": 1427,
-      "sha256": "66f1dc64eeddde2ddc66998394ffd19daf1b4743bc954996a5bf4d07c93c2d74"
+      "bytes": 2423,
+      "sha256": "0be3da47f6ea64fab9eb263a69dfe3e76f3fd3ec970da5ce7a88aa435fa5e50d"
     },
     {
       "path": "README.md",
-      "bytes": 18522,
-      "sha256": "d3a762d332060f57d0d5c09d58a60784c4db7f6afb7e097ebc1ce04368498c84"
+      "bytes": 22656,
+      "sha256": "257c1298b71f7e029aa9a41a49d26d6d7913ced69cc7a79fa0e2cb22c713a3cd"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
-      "bytes": 4211,
-      "sha256": "d3a7e8bfb188690b036872dfce07d77abade272418600f190244f0c0c9011361"
+      "bytes": 4920,
+      "sha256": "a48b1c76579b126949e5168865ce11f170fa807b5e79e7ec9d2e91a5a849a614"
     },
     {
       "path": "project/.gitignore",
@@ -104,18 +104,18 @@
     },
     {
       "path": "project/NOTICE.md",
-      "bytes": 1427,
-      "sha256": "66f1dc64eeddde2ddc66998394ffd19daf1b4743bc954996a5bf4d07c93c2d74"
+      "bytes": 2423,
+      "sha256": "0be3da47f6ea64fab9eb263a69dfe3e76f3fd3ec970da5ce7a88aa435fa5e50d"
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 18522,
-      "sha256": "d3a762d332060f57d0d5c09d58a60784c4db7f6afb7e097ebc1ce04368498c84"
+      "bytes": 22656,
+      "sha256": "257c1298b71f7e029aa9a41a49d26d6d7913ced69cc7a79fa0e2cb22c713a3cd"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
-      "bytes": 4211,
-      "sha256": "d3a7e8bfb188690b036872dfce07d77abade272418600f190244f0c0c9011361"
+      "bytes": 4920,
+      "sha256": "a48b1c76579b126949e5168865ce11f170fa807b5e79e7ec9d2e91a5a849a614"
     },
     {
       "path": "project/UPSTREAM-INTEGRATION.md",
@@ -151,6 +151,16 @@
       "path": "project/licenses/dav1d-copyright.txt",
       "bytes": 61830,
       "sha256": "745cb608b17aad62d71dcc954cf4fa54fe7737dd832920d804fabadecc440a7e"
+    },
+    {
+      "path": "project/licenses/goldoire-runtime-THIRD-PARTY-NOTICES.md",
+      "bytes": 23891,
+      "sha256": "ab7aa5eb3b7cb4ed4616d138d067b7455e7e47aeab48a4e85e3a40d3b3454927"
+    },
+    {
+      "path": "project/licenses/goldoire-textures-THIRD-PARTY.md",
+      "bytes": 3368,
+      "sha256": "5a123cee7504f3dad95be7643b86757013ea94dfe4d095304b41e0370f2fd110"
     },
     {
       "path": "project/licenses/libvpx-copyright.txt",
