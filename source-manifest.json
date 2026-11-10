@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 17838,
-      "sha256": "1b728fd9af2ac8f783a6d24b3faad9ea6c84341834a56b273997e8e5aa9db417"
+      "bytes": 18325,
+      "sha256": "6796c79afbb8f4beac484b0e474e460c7dbc7c3c7b98a5c2ca6ba55d639783d2"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -59,8 +59,8 @@
     },
     {
       "path": "project/CMakeLists.txt",
-      "bytes": 14040,
-      "sha256": "d28519b9c4c5f9f2136c7f86c55f8e0e444ee473035ae1b0db40cdaa3ec59ef0"
+      "bytes": 14665,
+      "sha256": "77cab5eb6882061fb346d5898fb1d5c9a1269b08fdd4fd16c2cdee189d9b737b"
     },
     {
       "path": "project/CONTRIBUTING.md",
@@ -69,8 +69,8 @@
     },
     {
       "path": "project/CONTROLES-MANDO.md",
-      "bytes": 3288,
-      "sha256": "522cf81b35221374d16a3e50ffb86ec618fe2d0c9b975af98f55e305b54b5a18"
+      "bytes": 4364,
+      "sha256": "66b4b8b0252ccaa5c2492c0d0e06f9bf5d5fd1235ab58a60a6d68c006508fa5c"
     },
     {
       "path": "project/DEPENDENCIAS.md",
@@ -109,8 +109,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 17838,
-      "sha256": "1b728fd9af2ac8f783a6d24b3faad9ea6c84341834a56b273997e8e5aa9db417"
+      "bytes": 18325,
+      "sha256": "6796c79afbb8f4beac484b0e474e460c7dbc7c3c7b98a5c2ca6ba55d639783d2"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -119,8 +119,8 @@
     },
     {
       "path": "project/UPSTREAM-INTEGRATION.md",
-      "bytes": 14939,
-      "sha256": "8ff6a8d0ba04faebc6eb606d45f27c30302c2e4397601e59b41137967bf61d9e"
+      "bytes": 15588,
+      "sha256": "ef809c3089246ccc1034678a64c43f480d9620c7bd01b9d334e77f32383e4660"
     },
     {
       "path": "project/config.py",
@@ -259,8 +259,8 @@
     },
     {
       "path": "project/src/fefw_game.cpp",
-      "bytes": 2505,
-      "sha256": "ae78d998678d6db6410f3cd5ace88a637f85696b9306c90627ac55e33cbd8978"
+      "bytes": 3222,
+      "sha256": "774d3fd327bfb4f0b47cbd730ffd8ef69d7f09adf72b61e11eb313c141689783"
     },
     {
       "path": "project/src/fefw_game.h",
@@ -280,7 +280,7 @@
     {
       "path": "project/src/fefw_mods.h",
       "bytes": 719,
-      "sha256": "0b64e49955450761e445fc5fe4ffc2e194a328509fce9e96a892102d044b77fc"
+      "sha256": "a8213752b8fbfbf4f9c263018cbc83465d6d95a3ed7e54fe911e6f6a7d5f9a00"
     },
     {
       "path": "project/src/fefw_movie.cpp",
@@ -310,7 +310,7 @@
     {
       "path": "project/src/fefw_preferences.cpp",
       "bytes": 5801,
-      "sha256": "9d719a2440e3cdce54fe57611dfbced5a3935fc73b3829f83ea329054872f7de"
+      "sha256": "f1e7a5823a511b427b9cbf8ff26242216fd4b6f63fc8e6a98d84630c6230c296"
     },
     {
       "path": "project/src/fefw_preferences.h",
@@ -325,7 +325,7 @@
     {
       "path": "project/src/fefw_setup.cpp",
       "bytes": 84773,
-      "sha256": "6709c6149e27745a82b258fdea2f343b7361ca237a9844407ae6fc4af80a2792"
+      "sha256": "c164b58ab3dfd5de31ab5995b54a9cc99983fa0a5b4de26748ca1be88ce1f720"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -420,7 +420,7 @@
     {
       "path": "project/tests/check_setup.py",
       "bytes": 10779,
-      "sha256": "3a4597e1a9313a9125ffe9ce64ffbfed188c82999920c50cd2918ec3791aa0f2"
+      "sha256": "15857e73f94c37b8e658f4e90d77bfb2730709232bcd6b19affa99ebb325209d"
     },
     {
       "path": "project/tests/check_shader_textures.py",
@@ -519,8 +519,8 @@
     },
     {
       "path": "project/tests/test_interactive_input.cpp",
-      "bytes": 13628,
-      "sha256": "494b5a6229fdea879b7e7b6bdbf1cc7e6277f3db7bab43b85448468fba4d1b35"
+      "bytes": 13854,
+      "sha256": "39d0da4570d949e8a75828ba51b0a26e60c018f2e058b1d89b156aa38c2b0ef3"
     },
     {
       "path": "project/tests/test_layout.py",
@@ -551,6 +551,11 @@
       "path": "project/tests/test_pc_runtime.cpp",
       "bytes": 1339,
       "sha256": "57346c8240d0d2e46c88f8fa665e22adc7cbab215688000f0ea5cba576d5d4ce"
+    },
+    {
+      "path": "project/tests/test_playstation_prompts.cpp",
+      "bytes": 2746,
+      "sha256": "0344656d385fb3cb3d03b403b4ad4d47e8f6732b2225da0214fc4d6494d772a5"
     },
     {
       "path": "project/tests/test_pointer_auth.py",
@@ -655,7 +660,7 @@
     {
       "path": "project/tools/Prepare-Game.ps1",
       "bytes": 6788,
-      "sha256": "c0352ab1e90e0c562c0ac44fed0f237cb406874474a6831cb555ffa2731d4c75"
+      "sha256": "de31a40a742c656b908491beae887a857960add93b513895b57a51b4a38b6769"
     },
     {
       "path": "project/tools/Update-Core.ps1",
@@ -665,7 +670,7 @@
     {
       "path": "project/tools/Update-Release.ps1",
       "bytes": 3251,
-      "sha256": "7a7d3a4395ab78156de40fe5d0b59bd953026b496f1d24e63d02f913b473e950"
+      "sha256": "4d6e5af7177c5f3af973c4f3ccfb84d6f6c892a3000e6b4b77facf57afd85a04"
     },
     {
       "path": "project/tools/audit_public_repo.py",
@@ -795,7 +800,7 @@
     {
       "path": "tools/Prepare-Game.ps1",
       "bytes": 6788,
-      "sha256": "c0352ab1e90e0c562c0ac44fed0f237cb406874474a6831cb555ffa2731d4c75"
+      "sha256": "de31a40a742c656b908491beae887a857960add93b513895b57a51b4a38b6769"
     }
   ]
 }

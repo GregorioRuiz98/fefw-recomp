@@ -43,7 +43,7 @@ void changed();
 void select_page(int p);
 void localize();
 s::Settings read_form();
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.11";
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.12";
 std::map<HWND,std::wstring> captions;
 std::map<HWND,std::vector<std::wstring>> combo_labels;
 std::unique_ptr<s::Controllers> controllers;

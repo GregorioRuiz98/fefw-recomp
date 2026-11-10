@@ -80,6 +80,12 @@ if(NOT FEFW_BUILD_GAME)
 endif()
 add_subdirectory("${FEFW_RUNTIME_ENGINE}/runtime" "${CMAKE_CURRENT_BINARY_DIR}/runtime")
 
+# Reuse the pinned upstream title-specific font renderer. Glyphs are generated
+# locally from the user's fonts; no icon pack or game assets are distributed.
+add_library(fefw_prompt_glyphs STATIC "${FEFW_RUNTIME_ENGINE}/runtime/games/fefw/fefw_prompts.cpp")
+target_include_directories(fefw_prompt_glyphs PRIVATE "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx/play")
+target_link_libraries(fefw_prompt_glyphs PUBLIC nxrt_gfx nxrt)
+
 option(FEFW_BUILD_RUNTIME_TESTS "Build memory and thread regression tests" ON)
 if(FEFW_BUILD_RUNTIME_TESTS)
     add_executable(fefw_save_tests tests/test_save_reset.cpp
@@ -128,12 +134,13 @@ if(FEFW_BUILD_RUNTIME_TESTS)
     add_test(NAME fefw_audio_types COMMAND fefw_runtime_tests svc_audren_types)
     add_test(NAME fefw_movie_player COMMAND fefw_runtime_tests movie_player)
 
-    add_executable(fefw_input_tests tests/test_interactive_input.cpp src/fefw_game.cpp "${FEFW_RUNTIME_ENGINE}/runtime/tests/test_main.cpp")
+    add_executable(fefw_input_tests tests/test_interactive_input.cpp tests/test_playstation_prompts.cpp src/fefw_game.cpp "${FEFW_RUNTIME_ENGINE}/runtime/tests/test_main.cpp")
     target_include_directories(fefw_input_tests PRIVATE src "${FEFW_RUNTIME_ENGINE}/runtime/tests" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx")
     target_compile_definitions(fefw_input_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
-    target_link_libraries(fefw_input_tests PRIVATE nxrt_gfx nxrt)
+    target_link_libraries(fefw_input_tests PRIVATE fefw_prompt_glyphs nxrt_gfx nxrt)
     target_link_options(fefw_input_tests PRIVATE /STACK:67108864 /HIGHENTROPYVA:NO)
     add_test(NAME fefw_interactive_input COMMAND fefw_input_tests interactive_input)
+    add_test(NAME fefw_playstation_prompts COMMAND fefw_input_tests playstation_prompts)
 
     if(FEFW_BUILD_LEGACY_RENDERER_TESTS)
     add_executable(fefw_numeric_tests tests/test_compute_numeric.cpp "${FEFW_RUNTIME_ENGINE}/runtime/tests/test_main.cpp")
@@ -189,8 +196,8 @@ add_executable(fefw src/fefw_main.cpp src/fefw_game.cpp src/fefw_pc.cpp src/fefw
 add_dependencies(fefw fefw_setup)
 target_include_directories(fefw PRIVATE "${FEFW_RUNTIME_ENGINE}/runtime/include" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx" src)
 target_compile_definitions(fefw PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS
-    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.11")
-target_link_libraries(fefw PRIVATE ${FEFW_MODULE_TARGETS} nxrt_gfx nxrt fefw_config fefw_mods)
+    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.12")
+target_link_libraries(fefw PRIVATE ${FEFW_MODULE_TARGETS} fefw_prompt_glyphs nxrt_gfx nxrt fefw_config fefw_mods)
 target_link_options(fefw PRIVATE /MAP /STACK:134217728 /HIGHENTROPYVA:NO /DEBUG)
 option(FEFW_GUI_SUBSYSTEM "Launch the game without a console window" ON)
 if(FEFW_GUI_SUBSYSTEM)

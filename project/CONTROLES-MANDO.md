@@ -19,7 +19,16 @@ If the controller does not respond, open **F1 → Settings → Controls → Game
 | D-pad | D-pad | D-pad | D-pad |
 | Sticks and stick clicks | Both sticks | Both sticks | Both sticks |
 
-The four face buttons follow their printed labels when SDL identifies them. PlayStation uses the equivalents listed above. Prompts drawn by the game retain their original symbols.
+The table above describes **Buttons by label**. In **F1 → Settings → Controls → Gamepad**, choose the layout that you prefer:
+
+| Layout | Confirm / Switch A | Back / Switch B | Switch X | Switch Y |
+| --- | --- | --- | --- | --- |
+| Buttons by label | Cross | Circle | Square | Triangle |
+| Buttons by position | Circle | Cross | Triangle | Square |
+
+**Button prompts → Auto** detects DualShock 4 and DualSense and displays the corresponding PlayStation symbols in the game's text, menus and dialogue hints. The symbols follow the selected layout and custom button remaps. Shoulder and trigger hints use L1/R1 and L2/R2. The replacement is generated locally from your game's fonts, including their small and large sizes; no game font or external icon pack is included in the download. Keyboard/mouse use in the host settings does not switch controller-only gameplay to keyboard icons.
+
+You can also select **PlayStation**, **Xbox** or **Switch** explicitly in **Button prompts**. Press **Apply and save** to use live changes. **Switch** restores the original game glyphs. The preferences persist in `controls.ini`: `[prompts] style = auto|playstation|xbox|switch`, `[pad] label_abxy = 1` for labels or `0` for positions, and `[padmap]` for remaps.
 
 Settings are stored in **controls.ini**, in `[pad]` and `[padmap]`. Runtime settings also open with **F1**. Both sticks default to a 10% deadzone; triggers activate at 35% travel. Rumble and sensors are enabled when available, but their physical behavior in this game has not been verified.
 

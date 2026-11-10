@@ -3,7 +3,15 @@
 
 #include "nxrt/game.h"
 #include "nxrt/services.h"
+#include "play/play_game.h"
 #include "play/play_types.h"
+
+// The title's font-glyph renderer from the pinned Goldoire runtime.
+namespace nxrt::games::fefw {
+void prompts_install(play::GameHost* host);
+void prompts_remove();
+void prompts_frame();
+}
 
 namespace {
 const nxrt::play::GameDefaults kControls = {.settings_text = R"ini(
@@ -44,6 +52,17 @@ dpad_right = RIGHT
 [bindings.all]
 )ini", .defaults_rev = 2, .controller_only = true};
 
+const nxrt::play::GamePlay kPlay = [] {
+    nxrt::play::GamePlay play;
+    // Keep the existing service-driven input timing and settings overlay.
+    play.install = [](uint64_t, nxrt::play::GameHost* host, const nxrt::play::Settings&) {
+        nxrt::games::fefw::prompts_install(host);
+    };
+    play.remove = &nxrt::games::fefw::prompts_remove;
+    play.frame = [](bool, double, nxrt::play::GameFrame*) { nxrt::games::fefw::prompts_frame(); };
+    return play;
+}();
+
 void title_defaults(nxrt::services::TitleProfile& profile) {
     profile.program_id = 0x04007EF01F8AE000ull;
     profile.name = "Fire Emblem: Fortune's Weave";
@@ -78,6 +97,7 @@ const nxrt::game::Info& game_info() {
         game.save_folder = "FireEmblemRecomp";
         game.title_defaults = &title_defaults;
         game.play_defaults = &kControls;
+        game.play = &kPlay;
         return game;
     }();
     return info;

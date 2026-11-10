@@ -1,6 +1,6 @@
 ﻿# SPDX-License-Identifier: GPL-3.0-or-later
 param([ValidateSet('Check','Install')][string]$Action = 'Check', [Parameter(Mandatory=$true)][string]$GameDirectory,
-      [string]$Current = 'v0.1.0-preview.11', [int]$ParentId = 0)
+      [string]$Current = 'v0.1.0-preview.12', [int]$ParentId = 0)
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Update-Core.ps1')
 $GameDirectory = [IO.Path]::GetFullPath($GameDirectory)

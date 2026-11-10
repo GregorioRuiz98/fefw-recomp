@@ -9,6 +9,7 @@
 #include "nxrt/runtime.h"
 #include "nxrt/svc.h"
 #include "play/play_types.h"
+#include "play/prompts.h"
 #include <SDL3/SDL.h>
 #include <filesystem>
 #include <fstream>
@@ -308,6 +309,8 @@ NXTEST(service_driven_controller_only_and_shutdown) {
             pump();
             CHECK(raw.face_label[i] < 4);
             CHECK_EQ(sample().buttons, nxrt::hid::btn(labels[raw.face_label[i] % 4]));
+            CHECK_EQ(nxrt::play::prompts_effective_style(), family.kind == nxrt::input::PadKind::PlayStation
+                ? nxrt::play::PromptStyle::PlayStation : nxrt::play::PromptStyle::Switch);
             SDL_SetJoystickVirtualButton(cleanup.joy, face[i], false);
             pump();
         }

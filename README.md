@@ -8,7 +8,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.11](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.11/FEFW-Recomp-Windows-x64-v0.1.0-preview.11.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.11)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.12](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.12/FEFW-Recomp-Windows-x64-v0.1.0-preview.12.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.12)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 
@@ -77,6 +77,8 @@ Setup uses a dark sidebar inspired by Goldoire's launcher, with **Game files**, 
 **3D reconstruction → Temporal anti-aliasing (TAAU)** combines successive 3D frames using the game's motion and depth data, before the UI is composed. **Bilinear** provides a comparison with temporal history disabled. Save and restart the game after changing it. This is a built-in host upscaler, not NVIDIA DLSS. It does not increase the game's original rendering resolution or promise higher FPS.
 
 The runtime searches for controllers at startup and checks again every second. To recover a DualShock 4 or another device, use **F1 → Settings → Controls → Gamepad → Rescan controllers**. Gameplay requires a controller. Keyboard and mouse are used only for the setup tool, host settings and shortcuts; they do not send game actions, even with old bindings in `controls.ini`. Close F1 to return controller input to the game.
+
+**Preview.12: PlayStation button symbols.** With **F1 → Settings → Controls → Button prompts → Auto**, DualShock 4 and DualSense use Cross/Circle/Square/Triangle, L1/R1 and L2/R2 in the game's font-based prompts. Symbols follow **Gamepad → Buttons by label / Buttons by position** and custom remaps. You can explicitly choose PlayStation, Xbox or the original Switch glyphs. The game fonts are read and patched locally in memory; they are not distributed or modified on disk.
 
 The footer shows whether there are **Unsaved changes**. **Revert** restores the form without changing saved settings. Picture shows the resulting 3D input and output dimensions for a custom resolution; Performance explains the selected target. Pending changes survive section switches. Closing with unsaved changes asks whether to discard them.
 
