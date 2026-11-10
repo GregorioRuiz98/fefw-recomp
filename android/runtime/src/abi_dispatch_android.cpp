@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// ABI 3 call/import portion of nxrt/core/abi_glue.cpp. Kernel/EH ABI functions
-// deliberately remain undefined until their real subsystems have been ported.
+// ABI 3 call/import portion of nxrt/core/abi_glue.cpp. Kernel SVC remains undefined
+// until its real subsystem is ported; guest EH and timers live in their adapters.
 #include "nxrt/dispatch.h"
 #include "nxrt/nxmodule.h"
 #include <cstdio>
@@ -17,14 +17,16 @@ void host_import(Ctx* context, uint32_t id) {
         nxrt::trap(reason, id);
     }
     nxrt::detail::count_import();
-    struct RestoreImport {
-        Ctx* context;
-        const char* name;
-        uint64_t from;
-        ~RestoreImport() { context->in_import = name; context->import_from = from; }
-    } restore{context, context->in_import, context->import_from};
+    const char* saved_name = context->in_import;
+    const uint64_t saved_from = context->import_from;
     context->in_import = nxrt::import_name(id);
     context->import_from = context->x[30] - 4;
-    nxrt::dispatch_call(context, target);
+    // Guest EH uses longjmp; no non-trivial destructor may span that boundary.
+    try { nxrt::dispatch_call(context, target); }
+    catch (...) {
+        context->in_import = saved_name; context->import_from = saved_from;
+        throw;
+    }
+    context->in_import = saved_name; context->import_from = saved_from;
 }
 }  // extern "C"

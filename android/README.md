@@ -2,7 +2,7 @@
 
 **This APK does not run Fire Emblem yet.** It is the first installable Android porting milestone, built for `arm64-v8a` (the intended Galaxy S23 Ultra) with a separate `x86_64` build for emulator tests. No game executable, game code, shaders or assets are included. The Windows release remains separate.
 
-Version **0.1.3** links the [Android memory backend, ELF/NSO loader, ABI 3 module registry and dispatcher](runtime/README.md). Inside the app, **33 memory cases and 49 loader/core cases pass**. The normal instrumentation has **23 checks**; an opt-in local-copy run passes **26 checks**, mapping all six actual game modules and analysing **287,544 relocations**. One TLS descriptor is preserved for the game's own dynamic linker; that linker and game code are **not executed** in this milestone. The memory backend requires **4 KB host pages**. The ARM64 APK is built; physical Galaxy execution remains unverified.
+Version **0.1.4** links the [Android memory backend, ELF/NSO loader, ABI 3 module registry, dispatcher, hooks, guest exceptions and timer](runtime/README.md). Inside the app, **33 memory cases and 104 runtime-core cases pass**. The normal instrumentation has **23 checks**; an opt-in local-copy run passes **26 checks**, mapping all six actual game modules and analysing **287,544 relocations**. One TLS descriptor is preserved for the game's own dynamic linker; that linker and game code are **not executed** in this milestone. The memory backend requires **4 KB host pages**. The ARM64 APK is built; physical Galaxy execution remains unverified.
 
 ## Implemented
 
@@ -12,7 +12,7 @@ Version **0.1.3** links the [Android memory backend, ELF/NSO loader, ABI 3 modul
 - Host page-size reporting, a real `memfd` shared-memory alias test and a non-destructive one-page probe at the guest main-module address.
 - Android's folder picker with persistent read permission. Validation streams SHA-256 and checks Build IDs for all six supported ExeFS modules, and checks that a RomFS folder exists. It does not extract, copy or modify game files.
 - **Test selected game modules** opens verified NSOs read-only through Android file descriptors, decompresses both LZ4 and ZBIC, maps the six original guest addresses and analyses relocations. It releases the mappings after testing. Final guest linking, guest services and rendering are still pending.
-- **Test loader and dispatcher** exercises real synthetic ELF/NSO loading, TLS data, RELA/RELR, imports, constructors, ABI refusal, function replacement/cache invalidation and cleanup. Unimplemented imports raise a reported engine error instead of returning a fake success value.
+- **Test loader and dispatcher** exercises real synthetic ELF/NSO loading, TLS data, RELA/RELR, imports, constructors, ABI refusal, hooks, guest exception unwinding/type matching, timer registers, function replacement/cache invalidation and cleanup. Unimplemented imports raise a reported engine error instead of returning a fake success value.
 - Controller discovery and hot-plug events, live axes/buttons and physical PlayStation button labels. Gameplay mappings still belong to the engine port that remains to be implemented.
 - Explicit report export without the selected folder URI, game content or device serial number. No internet permission, background downloads or automatic uploads.
 - The project's original Woven Shield icon and credits.
@@ -58,7 +58,7 @@ The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Andro
 
 1. Port guest thread scheduling, synchronization, SVC/services, guest exception handling, filesystems and audio. The memory backend, module loader and call/import dispatcher are integrated; the graphics write tracker is not ported yet.
 2. Implement guest sub-page permissions/aliases on 16 KB hosts. The memory backend currently refuses those hosts explicitly; 16 KB ELF alignment is a separate installation property. Its 4 KB-host contract results do not establish 16 KB-host compatibility.
-3. Finish linking the six locally generated ARM64 game modules with a complete Android runtime and checked hooks. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
+3. All six locally generated game modules now compile into private ARM64 archives. Complete the Android SVC/kernel services and game runtime to link and execute them. The current integration link stops on `guest_svc`; that one ABI entry represents the unported system-call subsystem, not a single missing game setting. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
 4. Port SDL/game lifecycle integration and the game's NVN/Vulkan renderer, including mobile-driver feature limits and an appropriate path when host-memory import is unavailable.
 5. Prepare shaders and textures locally, integrate the movie/audio path, and test actual GPU memory use, input, saves and lifecycle on the Galaxy. Vulkan 1.3 alone does not guarantee all renderer features.
 

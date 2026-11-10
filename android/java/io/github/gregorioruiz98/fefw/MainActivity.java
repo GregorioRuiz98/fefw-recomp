@@ -66,7 +66,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
         text("FEFW / ANDROID", 25, 0xfff2e8dc);
-        text("Native port • module loader preview 0.1.3", 14, 0xffb7c4d0);
+        text("Native port • execution core preview 0.1.4", 14, 0xffb7c4d0);
         text("This build tests Android files, controllers, memory and Vulkan. It does not run the game yet.", 16, 0xffe8b879);
         heading("Your game folder");
         String saved = getPreferences(MODE_PRIVATE).getString("tree", "");
@@ -96,12 +96,12 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         memoryStatus = text("The real nxrt memory backend is linked. Test its fixed module addresses, sparse heap, shared aliases and protections. Full game startup is still pending; this backend currently requires 4 KB host pages.", 14, 0xffc9d3dc);
         memoryButton = button("Test runtime memory", v -> testRuntimeMemory());
         heading("Module loader and execution core");
-        coreStatus = text("The ABI 3 module registry, dispatcher and ELF/NSO loader are linked. Synthetic tests cover relocations, TLS data, imports, constructors and host function calls. Guest scheduling and graphics remain pending.", 14, 0xffc9d3dc);
+        coreStatus = text("The ABI 3 registry, dispatcher, hooks, guest exceptions, timer and ELF/NSO loader are linked. Synthetic tests cover their runtime contracts. Guest scheduling, services and graphics remain pending.", 14, 0xffc9d3dc);
         coreButton = button("Test loader and dispatcher", v -> testRuntimeCore());
         loaderStatus = text("Use your verified local copy to map all six real modules and analyse relocations. Files are opened read-only. Final guest linking and game execution remain pending.", 14, 0xffc9d3dc);
         loaderButton = button("Test selected game modules", v -> inspectGameModules());
         heading("Development status and credits");
-        text("Next: port guest threads, system services, exception handling, filesystem, audio and the NVN/Vulkan game renderer; compile and link all lifted game modules for ARM64. Passing module-loading tests does not make this build playable.", 14, 0xffc9d3dc);
+        text("All six lifted game modules compile for ARM64. Next: port guest threads, system services, filesystem, audio and the NVN/Vulkan game renderer to complete linking and startup. Passing runtime tests does not make this build playable.", 14, 0xffc9d3dc);
         text("Runtime foundation: Goldoire, drakolordx7 and featureJosh. Patch reference: Kompas9. Android integration: GregorioRuiz98, with Codex assistance. Woven Shield is original project artwork. No game files are included.", 13, 0xffb7c4d0);
         button("Export device report", v -> {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").putExtra(Intent.EXTRA_TITLE, "fefw-android-diagnostics.json");
@@ -193,7 +193,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
                 result = NativeBridge.runtimeCoreTest();
                 JSONObject report = new JSONObject(result);
                 message = report.getString("status").equals("PASS")
-                    ? report.getInt("cases_passed") + " loader and dispatcher tests passed. Guest game services and rendering are still pending."
+                    ? report.getInt("cases_passed") + " runtime core tests passed. Guest game services and rendering are still pending."
                     : "Loader tests: " + report.optString("failures", report.getString("status"));
             } catch (Throwable error) { message = result = "FAILED: " + error.getClass().getSimpleName(); }
             final String report = result, status = message;

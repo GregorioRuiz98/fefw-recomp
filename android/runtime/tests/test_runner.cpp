@@ -5,6 +5,8 @@
 #include "nxrt/module.h"
 #include "nxrt/dispatch.h"
 #include "nxrt/android_session.h"
+#include "nxrt/hooks.h"
+#include "../src/eh_internal.h"
 #include <cstring>
 #include <unistd.h>
 #include <mutex>
@@ -20,7 +22,7 @@ void fail(const char*, int line, const char* expression, const std::string& deta
 void skip(const char* why) { throw std::runtime_error(std::string("Unexpected skipped test: ") + why); }
 static std::string run_tests(bool core) {
     std::lock_guard lock(nxrt::android_runtime_mutex());
-    if (nxrt::mem::initialised() || !nxrt::modules().empty() || nxrt::fn_count() || nxrt::hle_count())
+    if (nxrt::mem::initialised() || !nxrt::modules().empty() || nxrt::fn_count() || nxrt::hle_count() || nxrt::hook_count())
         return "{\"status\":\"BUSY\",\"game_runtime_available\":false}";
     if (sysconf(_SC_PAGESIZE) != static_cast<long>(nxrt::mem::kPage))
         return "{\"status\":\"BLOCKED_HOST_PAGE_SIZE\",\"memory_backend_available\":true,\"game_runtime_available\":false}";
@@ -41,6 +43,7 @@ static std::string run_tests(bool core) {
         }
         nxrt::modules_unload_all();
         nxrt::hle_clear();
+        nxrt::hooks_clear();
         nxrt::mem::shutdown();
     }
     std::ostringstream report;
@@ -48,7 +51,9 @@ static std::string run_tests(bool core) {
            << ",\"module_loader_available\":true,\"abi_version\":3"
            << ",\"suite\":\"" << (core ? "loader_dispatch" : "memory") << "\""
            << ",\"cases_passed\":" << passed << ",\"cases_failed\":" << failed
-           << ",\"cleanup_verified\":" << (!nxrt::mem::initialised() && !nxrt::mem::heap_exists() ? "true" : "false")
+           << ",\"cleanup_verified\":" << (!nxrt::mem::initialised() && !nxrt::mem::heap_exists()
+               && nxrt::modules().empty() && !nxrt::fn_count() && !nxrt::hle_count()
+               && !nxrt::hook_count() && nxrt::eh::detail::catch_stack().empty() ? "true" : "false")
            << ",\"game_runtime_available\":false,\"failures\":[" << errors.str() << "]}";
     return report.str();
 }

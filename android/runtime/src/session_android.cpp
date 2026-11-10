@@ -3,6 +3,7 @@
 #include "nxrt/module.h"
 #include "nxrt/memory.h"
 #include "nxrt/dispatch.h"
+#include "nxrt/hooks.h"
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -47,7 +48,7 @@ std::recursive_mutex& android_runtime_mutex() { static std::recursive_mutex lock
 
 std::string android_inspect_modules(const std::array<int, 6>& descriptors) {
     std::lock_guard lock(android_runtime_mutex());
-    if (mem::initialised() || !modules().empty() || fn_count() || hle_count())
+    if (mem::initialised() || !modules().empty() || fn_count() || hle_count() || hook_count())
         return "{\"status\":\"BUSY\",\"game_runtime_available\":false}";
     SessionCleanup cleanup;
     unsigned loaded = 0;

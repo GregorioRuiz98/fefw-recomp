@@ -354,10 +354,7 @@ void dispatch_call(::Ctx* c, uint64_t addr) {
     if (hle_is_thunk(addr)) {
         Thunk& t = *g_thunks[thunk_index(addr)];
         t.calls.fetch_add(1, std::memory_order_relaxed);
-        struct RestoreHle {
-            const char* saved = t_hle_name;
-            ~RestoreHle() { t_hle_name = saved; }
-        } restore;
+        const char* saved = t_hle_name;
         t_hle_name = t.name.c_str();
         // [hle] trace: the line is written after the handler ran, so it carries the result (x0) next to the arguments
         const HleTrace& tr = hle_trace();
@@ -368,15 +365,20 @@ void dispatch_call(::Ctx* c, uint64_t addr) {
             tseq = const_cast<HleTrace&>(tr).seq.fetch_add(1, std::memory_order_relaxed) + 1;
             for (int i = 0; i < 4; i++) targs[i] = reg(c, i);
         }
-        if (t.fn) {
-            t.fn(c);
-        } else {
-            trap(("Unimplemented import: " + t.name).c_str(), addr);
+        // Guest unwinds use longjmp. Restore explicitly for host C++ exceptions,
+        // without introducing a non-trivial destructor across guest activations.
+        try {
+            if (t.fn) t.fn(c);
+            else trap(("Unimplemented import: " + t.name).c_str(), addr);
+        } catch (...) {
+            t_hle_name = saved;
+            throw;
         }
         if (traced && tseq <= tr.limit)
             NXLOG_I("hle-trace", "#%lld %s(x0=0x%llx x1=0x%llx x2=0x%llx x3=0x%llx) lr=0x%llx -> 0x%llx", static_cast<long long>(tseq), t.name.c_str(),
                     static_cast<unsigned long long>(targs[0]), static_cast<unsigned long long>(targs[1]), static_cast<unsigned long long>(targs[2]),
                     static_cast<unsigned long long>(targs[3]), static_cast<unsigned long long>(lr(c)), static_cast<unsigned long long>(reg(c, 0)));
+        t_hle_name = saved;
         return;
     }
     trap("indirect call to an address that is not a known function", addr);

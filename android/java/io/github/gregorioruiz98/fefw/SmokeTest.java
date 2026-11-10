@@ -52,7 +52,7 @@ public final class SmokeTest extends Instrumentation {
             for(int i=0;i<300 && screen.coreReport.equals("Not run");++i) Thread.sleep(100);
             JSONObject core = new JSONObject(screen.coreReport);
             check(core.getString("status").equals("PASS"),"Android module core: "+screen.coreReport);
-            check(core.getInt("abi_version")==3 && core.getInt("cases_passed")==49 && core.getInt("cases_failed")==0,"all loader, registry, NSO and dispatch cases pass in app sandbox");
+            check(core.getInt("abi_version")==3 && core.getInt("cases_passed")==104 && core.getInt("cases_failed")==0,"all loader, registry, exceptions, hooks, timer and dispatch cases pass in app sandbox");
             check(core.getBoolean("cleanup_verified") && !core.getBoolean("game_runtime_available"),"module core does not claim a playable engine");
             JSONObject missing = new JSONObject(NativeBridge.inspectModules(new int[]{-1,-1,-1,-1,-1,-1}));
             check(missing.getString("status").equals("FAIL") && missing.getBoolean("cleanup_verified"),"invalid file descriptors fail with cleanup");
