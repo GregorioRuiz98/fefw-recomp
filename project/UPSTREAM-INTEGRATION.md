@@ -1,6 +1,6 @@
 # Goldoire integration
 
-## Current implementation: preview.12
+## Current implementation: preview.13
 
 The full runtime, memory-pool implementation, Vulkan backend, built-in temporal upscaler, ASTC/BC7 source converter, shader extractor and shader translator now come from [Goldoire v0.1.5, a538375a80070e8a6bf5476b03b3dd877a13ea9d](https://github.com/Goldoire/fefw-recomp/tree/a538375a80070e8a6bf5476b03b3dd877a13ea9d). `tools/bootstrap.py` prepares this separately in `work/renderer-engine`, leaving the earlier pinned nxrecomp checkout intact. `patches/renderer.patch` contains only controller discovery, controller-only gameplay and the previously tested audio compatibility adjustments. It also replaces a literal NUL in the upstream platform source with the equivalent escaped C++ character. The NVN, texture, memory-pool and temporal implementations are otherwise unchanged from that revision.
 

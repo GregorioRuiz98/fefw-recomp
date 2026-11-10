@@ -44,7 +44,16 @@ target_compile_options(fefw_config PUBLIC /utf-8)
 target_compile_definitions(fefw_config PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS UNICODE _UNICODE)
 target_link_libraries(fefw_config PUBLIC bcrypt)
 enable_language(RC)
-add_executable(fefw_setup WIN32 src/fefw_setup.cpp src/fefw_controllers.cpp src/fefw_setup.rc)
+# The original icon is stored as text so existing source-only update clients
+# can install it. Windows PowerShell decodes it; no extra build dependency.
+set(FEFW_ICON_FILE "${CMAKE_CURRENT_BINARY_DIR}/fefw.ico")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS src/fefw_icon.json tools/Write-AppIcon.ps1)
+execute_process(COMMAND powershell -NoProfile -ExecutionPolicy Bypass -File
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/Write-AppIcon.ps1"
+    -Source "${CMAKE_CURRENT_SOURCE_DIR}/src/fefw_icon.json" -Output "${FEFW_ICON_FILE}"
+    COMMAND_ERROR_IS_FATAL ANY)
+configure_file(src/fefw_icon.rc.in "${CMAKE_CURRENT_BINARY_DIR}/fefw_icon.rc" @ONLY)
+add_executable(fefw_setup WIN32 src/fefw_setup.cpp src/fefw_controllers.cpp src/fefw_setup.rc "${CMAKE_CURRENT_BINARY_DIR}/fefw_icon.rc")
 target_link_libraries(fefw_setup PRIVATE fefw_config SDL3::SDL3-static comctl32 ole32 shell32 uxtheme dwmapi)
 target_link_options(fefw_setup PRIVATE /MANIFEST:NO)
 enable_testing()
@@ -192,11 +201,11 @@ foreach(module main sdk subsdk0 subsdk1 subsdk2 rtld)
     list(APPEND FEFW_MODULE_TARGETS fefw_${module})
 endforeach()
 
-add_executable(fefw src/fefw_main.cpp src/fefw_game.cpp src/fefw_pc.cpp src/fefw_resolution.cpp src/fefw_movie.cpp)
+add_executable(fefw src/fefw_main.cpp src/fefw_game.cpp src/fefw_pc.cpp src/fefw_resolution.cpp src/fefw_movie.cpp "${CMAKE_CURRENT_BINARY_DIR}/fefw_icon.rc")
 add_dependencies(fefw fefw_setup)
 target_include_directories(fefw PRIVATE "${FEFW_RUNTIME_ENGINE}/runtime/include" "${FEFW_RUNTIME_ENGINE}/runtime/src/gfx" src)
 target_compile_definitions(fefw PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS
-    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.12")
+    FEFW_EXEFS_DEFAULT="${FEFW_EXEFS}" FEFW_VERSION="v0.1.0-preview.13")
 target_link_libraries(fefw PRIVATE ${FEFW_MODULE_TARGETS} fefw_prompt_glyphs nxrt_gfx nxrt fefw_config fefw_mods)
 target_link_options(fefw PRIVATE /MAP /STACK:134217728 /HIGHENTROPYVA:NO /DEBUG)
 option(FEFW_GUI_SUBSYSTEM "Launch the game without a console window" ON)

@@ -9,3 +9,5 @@ Modifications are supplied as `project/patches/engine.patch`; the tools download
 The GNU GPL v3 text is in `LICENSE`. Each file’s version notice is preserved, including the later-version option where applicable. Third-party MIT, Apache and other notices are not replaced by a generic attribution to this project.
 
 The public setup package includes its corresponding source and original resources. Game-derived components are generated locally and are not part of this distribution. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [LEGAL.md](LEGAL.md).
+
+The Woven Shield application icon was created for this project with image generation and no game assets or reference images. Its complete resource source and provenance are included in `project/src/fefw_icon.json` and `project/src/APP-ICON.md`.

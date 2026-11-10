@@ -39,13 +39,13 @@
     },
     {
       "path": "NOTICE.md",
-      "bytes": 1181,
-      "sha256": "3a84af828b5d461f0e5fe8a0fc7568dc3da9fd297782d130ec21f7555c0f5241"
+      "bytes": 1427,
+      "sha256": "66f1dc64eeddde2ddc66998394ffd19daf1b4743bc954996a5bf4d07c93c2d74"
     },
     {
       "path": "README.md",
-      "bytes": 18325,
-      "sha256": "6796c79afbb8f4beac484b0e474e460c7dbc7c3c7b98a5c2ca6ba55d639783d2"
+      "bytes": 18522,
+      "sha256": "d3a762d332060f57d0d5c09d58a60784c4db7f6afb7e097ebc1ce04368498c84"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -59,8 +59,8 @@
     },
     {
       "path": "project/CMakeLists.txt",
-      "bytes": 14665,
-      "sha256": "77cab5eb6882061fb346d5898fb1d5c9a1269b08fdd4fd16c2cdee189d9b737b"
+      "bytes": 15410,
+      "sha256": "87647372ca569e1f7d28172b96c51ea0e5d0e3e2b2b3fcacf840bfc13e1b9416"
     },
     {
       "path": "project/CONTRIBUTING.md",
@@ -104,13 +104,13 @@
     },
     {
       "path": "project/NOTICE.md",
-      "bytes": 1181,
-      "sha256": "3a84af828b5d461f0e5fe8a0fc7568dc3da9fd297782d130ec21f7555c0f5241"
+      "bytes": 1427,
+      "sha256": "66f1dc64eeddde2ddc66998394ffd19daf1b4743bc954996a5bf4d07c93c2d74"
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 18325,
-      "sha256": "6796c79afbb8f4beac484b0e474e460c7dbc7c3c7b98a5c2ca6ba55d639783d2"
+      "bytes": 18522,
+      "sha256": "d3a762d332060f57d0d5c09d58a60784c4db7f6afb7e097ebc1ce04368498c84"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -120,7 +120,7 @@
     {
       "path": "project/UPSTREAM-INTEGRATION.md",
       "bytes": 15588,
-      "sha256": "ef809c3089246ccc1034678a64c43f480d9620c7bd01b9d334e77f32383e4660"
+      "sha256": "9ca6235db53d2e2af8845f9bf675c4dc1bc26fcf4f400686ed09fbcf6c400007"
     },
     {
       "path": "project/config.py",
@@ -233,6 +233,11 @@
       "sha256": "8b41be4fb76ed23ff0e324df587dba58be1bf4a36385d546e52e8e21301550cb"
     },
     {
+      "path": "project/src/APP-ICON.md",
+      "bytes": 1500,
+      "sha256": "95e7f7ac8597119593988422b99b8bb69e3d12d8326dff0daeef720c461baf68"
+    },
+    {
       "path": "project/src/SETTINGS-DESIGN.md",
       "bytes": 2202,
       "sha256": "4dea41a4f12f2bb7af7ddd9a46124aef656eb1b5778dfab22ab26d3d03ca8378"
@@ -268,6 +273,16 @@
       "sha256": "108910a4c4e2958a56f8a092390677808751fef8f07fe780ad95b4ca3671257b"
     },
     {
+      "path": "project/src/fefw_icon.json",
+      "bytes": 144842,
+      "sha256": "26252a87b6abcbc15aaf7a7d9c704eb39801935e82cfafc03e990de9ef3a2866"
+    },
+    {
+      "path": "project/src/fefw_icon.rc.in",
+      "bytes": 110,
+      "sha256": "b92b0dbd8fda19c8b41ebc3be4058b2d6ee8fd242864ec6af9515e8007b52a36"
+    },
+    {
       "path": "project/src/fefw_main.cpp",
       "bytes": 29695,
       "sha256": "81d283706ddf2bda2a078c887f547e3d5278262b67dbb08f7b063c2a38b74a30"
@@ -280,7 +295,7 @@
     {
       "path": "project/src/fefw_mods.h",
       "bytes": 719,
-      "sha256": "a8213752b8fbfbf4f9c263018cbc83465d6d95a3ed7e54fe911e6f6a7d5f9a00"
+      "sha256": "3cd7014b3b8b2760366c5beba3a747737ae0487441e1d25785ac5dbd43d444f6"
     },
     {
       "path": "project/src/fefw_movie.cpp",
@@ -310,7 +325,7 @@
     {
       "path": "project/src/fefw_preferences.cpp",
       "bytes": 5801,
-      "sha256": "f1e7a5823a511b427b9cbf8ff26242216fd4b6f63fc8e6a98d84630c6230c296"
+      "sha256": "227ca031f842e4753f0b5e74a087e717d7688430f1a90415f85a26d4062e8ecb"
     },
     {
       "path": "project/src/fefw_preferences.h",
@@ -323,9 +338,14 @@
       "sha256": "f693743acb30b338f6d7a5330b1447488d41dfb4da83e02cd1ef4f25d062c74b"
     },
     {
+      "path": "project/src/fefw_resources.h",
+      "bytes": 83,
+      "sha256": "c35f824383a2f73e0ec517f2affc168c7499ce58401376cf4dfc9fc30c1d22e8"
+    },
+    {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 84773,
-      "sha256": "c164b58ab3dfd5de31ab5995b54a9cc99983fa0a5b4de26748ca1be88ce1f720"
+      "bytes": 85478,
+      "sha256": "89855821013d6a121a58a745dc66616f8f2a4bf03dd8c9825c9d9ed2cca06ccb"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -420,7 +440,7 @@
     {
       "path": "project/tests/check_setup.py",
       "bytes": 10779,
-      "sha256": "15857e73f94c37b8e658f4e90d77bfb2730709232bcd6b19affa99ebb325209d"
+      "sha256": "a1176795755cffc5d06252d003900ed8aed9ff82a541bcece7db3ef738748bb4"
     },
     {
       "path": "project/tests/check_shader_textures.py",
@@ -660,7 +680,7 @@
     {
       "path": "project/tools/Prepare-Game.ps1",
       "bytes": 6788,
-      "sha256": "de31a40a742c656b908491beae887a857960add93b513895b57a51b4a38b6769"
+      "sha256": "94cb5917cec91335d01b80977fb818f1caba7574d81b26acc2d74085ea5faef9"
     },
     {
       "path": "project/tools/Update-Core.ps1",
@@ -670,7 +690,12 @@
     {
       "path": "project/tools/Update-Release.ps1",
       "bytes": 3251,
-      "sha256": "4d6e5af7177c5f3af973c4f3ccfb84d6f6c892a3000e6b4b77facf57afd85a04"
+      "sha256": "24e156958daa96b514ff9f77d24d9d119775026a08da0127edc01561e6c27706"
+    },
+    {
+      "path": "project/tools/Write-AppIcon.ps1",
+      "bytes": 675,
+      "sha256": "44fbf9be2e5f14dc5e6d1f2f0a45c6597f43cbb43623c98a2d8eaf941861d030"
     },
     {
       "path": "project/tools/audit_public_repo.py",
@@ -686,6 +711,11 @@
       "path": "project/tools/check_shader_variants.py",
       "bytes": 5709,
       "sha256": "3a91e8963f730f27b963e556eb583fdc7e40495781b8ace3e32bfddd1de550d9"
+    },
+    {
+      "path": "project/tools/export_app_icon.py",
+      "bytes": 1375,
+      "sha256": "4a00b3c57afea9404029f373ad953e1fcab4452374f024bd24a19f465ca7f88d"
     },
     {
       "path": "project/tools/export_engine_patch.py",
@@ -800,7 +830,7 @@
     {
       "path": "tools/Prepare-Game.ps1",
       "bytes": 6788,
-      "sha256": "de31a40a742c656b908491beae887a857960add93b513895b57a51b4a38b6769"
+      "sha256": "94cb5917cec91335d01b80977fb818f1caba7574d81b26acc2d74085ea5faef9"
     }
   ]
 }

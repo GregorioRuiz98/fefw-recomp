@@ -6,9 +6,11 @@ An experimental static recompilation project for Windows x64, using nxrecomp fro
 
 This project is not affiliated with, sponsored by or approved by Nintendo, Intelligent Systems or any other rights holder. Fire Emblem and Nintendo are named to identify compatibility; their trademarks and other rights belong to their respective holders.
 
+The game and setup tool use the project's original **Woven Shield** application icon. It contains no game artwork; its provenance and complete Windows resource source are included in the package.
+
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.12](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.12/FEFW-Recomp-Windows-x64-v0.1.0-preview.12.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.12)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.13](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.13/FEFW-Recomp-Windows-x64-v0.1.0-preview.13.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.13)
 
 Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
 

@@ -2,6 +2,7 @@
 #include "fefw_config.h"
 #include "fefw_preferences.h"
 #include "fefw_controllers.h"
+#include "fefw_resources.h"
 #include <windows.h>
 #include <commctrl.h>
 #include <shobjidl.h>
@@ -43,7 +44,7 @@ void changed();
 void select_page(int p);
 void localize();
 s::Settings read_form();
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.12";
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.13";
 std::map<HWND,std::wstring> captions;
 std::map<HWND,std::vector<std::wstring>> combo_labels;
 std::unique_ptr<s::Controllers> controllers;
@@ -740,6 +741,10 @@ bool capture_ui(const wchar_t* name) {
 bool check_ui() {
     bool ok = true; int checks = 0;
     auto check = [&](bool v, const char* name) { ++checks; if (!v) { ok = false; std::printf("UI FAIL: %s\n", name); } };
+    check(GetClassLongPtrW(window, GCLP_HICON) != 0 &&
+        GetClassLongPtrW(window, GCLP_HICON) != reinterpret_cast<LONG_PTR>(LoadIconW(nullptr, IDI_APPLICATION)),
+        "original large application icon");
+    check(GetClassLongPtrW(window, GCLP_HICONSM) != 0, "original small application icon");
     ShowWindow(window, SW_SHOWNOACTIVATE); UpdateWindow(window);
     check(!versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0, "folder and language choices");
     check(selection(Mode) >= 0 && selection(Resolution) >= 0 && IsWindowEnabled(item(Save)), "initial graphics and save state");
@@ -1102,7 +1107,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         INITCOMMONCONTROLSEX cc{sizeof cc, ICC_STANDARD_CLASSES | ICC_PROGRESS_CLASS | ICC_TAB_CLASSES}; InitCommonControlsEx(&cc);
         dpi = static_cast<int>(GetDpiForSystem()); ui::init();
         WNDCLASSEXW wc{sizeof wc}; wc.hInstance = instance; wc.lpfnWndProc = proc; wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-        wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION); wc.hbrBackground = nullptr; wc.lpszClassName = L"FEFW_Configuration";
+        wc.hIcon = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_FEFW_APP), IMAGE_ICON,
+            GetSystemMetricsForDpi(SM_CXICON, dpi), GetSystemMetricsForDpi(SM_CYICON, dpi), LR_SHARED));
+        wc.hIconSm = static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(IDI_FEFW_APP), IMAGE_ICON,
+            GetSystemMetricsForDpi(SM_CXSMICON, dpi), GetSystemMetricsForDpi(SM_CYSMICON, dpi), LR_SHARED));
+        wc.hbrBackground = nullptr; wc.lpszClassName = L"FEFW_Configuration";
         RegisterClassExW(&wc);
         WNDCLASSEXW page_class = wc; page_class.lpfnWndProc = page_proc; page_class.lpszClassName = L"FEFW_SettingsPage";
         RegisterClassExW(&page_class);
