@@ -35,9 +35,16 @@ public final class SmokeTest extends Instrumentation {
             check(!screen.nativeReport.isEmpty(),"activity loads JNI diagnostics");
             waitForIdleSync();
             for(int i=0;i<100 && !screen.surface.getHolder().getSurface().isValid();++i) Thread.sleep(100);
+            check(NativeBridge.renderTest(screen.surface.getHolder().getSurface(), 0).startsWith("FAILED:"),"zero FPS rejected before dividing or rendering");
             runOnMainSync(() -> screen.renderButton.performClick());
             for(int i=0;i<300 && screen.renderReport.equals("Not run");++i) Thread.sleep(100);
-            check(screen.renderReport.startsWith("PASS:"),"real Vulkan presentation: "+screen.renderReport);
+            JSONObject pacing = new JSONObject(screen.renderReport);
+            check(pacing.getString("status").equals("PASS"),"real Vulkan presentation: "+screen.renderReport);
+            check(pacing.getInt("target_fps")==30 && pacing.getInt("frames")==120,"30 FPS target reaches native loop");
+            check(pacing.getDouble("submission_span_ms")>=3900,"120 frames are paced instead of submitted at full speed");
+            check(pacing.getDouble("submission_fps")<=30.1,"monotonic pacing stays within the average frame budget");
+            check(pacing.getDouble("submission_fps")>=28.5,"colour test reaches the 30 FPS target within five percent");
+            check(!pacing.getBoolean("game_runtime_available"),"colour-test timing is not advertised as gameplay");
             result.putString("status","PASS"); result.putInt("checks",checks);
             result.putString("native",probe.toString()); result.putString("presentation",screen.renderReport);
             result.putBoolean("game_runtime_available",false);

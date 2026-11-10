@@ -60,7 +60,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
         text("FEFW / ANDROID", 25, 0xfff2e8dc);
-        text("Native port • platform diagnostics 0.1.0", 14, 0xffb7c4d0);
+        text("Native port • platform diagnostics 0.1.1", 14, 0xffb7c4d0);
         text("This build tests Android files, controllers, memory and Vulkan. It does not run the game yet.", 16, 0xffe8b879);
         heading("Your game folder");
         String saved = getPreferences(MODE_PRIVATE).getString("tree", "");
@@ -80,8 +80,8 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         deviceStatus = text("Checking native library…", 14, 0xffc9d3dc);
         button("Refresh native checks", v -> probe());
         surface = new SurfaceView(this); content.addView(surface, new LinearLayout.LayoutParams(-1, dp(150)));
-        renderStatus = text("Vulkan presentation test not run. This is a colour test, not game graphics.", 14, 0xffc9d3dc);
-        renderButton = button("Test Vulkan presentation", v -> render());
+        renderStatus = text("30 FPS target (33.33 ms per frame). The Vulkan colour test measures submission pacing; it does not measure game performance.", 14, 0xffc9d3dc);
+        renderButton = button("Test 30 FPS Vulkan pacing", v -> render());
         heading("Controller");
         controllerStatus = text("Scanning…", 14, 0xffc9d3dc);
         inputStatus = text("Connect a USB or Bluetooth controller and press a button or move a stick.", 14, 0xffc9d3dc);
@@ -112,11 +112,24 @@ public final class MainActivity extends Activity implements InputManager.InputDe
 
     private void render() {
         if (busy || !surface.getHolder().getSurface().isValid()) return;
-        busy = true; renderButton.setEnabled(false); renderStatus.setText("Presenting 60 diagnostic Vulkan frames…");
+        busy = true; renderButton.setEnabled(false); renderReport = "Not run";
+        renderStatus.setText("Presenting 120 diagnostic frames with a 30 FPS limit…");
         worker.execute(() -> {
-            try { renderReport = NativeBridge.renderTest(surface.getHolder().getSurface()); }
-            catch (Throwable error) { renderReport = "FAILED: " + error.getClass().getSimpleName(); }
-            runOnUiThread(() -> { busy = false; renderButton.setEnabled(true); renderStatus.setText(renderReport); });
+            String message;
+            try {
+                renderReport = NativeBridge.renderTest(surface.getHolder().getSurface(), NativeBridge.TARGET_FPS);
+                if (renderReport.startsWith("FAILED:")) message = renderReport;
+                else {
+                    JSONObject data = new JSONObject(renderReport);
+                    message = String.format(Locale.ROOT,
+                        "%d diagnostic frames • target %d FPS\nSubmission rate %.2f FPS • mean %.2f ms • p95 %.2f ms\nColour test only. The Android game engine is still pending.",
+                        data.getInt("frames"), data.getInt("target_fps"), data.getDouble("submission_fps"),
+                        data.getDouble("mean_interval_ms"), data.getDouble("p95_interval_ms"));
+                }
+            }
+            catch (Throwable error) { message = renderReport = "FAILED: " + error.getClass().getSimpleName(); }
+            final String status = message;
+            runOnUiThread(() -> { busy = false; renderButton.setEnabled(true); renderStatus.setText(status); });
         });
     }
 
@@ -193,6 +206,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
                     report.put("model", Build.MODEL); report.put("android_api", Build.VERSION.SDK_INT);
                     report.put("platform", nativeReport.isEmpty() ? JSONObject.NULL : new JSONObject(nativeReport));
                     report.put("presentation", renderReport); report.put("modules_verified", verified);
+                    report.put("target_fps", NativeBridge.TARGET_FPS);
                     report.put("game_runtime_available", false);
                     try (java.io.OutputStream stream = getContentResolver().openOutputStream(output, "wt")) {
                         if (stream == null) throw new java.io.IOException();

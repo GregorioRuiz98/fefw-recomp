@@ -59,18 +59,18 @@
     },
     {
       "path": "android/CMakeLists.txt",
-      "bytes": 649,
-      "sha256": "a445cc00c6d9999db3b6e9a08fdc94015f0f574c9e5a3f7c3219e7b201f876b1"
+      "bytes": 662,
+      "sha256": "226ca13f2713636d9554969405db506e47280361914dffae7b75000318536901"
     },
     {
       "path": "android/README.md",
-      "bytes": 6458,
-      "sha256": "5d97569977d8ed7919c251f80c97956f52003a643cda661a5e050491768bfad5"
+      "bytes": 8151,
+      "sha256": "8c0dfd0c8b6dc55f6bcd5f9af3a600a54e014211f6328f2796401958add1c9c3"
     },
     {
       "path": "android/build.py",
-      "bytes": 6724,
-      "sha256": "635f48c236acee978e5f6ca0668638772cfd1bec5d228b46ce7382ed5c5fe231"
+      "bytes": 6794,
+      "sha256": "7df72b9de96cf224fb6f320fbc4933563bebb61ecc818c7ce107cf2b44550cf1"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/GameFolder.java",
@@ -79,18 +79,18 @@
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/MainActivity.java",
-      "bytes": 13388,
-      "sha256": "f5819dd7f5ec0b0e9b0f7c9a7f94eb863d3cf365cf594d12bf985c73d40d16e4"
+      "bytes": 14321,
+      "sha256": "8d4ef93797204d227e30132002b69d8967d973ab31d161de6a65ebb33ef4caff"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/NativeBridge.java",
-      "bytes": 313,
-      "sha256": "154e404b4204ad1a15eb47ba0ae0b9b6c31299eab199a86eb3afcede71cc8034"
+      "bytes": 366,
+      "sha256": "df65caada89efc8cca8f5cb86facca272060dbcfea502180caa489d1a0cbe8fd"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/SmokeTest.java",
-      "bytes": 3226,
-      "sha256": "127b1b50774ebca64a686baee868369b13e3df3cf8513fc32c6f3fd077903211"
+      "bytes": 4054,
+      "sha256": "02428f67a28b6e1093c6a001f28b72100ae1448d891f2ff7ffe13e09554d8aac"
     },
     {
       "path": "android/native/probe.cpp",
@@ -99,8 +99,8 @@
     },
     {
       "path": "android/native/vulkan_test.cpp",
-      "bytes": 11659,
-      "sha256": "6a8cfb671d7df5164fcecff8d5af4baf3bcdc4a7aba49e4ced9a71d68db0393b"
+      "bytes": 14572,
+      "sha256": "1815183fee262576c2ed21e8ae47249d8dabaf79c93103d7028f60223fdafe40"
     },
     {
       "path": "android/res/values/styles.xml",

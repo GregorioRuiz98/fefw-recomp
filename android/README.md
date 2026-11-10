@@ -5,7 +5,7 @@
 ## Implemented
 
 - A native C++20 library, built with Android NDK r28c, and a small Android application without third-party Java dependencies.
-- A real Vulkan Android surface/swapchain test that clears and presents 60 frames. This tests presentation, not game rendering or FPS performance.
+- A real Vulkan Android surface/swapchain test that clears and presents 120 frames with a 30 FPS target. It uses monotonic deadlines and reports submission rate, intervals and missed deadlines. These are colour-test measurements, not game FPS or on-screen presentation timestamps.
 - GPU/API/feature diagnostics, including buffer device addresses and host-memory import support.
 - Host page-size reporting, a real `memfd` shared-memory alias test and a non-destructive one-page probe at the guest main-module address.
 - Android's folder picker with persistent read permission. Validation streams SHA-256 and checks Build IDs for all six supported ExeFS modules, and checks that a RomFS folder exists. It does not extract, copy or modify game files.
@@ -15,9 +15,13 @@
 
 ## Verified milestone
 
-The diagnostics APK installs and opens on a local **Android 15 x86_64 emulator using WHPX**. All **10 instrumentation checks** pass, including synthetic NSO header rejection, native shared-memory aliases, the application/JNI bridge and **60 Vulkan frames presented to a real Android surface**. The folder-picker flow, persistent read permission after process restart, rejection of an empty folder, and sanitized report export were also checked through Android's actual system UI.
+Version **0.1.1** installs and opens on a local **Android 15 x86_64 emulator using WHPX** with a Galaxy S23 Ultra-shaped profile. All **16 instrumentation checks** pass, including synthetic NSO header rejection, native shared-memory aliases, the application/JNI bridge, invalid frame-rate rejection and 120 paced Vulkan colour frames. One measured run reached **29.95 submissions/s**, with a mean interval of **33.39 ms** and a p95 interval of **45.89 ms**. The p95 shows timer jitter in the VM; this is not evidence of stable game performance.
 
-That emulator uses **SwiftShader with Vulkan 1.2**, without shader int64, buffer device addresses or host-memory import. These are results from a diagnostics test environment, not validation of the game's renderer. The ARM64 APK's signature, architecture and 16 KB alignment pass static checks; installation, controller behavior and graphics on the physical Galaxy S23 Ultra remain unverified. No full-game or FPS performance claim follows from these results.
+The profile has **12,288 MB RAM**, **1440 × 3088** pixels, a configured **120 Hz** display and a logical density of 560 dpi. Android reported about 11.7 GiB usable system RAM and the requested screen mode. Eight CPU cores were requested, but this emulator version supports at most six. It uses the host PC's **NVIDIA GPU through Vulkan 1.3**, not the Galaxy's Snapdragon/Adreno hardware or Samsung One UI. See Samsung's [S23 Ultra specifications](https://news.samsung.com/global/take-your-passions-further-with-the-new-samsung-galaxy-s23-series-designed-for-a-premium-experience-today-and-beyond) and Android's [AVD configuration guide](https://developer.android.com/studio/run/managing-avds).
+
+The separate `arm64-v8a` APK is for the physical Galaxy; the accelerated PC emulator uses the `x86_64` APK. A device profile does not make their CPU/GPU performance equivalent. The ARM64 APK's signature, architecture and 16 KB alignment pass static checks; installation, controller behavior, pacing and graphics on the physical Galaxy S23 Ultra remain unverified. The game engine is still absent from both APKs.
+
+The earlier 0.1.0 diagnostics passed 10 checks using SwiftShader/Vulkan 1.2. Its folder-picker flow, persistent read permission after restart, rejection of an empty folder and sanitized report export were also checked through Android's actual system UI. Those checks did not run the game.
 
 On the test Windows host, the earlier software-CPU emulator crashed before boot; using the available WHPX accelerator allowed Android to boot without changing Windows features. See the official [emulator acceleration guide](https://developer.android.com/studio/run/emulator-acceleration).
 
@@ -31,7 +35,7 @@ From this repository's root:
 python android/build.py --sdk <ANDROID_SDK> --ndk <ANDROID_NDK> --java-home <JDK> --project project --work work/android --abi arm64-v8a
 ```
 
-The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.0.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
+The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.1.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
 
 The build follows the official [AAPT2](https://developer.android.com/tools/aapt2), [D8](https://developer.android.com/tools/d8), [apksigner](https://developer.android.com/tools/apksigner) and [16 KB page-size](https://developer.android.com/guide/practices/page-sizes) documentation. It does not require Gradle or Android Studio.
 
@@ -43,6 +47,8 @@ adb -s <TEST_DEVICE> shell am instrument -w io.github.gregorioruiz98.fefw/.Smoke
 ```
 
 Instrumentation uses synthetic NSO headers and the real native library/window; it does not use game content. Build success, emulator results and actual Galaxy results are separate checks. A compiled or signed APK is not evidence of full-game compatibility.
+
+The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Android's frame-rate hint alone is not a limiter: the native loop also waits on absolute monotonic deadlines. Presentation semaphores are allocated per swapchain image, following [Khronos's synchronization guidance](https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html), rather than draining the entire queue on each frame. Once the game engine is ported, its simulation timing and renderer need their own integration and validation at the requested 30 FPS target.
 
 ## What remains before the game can boot
 
