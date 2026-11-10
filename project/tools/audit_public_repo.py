@@ -12,6 +12,11 @@ SECRETS = [re.compile(r'gh[pousr]_[A-Za-z0-9]{30,255}'),
            re.compile(r'github_pat_[A-Za-z0-9_]{30,255}'),
            re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----')]
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
+ANDROID_SOURCE = re.compile(
+    r'^android/(?:README\.md|build\.py|CMakeLists\.txt|AndroidManifest\.xml|'
+    r'native/[A-Za-z0-9_]+\.(?:cpp|h)|'
+    r'java/io/github/gregorioruiz98/fefw/[A-Za-z0-9_]+\.java|'
+    r'res/values/[A-Za-z0-9_]+\.xml)$')
 
 
 def git(repo, *args):
@@ -23,17 +28,19 @@ def check_name(name):
         raise ValueError('Invalid source filename')
     if name == 'fefw_setup.exe':
         raise ValueError('The Git repository is source-only; keep the configurator in its reviewed release ZIP')
-    if name not in REPO_FILES:
+    if name not in REPO_FILES and not ANDROID_SOURCE.fullmatch(name):
         audit_name(name)
     if name == 'public-manifest.json':
         raise ValueError('Use the source-only manifest for the Git repository')
+    if re.search(r'(?:^|/)c_\d+\.cpp$', name):
+        raise ValueError('Generated game source is not public source: ' + name)
 
 
 def check_content(name, data):
     check_name(name)
     if len(data) > MAX_SOURCE_BYTES or b'\x00' in data or data.startswith(b'MZ'):
         raise ValueError('Binary or oversized content in public source: ' + name)
-    if name in REPO_FILES:
+    if name in REPO_FILES or ANDROID_SOURCE.fullmatch(name):
         text = data.decode('utf-8-sig')
     else:
         audit_payload(name, data)

@@ -44,13 +44,68 @@
     },
     {
       "path": "README.md",
-      "bytes": 22656,
-      "sha256": "257c1298b71f7e029aa9a41a49d26d6d7913ced69cc7a79fa0e2cb22c713a3cd"
+      "bytes": 23070,
+      "sha256": "ddd5a64ac7f4fd10b434b4a315f6fd59374e874697f00903c62d44d326b6e84b"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
       "bytes": 4920,
       "sha256": "a48b1c76579b126949e5168865ce11f170fa807b5e79e7ec9d2e91a5a849a614"
+    },
+    {
+      "path": "android/AndroidManifest.xml",
+      "bytes": 1106,
+      "sha256": "be8714281c226967c84defd5c9c17f80a98cc283036d43acee0e82df2e79e6a1"
+    },
+    {
+      "path": "android/CMakeLists.txt",
+      "bytes": 649,
+      "sha256": "a445cc00c6d9999db3b6e9a08fdc94015f0f574c9e5a3f7c3219e7b201f876b1"
+    },
+    {
+      "path": "android/README.md",
+      "bytes": 5203,
+      "sha256": "94b3848a3f2c7a7ca3ae401cc71e66c7311aad462e1b9cb390c7b482ef664bd2"
+    },
+    {
+      "path": "android/build.py",
+      "bytes": 6724,
+      "sha256": "635f48c236acee978e5f6ca0668638772cfd1bec5d228b46ce7382ed5c5fe231"
+    },
+    {
+      "path": "android/java/io/github/gregorioruiz98/fefw/GameFolder.java",
+      "bytes": 5879,
+      "sha256": "e4c89d3cb1926866ad3a3ceccf019f8133be9bfa8bdb9139571e8a4eef179125"
+    },
+    {
+      "path": "android/java/io/github/gregorioruiz98/fefw/MainActivity.java",
+      "bytes": 13388,
+      "sha256": "f5819dd7f5ec0b0e9b0f7c9a7f94eb863d3cf365cf594d12bf985c73d40d16e4"
+    },
+    {
+      "path": "android/java/io/github/gregorioruiz98/fefw/NativeBridge.java",
+      "bytes": 313,
+      "sha256": "154e404b4204ad1a15eb47ba0ae0b9b6c31299eab199a86eb3afcede71cc8034"
+    },
+    {
+      "path": "android/java/io/github/gregorioruiz98/fefw/SmokeTest.java",
+      "bytes": 3226,
+      "sha256": "127b1b50774ebca64a686baee868369b13e3df3cf8513fc32c6f3fd077903211"
+    },
+    {
+      "path": "android/native/probe.cpp",
+      "bytes": 5408,
+      "sha256": "d42f15bc41451fec0fd6ce37a8520d6421213f3fdf08dcbe745cebabfa985c43"
+    },
+    {
+      "path": "android/native/vulkan_test.cpp",
+      "bytes": 11659,
+      "sha256": "6a8cfb671d7df5164fcecff8d5af4baf3bcdc4a7aba49e4ced9a71d68db0393b"
+    },
+    {
+      "path": "android/res/values/styles.xml",
+      "bytes": 519,
+      "sha256": "9d2ca2fe4c6e83a145d2361605dff9b8f657756c900904c84d526738be03a325"
     },
     {
       "path": "project/.gitignore",
@@ -109,8 +164,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 22656,
-      "sha256": "257c1298b71f7e029aa9a41a49d26d6d7913ced69cc7a79fa0e2cb22c713a3cd"
+      "bytes": 23070,
+      "sha256": "ddd5a64ac7f4fd10b434b4a315f6fd59374e874697f00903c62d44d326b6e84b"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -599,8 +654,8 @@
     },
     {
       "path": "project/tests/test_public_repo.py",
-      "bytes": 3557,
-      "sha256": "43917761548c2b9c02d07dd5d832b8415822cf21d9f85c2fb49f7b29ba2e4da7"
+      "bytes": 4585,
+      "sha256": "a03046d0cfcac42f3f11a4ea68b18821bd78ae1ebff530b795da097b90c634f6"
     },
     {
       "path": "project/tests/test_render_portability.cpp",
@@ -709,8 +764,8 @@
     },
     {
       "path": "project/tools/audit_public_repo.py",
-      "bytes": 5385,
-      "sha256": "9203c420e26f5ecdbd62ebc15f50056ba1e92795c8fae87667da622c5a6721e2"
+      "bytes": 5835,
+      "sha256": "d96aeed39c73f341c8e7ab19c67f155e5e7ff0967f6d389a24f37e87f18eac4d"
     },
     {
       "path": "project/tools/bootstrap.py",

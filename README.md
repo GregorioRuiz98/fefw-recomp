@@ -10,6 +10,8 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 The game and setup tool use the project's original **Woven Shield** application icon. It contains no game artwork; its provenance and complete Windows resource source are included in the package.
 
+**Android development:** an [initial Android platform diagnostics app](https://github.com/GregorioRuiz98/fefw-recomp/tree/codex/public-release/android) is being built separately for ARM64. It checks folder access, controllers, memory and Vulkan presentation. **It does not run the game yet**; the Windows runtime and game renderer still need an Android port. The Windows download below is not an Android package.
+
 ## Download and open the setup tool
 
 **[Download FEFW Recomp for Windows x64 — v0.1.0-preview.13](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.13/FEFW-Recomp-Windows-x64-v0.1.0-preview.13.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.13)

@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// On-device checks using synthetic headers and the actual native Android library.
+package io.github.gregorioruiz98.fefw;
+
+import android.app.Activity;
+import android.app.Instrumentation;
+import android.content.Intent;
+import android.os.Bundle;
+import org.json.JSONObject;
+
+public final class SmokeTest extends Instrumentation {
+    private int checks;
+    private void check(boolean value, String label) {
+        ++checks; if (!value) throw new AssertionError(label);
+    }
+    @Override public void onCreate(Bundle arguments) { super.onCreate(arguments); start(); }
+    @Override public void onStart() {
+        Bundle result = new Bundle(); MainActivity activity = null;
+        try {
+            byte[] header = new byte[256]; header[0]='N'; header[1]='S'; header[2]='O'; header[3]='0';
+            for (int i=0;i<32;++i) header[0x40+i]=(byte)(i+1);
+            String expected=GameFolder.hex(header,0x40,32);
+            check(GameFolder.headerMatches(header,expected),"valid synthetic NSO identity");
+            header[0]='X'; check(!GameFolder.headerMatches(header,expected),"invalid magic rejected");
+            header[0]='N'; header[0x40]=0; check(!GameFolder.headerMatches(header,expected),"wrong Build ID rejected");
+            check(!GameFolder.headerMatches(new byte[40],expected),"truncated header rejected");
+            JSONObject probe = new JSONObject(NativeBridge.probe());
+            check(!probe.getBoolean("game_runtime_available"),"unfinished engine is reported honestly");
+            check(probe.getInt("page_size") >= 4096,"native host page size");
+            check(probe.getBoolean("shared_memory_alias"),"real shared aliases observe the same data");
+            check(probe.getInt("gpu_count") > 0,"Vulkan device enumerated");
+            activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            final MainActivity screen=activity;
+            for(int i=0;i<100 && screen.nativeReport.isEmpty();++i) Thread.sleep(100);
+            check(!screen.nativeReport.isEmpty(),"activity loads JNI diagnostics");
+            waitForIdleSync();
+            for(int i=0;i<100 && !screen.surface.getHolder().getSurface().isValid();++i) Thread.sleep(100);
+            runOnMainSync(() -> screen.renderButton.performClick());
+            for(int i=0;i<300 && screen.renderReport.equals("Not run");++i) Thread.sleep(100);
+            check(screen.renderReport.startsWith("PASS:"),"real Vulkan presentation: "+screen.renderReport);
+            result.putString("status","PASS"); result.putInt("checks",checks);
+            result.putString("native",probe.toString()); result.putString("presentation",screen.renderReport);
+            result.putBoolean("game_runtime_available",false);
+            finish(Activity.RESULT_OK,result);
+        } catch(Throwable error) {
+            result.putString("status","FAIL");result.putInt("checks",checks);result.putString("error",error.toString());
+            finish(Activity.RESULT_CANCELED,result);
+        } finally {
+            if(activity!=null) { final Activity screen=activity;runOnMainSync(screen::finish); }
+        }
+    }
+}
