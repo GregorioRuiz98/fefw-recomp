@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// ABI 3 call/import portion of nxrt/core/abi_glue.cpp. Kernel SVC remains undefined
-// until its real subsystem is ported; guest EH and timers live in their adapters.
+// ABI 3 call/import portion of nxrt/core/abi_glue.cpp. Bootstrap SVC, EH and
+// timers live in their Android adapters; unsupported services stay explicit.
 #include "nxrt/dispatch.h"
 #include "nxrt/nxmodule.h"
 #include <cstdio>

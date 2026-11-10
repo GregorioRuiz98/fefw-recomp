@@ -2,10 +2,15 @@
 
 **This APK does not run Fire Emblem yet.** It is the first installable Android porting milestone, built for `arm64-v8a` (the intended Galaxy S23 Ultra) with a separate `x86_64` build for emulator tests. No game executable, game code, shaders or assets are included. The Windows release remains separate.
 
-Version **0.1.4** links the [Android memory backend, ELF/NSO loader, ABI 3 module registry, dispatcher, hooks, guest exceptions and timer](runtime/README.md). Inside the app, **33 memory cases and 104 runtime-core cases pass**. The normal instrumentation has **23 checks**; an opt-in local-copy run passes **26 checks**, mapping all six actual game modules and analysing **287,544 relocations**. One TLS descriptor is preserved for the game's own dynamic linker; that linker and game code are **not executed** in this milestone. The memory backend requires **4 KB host pages**. The ARM64 APK is built; physical Galaxy execution remains unverified.
+Version **0.1.5** adds a functional **bootstrap memory and process layer** to the [Android runtime core](runtime/README.md). Inside the installed app, **33 memory cases and 140 runtime-core cases pass**. The core includes 36 bootstrap cases for real heap/page operations, stack mapping, RELRO, process queries, main-thread TLS, handles, timers and cleanup. Default instrumentation has **24 checks**; an opt-in local-copy run has **27 checks** and maps all six real game modules read-only.
+
+A separate private test executes the user's locally recompiled **rtld entry** on Android x86_64. It verifies all **eight rtld RELR self-relocations**, performs **35 QueryMemory calls** without unsupported SVCs and stops deliberately at the **SDK Start checkpoint**. The SDK is not initialized, and full guest linking is not complete at that checkpoint. All six private game archives also link into an ARM64 integration library without undefined symbols. Neither private output is included in this APK or repository. These results establish the bootstrap phase, **not a playable Android game**.
+
+The memory backend requires **4 KB host pages**. The ARM64 APK is built and signed; physical Galaxy execution and gameplay FPS remain unverified.
 
 ## Implemented
 
+- Bootstrap SVC dispatch with named call counts and explicit `ResultNotImplemented` for unsupported services. Real heap resize uses sparse memfd hole punching instead of physically clearing gigabytes of phone RAM; it refuses shrinking ranges still used by aliases, private views or mapped stacks.
 - A native C++20 library, built with Android NDK r28c, and a small Android application without third-party Java dependencies.
 - A real Vulkan Android surface/swapchain test that clears and presents 120 frames with a 30 FPS target. It uses monotonic deadlines and reports submission rate, intervals and missed deadlines. These are colour-test measurements, not game FPS or on-screen presentation timestamps.
 - GPU/API/feature diagnostics, including buffer device addresses and host-memory import support.
@@ -39,7 +44,7 @@ From this repository's root:
 python android/build.py --sdk <ANDROID_SDK> --ndk <ANDROID_NDK> --java-home <JDK> --project project --work work/android --abi arm64-v8a
 ```
 
-The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.2.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
+The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.5.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
 
 The build follows the official [AAPT2](https://developer.android.com/tools/aapt2), [D8](https://developer.android.com/tools/d8), [apksigner](https://developer.android.com/tools/apksigner) and [16 KB page-size](https://developer.android.com/guide/practices/page-sizes) documentation. It does not require Gradle or Android Studio.
 
@@ -56,9 +61,9 @@ The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Andro
 
 ## What remains before the game can boot
 
-1. Port guest thread scheduling, synchronization, SVC/services, guest exception handling, filesystems and audio. The memory backend, module loader and call/import dispatcher are integrated; the graphics write tracker is not ported yet.
+1. Complete SDK initialization, guest worker-thread scheduling/synchronization, IPC/services, filesystems and audio. The bootstrap memory/process SVCs, calling-thread TLS, loader, dispatch, hooks and guest exception machinery are integrated; the graphics write tracker is not ported yet.
 2. Implement guest sub-page permissions/aliases on 16 KB hosts. The memory backend currently refuses those hosts explicitly; 16 KB ELF alignment is a separate installation property. Its 4 KB-host contract results do not establish 16 KB-host compatibility.
-3. All six locally generated game modules now compile into private ARM64 archives. Complete the Android SVC/kernel services and game runtime to link and execute them. The current integration link stops on `guest_svc`; that one ABI entry represents the unported system-call subsystem, not a single missing game setting. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
+3. All six locally generated game modules compile and link into a private ARM64 integration library. Complete the remaining SVC/kernel services and game runtime to execute them beyond the initial rtld checkpoint. Successful linking is not proof that guest services or rendering work. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
 4. Port SDL/game lifecycle integration and the game's NVN/Vulkan renderer, including mobile-driver feature limits and an appropriate path when host-memory import is unavailable.
 5. Prepare shaders and textures locally, integrate the movie/audio path, and test actual GPU memory use, input, saves and lifecycle on the Galaxy. Vulkan 1.3 alone does not guarantee all renderer features.
 

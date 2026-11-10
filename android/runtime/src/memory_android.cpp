@@ -5,6 +5,8 @@
 
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#include <linux/falloc.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <algorithm>
 #include <atomic>
@@ -191,13 +193,15 @@ bool make_view(uint64_t address, uint64_t offset, uint64_t size, Kind kind, Prot
     result = key;
     return true;
 }
-bool host_mapped(uint64_t first, uint64_t end) {
+bool host_mapped(uint64_t first, uint64_t end, uint8_t required = 0) {
     std::ifstream maps("/proc/self/maps");
     std::string line;
     while (first < end && std::getline(maps, line)) {
         unsigned long long lo = 0, hi = 0; char protection[5]{};
         if (std::sscanf(line.c_str(), "%llx-%llx %4s", &lo, &hi, protection) != 3 || hi <= first) continue;
         if (lo > first || (protection[0] == '-' && protection[1] == '-' && protection[2] == '-')) return false;
+        if ((required & PROT_READ) && protection[0] != 'r') return false;
+        if ((required & PROT_WRITE) && protection[1] != 'w') return false;
         first = std::min<uint64_t>(end, hi);
     }
     return first == end;
@@ -304,6 +308,61 @@ bool is_mapped(uint64_t address, uint64_t size) {
         return true;
     }
     return host_mapped(first, end);
+}
+namespace {
+bool accessible(uint64_t address, uint64_t size, uint8_t required) {
+    std::lock_guard lock(state.mutex);
+    uint64_t first = 0, end = 0;
+    if (!span(address, size, first, end)) return false;
+    while (first < end) {
+        auto* mapping = containing(first, first + 1);
+        if (!mapping) return host_mapped(first, end, required);
+        const uint64_t limit = std::min(end, mapping->base + mapping->size);
+        for (uint64_t page = (first - mapping->base) / kPage; page < (limit - mapping->base) / kPage; ++page)
+            if (!(mapping->pages[page] & kPresent) || (mapping->pages[page] & required) != required) return false;
+        first = limit;
+    }
+    return true;
+}
+}
+bool is_readable(uint64_t address, uint64_t size) { return accessible(address, size, PROT_READ); }
+bool is_writable(uint64_t address, uint64_t size) { return accessible(address, size, PROT_READ | PROT_WRITE); }
+bool is_committed(uint64_t address, uint64_t size) {
+    std::lock_guard lock(state.mutex);
+    uint64_t first = 0, end = 0;
+    if (!span(address, size, first, end)) return false;
+    while (first < end) {
+        const auto* mapping = containing(first, first + 1);
+        if (!mapping) return false;
+        const uint64_t limit = std::min(end, mapping->base + mapping->size);
+        for (uint64_t page = (first - mapping->base) / kPage; page < (limit - mapping->base) / kPage; ++page)
+            if (!(mapping->pages[page] & kPresent)) return false;
+        first = limit;
+    }
+    return true;
+}
+bool heap_clear(uint64_t offset, uint64_t size) {
+    std::lock_guard lock(state.mutex);
+    const auto* primary = heap();
+    if (!primary || offset % kPage || size % kPage || offset > primary->size || size > primary->size - offset) return false;
+    if (!size) return true;
+    for (const auto& [base, mapping] : state.mappings) {
+        if (mapping.kind != Kind::Alias && mapping.kind != Kind::Private) continue;
+        if (mapping.offset < offset + size && offset < mapping.offset + mapping.size) return false;
+    }
+    // tmpfs/memfd hole punching returns zero on the next access without touching
+    // gigabytes of physical RAM on the phone. Existing aliases are refused.
+    return fallocate(state.heap_fd.value, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+                     static_cast<off_t>(offset), static_cast<off_t>(size)) == 0;
+}
+bool heap_view_overlaps(uint64_t offset, uint64_t size) {
+    std::lock_guard lock(state.mutex);
+    if (offset > kHeapMax || size > kHeapMax - offset) return true;
+    for (const auto& [base, mapping] : state.mappings) {
+        if (mapping.kind != Kind::Alias && mapping.kind != Kind::Private) continue;
+        if (mapping.offset < offset + size && offset < mapping.offset + mapping.size) return true;
+    }
+    return false;
 }
 bool heap_create(uint64_t size) {
     std::lock_guard lock(state.mutex);

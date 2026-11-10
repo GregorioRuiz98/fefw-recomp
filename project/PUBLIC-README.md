@@ -10,7 +10,7 @@ This project is not affiliated with, sponsored by or approved by Nintendo, Intel
 
 The game and setup tool use the project's original **Woven Shield** application icon. It contains no game artwork; its provenance and complete Windows resource source are included in the package.
 
-**Android development:** a separate [Android runtime diagnostics app](https://github.com/GregorioRuiz98/fefw-recomp/tree/codex/public-release/android) now integrates memory, ELF/NSO loading (including ZBIC), the ABI 3 registry, dispatcher, hooks, guest exception unwinder and timer. In the virtual phone, 33 memory tests and 104 runtime-core tests pass; an opt-in local-copy test maps all six real modules and analyses their relocations, preserving one TLS descriptor for the guest linker. **It does not run the game yet**: guest services, final execution, audio and the game renderer remain to be ported. The Windows download below is not an Android package.
+**Android development:** the separate [Android diagnostics app](https://github.com/GregorioRuiz98/fefw-recomp/tree/codex/public-release/android) now includes bootstrap memory/process SVCs and main-thread TLS, alongside the loader, ABI 3 dispatcher, hooks and guest exception core. In the virtual phone, **33 memory tests and 140 core tests pass**. A separate private test executes the real rtld entry up to the SDK Start checkpoint; all six private game archives also link for ARM64. **The APK does not run the game yet**: SDK initialization, guest worker threads/services, audio and game rendering remain pending. The Windows download below is not an Android package.
 
 ## Download and open the setup tool
 

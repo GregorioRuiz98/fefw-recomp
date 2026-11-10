@@ -12,7 +12,9 @@ add_library(nxrt_android STATIC runtime/src/memory_android.cpp
     runtime/src/dispatch_android.cpp runtime/src/abi_dispatch_android.cpp
     runtime/src/log_android.cpp runtime/src/config.cpp runtime/src/ini_merge.cpp runtime/src/gauges_android.cpp
     runtime/src/session_android.cpp runtime/src/hooks.cpp runtime/src/abi_platform_android.cpp
-    runtime/src/catch_call.cpp runtime/src/handlers.cpp runtime/src/typeinfo.cpp runtime/src/unwind.cpp)
+    runtime/src/catch_call.cpp runtime/src/handlers.cpp runtime/src/typeinfo.cpp runtime/src/unwind.cpp
+    runtime/src/kernel_android.cpp runtime/src/svc_android.cpp runtime/src/svc_memory_android.cpp
+    runtime/src/svc_info_android.cpp runtime/src/svc_process_android.cpp)
 set_target_properties(nxrt_android PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_include_directories(nxrt_android PUBLIC runtime/include)
 target_compile_features(nxrt_android PUBLIC cxx_std_20)
@@ -29,7 +31,8 @@ add_custom_target(nxrt_android_fixtures DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/fix
 set(memory_tests runtime/tests/test_memory.cpp runtime/tests/test_runner.cpp
     runtime/tests/test_nxmodule.cpp runtime/tests/test_loader.cpp runtime/tests/test_dispatch_android.cpp
     runtime/tests/test_nso_android.cpp runtime/tests/test_hooks.cpp
-    runtime/tests/test_eh.cpp runtime/tests/test_eh_abi3.cpp runtime/tests/test_eh_typeinfo.cpp runtime/tests/test_abi_android.cpp)
+    runtime/tests/test_eh.cpp runtime/tests/test_eh_abi3.cpp runtime/tests/test_eh_typeinfo.cpp runtime/tests/test_abi_android.cpp
+    runtime/tests/test_svc_android.cpp)
 add_library(nxrt_android_contract_tests OBJECT ${memory_tests})
 set_target_properties(nxrt_android_contract_tests PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(nxrt_android_contract_tests PRIVATE nxrt_android)

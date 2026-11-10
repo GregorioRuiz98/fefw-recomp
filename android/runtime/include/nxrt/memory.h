@@ -49,6 +49,9 @@ bool decommit(uint64_t addr, uint64_t size);
 bool protect(uint64_t addr, uint64_t size, Prot p);
 uint64_t alloc_kernel(uint64_t size, uint64_t align = kPage);   // committed RW memory from the kernel region (bump allocator)
 bool is_mapped(uint64_t addr, uint64_t size);                // every byte of the range is committed and accessible (VirtualQuery)
+bool is_readable(uint64_t addr, uint64_t size);              // Android guest input pointer validation
+bool is_writable(uint64_t addr, uint64_t size);              // Android guest output pointer validation
+bool is_committed(uint64_t addr, uint64_t size);             // owned guest pages, including PROT_NONE
 
 // ---- heap section ---------------------------------------------------------------------------------------------------
 // One pagefile-backed section (SEC_RESERVE, nothing is charged until committed) with a primary view at kHeapBase. Under Wine
@@ -61,6 +64,8 @@ bool heap_has_section();                        // false: private memory, no oth
 uint64_t heap_reserved();                       // section size
 bool heap_commit(uint64_t offset, uint64_t size);     // commit [kHeapBase+offset, +size) (page granularity)
 bool heap_decommit(uint64_t offset, uint64_t size);
+bool heap_clear(uint64_t offset, uint64_t size);             // sparse zeroing of unaliased pages for SetHeapSize
+bool heap_view_overlaps(uint64_t offset, uint64_t size);     // includes aliases and private GPU views
 uint64_t heap_committed();                      // bytes committed through heap_commit minus heap_decommit
 // The heap's own page table, without VirtualQuery (which walks every page of the run of identical pages after the address: up to 85 ms
 // on a 10 GiB heap): 1 when every page of [addr, addr + size) is in the primary view and this module left it committed read-write, 0 when
