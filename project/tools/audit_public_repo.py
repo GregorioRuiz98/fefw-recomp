@@ -16,10 +16,10 @@ ANDROID_SOURCE = re.compile(
     r'^android/(?:README\.md|build\.py|CMakeLists\.txt|AndroidManifest\.xml|'
     r'native/[A-Za-z0-9_]+\.(?:cpp|h)|'
     r'runtime/(?:README\.md|'
-    r'include/nxrt/(?:memory|abi|module|dispatch|nxmodule|log|config|gauge|hooks|eh|kernel|svc|game|android_kernel|android_trap|android_session|android_time)\.h|'
+    r'include/nxrt/(?:memory|abi|module|dispatch|nxmodule|log|config|gauge|hooks|eh|kernel|svc|game|hipc|ipc|android_kernel|android_trap|android_session|android_time)\.h|'
     r'include/nxrecomp/(?:ctx|cxx|cxx_fp|cxx_ldst|cxx_lse|cxx_neon1|cxx_neon2|fpexact|neon)\.h|'
-    r'src/(?:(?:memory_android|module|nso|nxmodule|dispatch_android|abi_dispatch_android|abi_platform_android|log_android|config|ini_merge|gauges_android|session_android|hooks|catch_call|handlers|typeinfo|unwind|kernel_android|svc_android|svc_memory_android|svc_info_android|svc_process_android)\.cpp|(?:elf|eh_internal)\.h|svc_names\.inc)|'
-    r'tests/(?:test_(?:memory|nxmodule|loader|dispatch_android|nso_android|hooks|eh|eh_abi3|eh_typeinfo|abi_android|svc_android)\.cpp|test_framework\.h|test_runner\.(?:cpp|h)|fixture\.c|prepare_fixtures\.py)|'
+    r'src/(?:(?:memory_android|module|nso|nxmodule|dispatch_android|abi_dispatch_android|abi_platform_android|log_android|config|ini_merge|gauges_android|session_android|hooks|catch_call|handlers|typeinfo|unwind|kernel_android|svc_android|svc_memory_android|svc_info_android|svc_process_android|kernel_sync_android|svc_threads_android|hipc|ipc|ipc_sm|ipc_stub|svc_ipc_android|log_service_android)\.cpp|(?:elf|eh_internal|kernel_android_internal)\.h|svc_names\.inc)|'
+    r'tests/(?:test_(?:memory|nxmodule|loader|dispatch_android|nso_android|hooks|eh|eh_abi3|eh_typeinfo|abi_android|svc_android|kernel_sync|hipc|ipc|threads_android|log_service_android)\.cpp|test_framework\.h|test_runner\.(?:cpp|h)|fixture\.c|prepare_fixtures\.py|data/hipc_vectors\.h)|'
     r'third_party/zbic/(?:README\.md|LICENSE|COPYING|zstd\.(?:c|h)|zstd_errors\.h))|'
     r'java/io/github/gregorioruiz98/fefw/[A-Za-z0-9_]+\.java|'
     r'res/values/[A-Za-z0-9_]+\.xml)$')

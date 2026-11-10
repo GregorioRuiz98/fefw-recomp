@@ -19,11 +19,11 @@ namespace {
 struct Session {
     Session() {
         nxrt::android_configure_fefw();
-        k::main_thread_release(); k::handles_reset(); nxrt::svc_memory_reset_for_tests(); nxrt::svc_info_reset_for_tests();
+        k::main_thread_release(); k::kernel_reset(); nxrt::svc_memory_reset_for_tests(); nxrt::svc_info_reset_for_tests();
         m::shutdown(); CHECK(m::init()); nxrt::svc_reset_counters();
     }
     ~Session() {
-        k::main_thread_release(); k::handles_reset(); nxrt::svc_memory_reset_for_tests(); nxrt::svc_info_reset_for_tests();
+        k::main_thread_release(); k::kernel_reset(); nxrt::svc_memory_reset_for_tests(); nxrt::svc_info_reset_for_tests();
         m::shutdown();
     }
 };
@@ -54,14 +54,14 @@ NXTEST(names_and_table_match_guest_numbers) {
     Session session;
     CHECK_EQ(std::string(nxrt::svc_name(1)),"SetHeapSize");
     CHECK_EQ(std::string(nxrt::svc_name(0x29)),"GetInfo");
-    CHECK(nxrt::svc_handler(1)); CHECK(!nxrt::svc_handler(0x21));
+    CHECK(nxrt::svc_handler(1)); CHECK(!nxrt::svc_handler(0x23));
     CHECK(!nxrt::svc_handler(0x10000));
 }
 NXTEST(unknown_service_returns_error_and_preserves_first_call) {
     Session session;
     Ctx c{}; c.x[0]=83; c.x[7]=99; c.x[30]=0x7100001004; c.fn=0x7100002000;
-    nxrt::svc_dispatch(&c,0x21,0x7100001000); CHECK_EQ(c.x[0],k::kNotImplemented);
-    nxrt::svc_dispatch(&c,0x21); const auto records=nxrt::svc_unknown_records();
+    nxrt::svc_dispatch(&c,0x23,0x7100001000); CHECK_EQ(c.x[0],k::kNotImplemented);
+    nxrt::svc_dispatch(&c,0x23); const auto records=nxrt::svc_unknown_records();
     CHECK_EQ(records.size(),1u); CHECK_EQ(records[0].count,2u);
     CHECK_EQ(records[0].first_args[0],83u); CHECK_EQ(records[0].first_args[7],99u);
     CHECK_EQ(records[0].first_pc,0x7100001000u); CHECK_EQ(nxrt::svc_unknown_total(),2u);

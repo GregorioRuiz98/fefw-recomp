@@ -10,6 +10,7 @@
 #include <mutex>
 
 namespace nxrt {
+void svc_register_android_threads();
 namespace {
 std::array<std::atomic<SvcHandler>, kSvcCount> handlers{};
 std::array<std::atomic<uint64_t>, kSvcCount> calls{};
@@ -34,6 +35,8 @@ SvcHandler svc_handler(uint32_t number) { return number < kSvcCount ? handlers[n
 void svc_init() {
     std::call_once(initialized, [] {
         svc_register_memory_group(); svc_register_info_group(); svc_register_thread_group();
+        svc_register_android_threads();
+        svc_register_ipc_group();
     });
 }
 void svc_set_busy_hook(void(*hook)()) { busy.store(hook); }

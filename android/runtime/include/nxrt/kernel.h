@@ -3,9 +3,9 @@
 // console core model), and the 19.2 MHz system tick. The SVC dispatcher lives in svc.h, IPC sessions in ipc.h.
 // Pattern from SuperMarioWonderRecomp runtime/src/kernel.cpp + kernel_state.h (MIT) and smo-recomp runtime/os/os_threads.c (GPL-3.0).
 #pragma once
-// Android currently provides the handle table, calling-thread adoption, TLS,
-// sleep and tick APIs only. Worker-thread scheduling and synchronization APIs
-// below remain declarations of the upstream contract, not implemented services.
+// Android supplies guest threads, TLS, handles and kernel synchronization.
+// Host CPU scheduling is delegated to Android; Windows placement/starvation
+// helpers below remain declarations of the upstream desktop contract.
 #include <atomic>
 #include <cstdint>
 #include <memory>
@@ -58,7 +58,7 @@ struct KObject {
 };
 
 struct EventState {
-    bool signaled = false;
+    std::atomic<bool> signaled{false};
 };
 struct KEvent : KObject {                                  // readable and writable handles share `state`
     std::shared_ptr<EventState> state = std::make_shared<EventState>();
@@ -102,7 +102,8 @@ struct KThread : KObject {
     uint64_t core_mask = 1;             // console cores the thread may run on (bit n = core n)
     void* host_handle = nullptr;        // Win32 thread handle (owned by the thread object)
     uint32_t host_tid = 0;
-    bool started = false, cancel_sync = false;
+    std::atomic<bool> started{false};
+    bool cancel_sync = false;
     std::atomic<bool> exited{false};    // written under the kernel lock (thread_mark_exited), read under the thread-list lock and elsewhere
     std::atomic<bool> aged{false};      // starvation guard (starvation_guard.cpp): the host leaves this thread ready, so its yields keep the processor
     std::atomic<uint64_t> host_affinity{0};   // the host affinity mask sched_apply (or a starvation boost) last gave the host thread
