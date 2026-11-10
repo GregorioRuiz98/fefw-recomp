@@ -64,8 +64,8 @@
     },
     {
       "path": "android/README.md",
-      "bytes": 5203,
-      "sha256": "94b3848a3f2c7a7ca3ae401cc71e66c7311aad462e1b9cb390c7b482ef664bd2"
+      "bytes": 6458,
+      "sha256": "5d97569977d8ed7919c251f80c97956f52003a643cda661a5e050491768bfad5"
     },
     {
       "path": "android/build.py",

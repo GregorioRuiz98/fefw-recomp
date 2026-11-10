@@ -13,6 +13,14 @@
 - Explicit report export without the selected folder URI, game content or device serial number. No internet permission, background downloads or automatic uploads.
 - The project's original Woven Shield icon and credits.
 
+## Verified milestone
+
+The diagnostics APK installs and opens on a local **Android 15 x86_64 emulator using WHPX**. All **10 instrumentation checks** pass, including synthetic NSO header rejection, native shared-memory aliases, the application/JNI bridge and **60 Vulkan frames presented to a real Android surface**. The folder-picker flow, persistent read permission after process restart, rejection of an empty folder, and sanitized report export were also checked through Android's actual system UI.
+
+That emulator uses **SwiftShader with Vulkan 1.2**, without shader int64, buffer device addresses or host-memory import. These are results from a diagnostics test environment, not validation of the game's renderer. The ARM64 APK's signature, architecture and 16 KB alignment pass static checks; installation, controller behavior and graphics on the physical Galaxy S23 Ultra remain unverified. No full-game or FPS performance claim follows from these results.
+
+On the test Windows host, the earlier software-CPU emulator crashed before boot; using the available WHPX accelerator allowed Android to boot without changing Windows features. See the official [emulator acceleration guide](https://developer.android.com/studio/run/emulator-acceleration).
+
 ## Build on Windows
 
 Prerequisites: Python 3.12+, a working JDK 17+, CMake, Ninja, Android SDK platform 36/build-tools 36.0.0 and Android NDK **28.2.13676358**. The build performs no downloads and makes no global environment changes. Native compilation is capped at two concurrent jobs. Java 23 was used for the initial local build.
