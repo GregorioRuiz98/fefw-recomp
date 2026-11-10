@@ -13,6 +13,19 @@ spec.loader.exec_module(module)
 
 
 class PublicRepoTests(unittest.TestCase):
+    def test_only_exact_pinned_decoder_may_exceed_source_size_limit(self):
+        project = Path(__file__).resolve().parents[1]
+        candidates = [project / 'android', project.parent / 'android']
+        android = next(path for path in candidates if path.is_dir())
+        data = (android / 'runtime/third_party/zbic/zstd.c').read_bytes()
+        name = 'android/runtime/third_party/zbic/zstd.c'
+        self.assertGreater(len(data), module.MAX_SOURCE_BYTES)
+        module.check_content(name, data)
+        with self.assertRaises(ValueError):
+            module.check_content(name, data + b'\n')
+        with self.assertRaises(ValueError):
+            module.check_content('android/runtime/src/nso.cpp', data)
+
     def scratch(self):
         parent = Path.cwd() / 'config-test-results'
         parent.mkdir(exist_ok=True)
@@ -61,12 +74,17 @@ class PublicRepoTests(unittest.TestCase):
                      'android/runtime/src/memory_android.cpp', 'android/runtime/tests/test_memory.cpp',
                      'android/runtime/tests/test_runner.h', 'android/runtime/tests/test_runner.cpp',
                      'android/runtime/tests/test_framework.h',
+                     'android/runtime/include/nxrt/module.h', 'android/runtime/include/nxrecomp/ctx.h',
+                     'android/runtime/src/dispatch_android.cpp', 'android/runtime/src/session_android.cpp',
+                     'android/runtime/tests/test_nso_android.cpp', 'android/runtime/tests/prepare_fixtures.py',
+                     'android/runtime/tests/fixture.c', 'android/runtime/third_party/zbic/LICENSE',
                      'android/java/io/github/gregorioruiz98/fefw/MainActivity.java'):
             module.check_content(name, b'// synthetic original source\n')
         for name in ('android/game.apk', 'android/native/game.so', 'android/native/c_001.cpp',
                      'android/build/classes.dex', 'android/native/../secrets.cpp', 'android/romfs/file.cpp',
                      'android/runtime/romfs/file.cpp', 'android/runtime/src/c_001.cpp',
-                     'android/runtime/src/game.so', 'android/runtime/keys/prod.keys',
+                      'android/runtime/src/game.so', 'android/runtime/keys/prod.keys',
+                      'android/runtime/third_party/zbic/game.bin', 'android/runtime/tests/fixture_data.h',
                      'android/.env', 'android/native/key.p12'):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 module.check_content(name, b'not source')

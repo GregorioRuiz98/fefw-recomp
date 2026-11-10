@@ -31,9 +31,11 @@ public final class MainActivity extends Activity implements InputManager.InputDe
     private TextView folderStatus, deviceStatus, controllerStatus, inputStatus;
     TextView renderStatus;
     TextView memoryStatus;
+    TextView coreStatus, loaderStatus;
     SurfaceView surface;
     Button renderButton;
     Button memoryButton;
+    Button coreButton, loaderButton;
     private Uri tree;
     private InputManager inputs;
     private LinearLayout content;
@@ -41,6 +43,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
     volatile String nativeReport = "";
     volatile String renderReport = "Not run";
     volatile String memoryReport = "Not run";
+    volatile String coreReport = "Not run", loaderReport = "Not run";
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private TextView text(String value, int size, int color) {
@@ -63,7 +66,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
         text("FEFW / ANDROID", 25, 0xfff2e8dc);
-        text("Native port • runtime memory preview 0.1.2", 14, 0xffb7c4d0);
+        text("Native port • module loader preview 0.1.3", 14, 0xffb7c4d0);
         text("This build tests Android files, controllers, memory and Vulkan. It does not run the game yet.", 16, 0xffe8b879);
         heading("Your game folder");
         String saved = getPreferences(MODE_PRIVATE).getString("tree", "");
@@ -92,8 +95,13 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         heading("Android runtime memory");
         memoryStatus = text("The real nxrt memory backend is linked. Test its fixed module addresses, sparse heap, shared aliases and protections. Full game startup is still pending; this backend currently requires 4 KB host pages.", 14, 0xffc9d3dc);
         memoryButton = button("Test runtime memory", v -> testRuntimeMemory());
+        heading("Module loader and execution core");
+        coreStatus = text("The ABI 3 module registry, dispatcher and ELF/NSO loader are linked. Synthetic tests cover relocations, TLS data, imports, constructors and host function calls. Guest scheduling and graphics remain pending.", 14, 0xffc9d3dc);
+        coreButton = button("Test loader and dispatcher", v -> testRuntimeCore());
+        loaderStatus = text("Use your verified local copy to map all six real modules and analyse relocations. Files are opened read-only. Final guest linking and game execution remain pending.", 14, 0xffc9d3dc);
+        loaderButton = button("Test selected game modules", v -> inspectGameModules());
         heading("Development status and credits");
-        text("Next: integrate the module loader and port guest threads, exception handling, filesystem, audio and the NVN/Vulkan game renderer; compile and link all lifted game modules for ARM64. A matching folder or passing memory tests does not make this build playable.", 14, 0xffc9d3dc);
+        text("Next: port guest threads, system services, exception handling, filesystem, audio and the NVN/Vulkan game renderer; compile and link all lifted game modules for ARM64. Passing module-loading tests does not make this build playable.", 14, 0xffc9d3dc);
         text("Runtime foundation: Goldoire, drakolordx7 and featureJosh. Patch reference: Kompas9. Android integration: GregorioRuiz98, with Codex assistance. Woven Shield is original project artwork. No game files are included.", 13, 0xffb7c4d0);
         button("Export device report", v -> {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").putExtra(Intent.EXTRA_TITLE, "fefw-android-diagnostics.json");
@@ -175,6 +183,43 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         });
     }
 
+    private void testRuntimeCore() {
+        if (busy) return;
+        busy = true; coreReport = "Not run"; coreButton.setEnabled(false);
+        coreStatus.setText("Testing the real Android loader, ABI 3 registry and dispatcher…");
+        worker.execute(() -> {
+            String result, message;
+            try {
+                result = NativeBridge.runtimeCoreTest();
+                JSONObject report = new JSONObject(result);
+                message = report.getString("status").equals("PASS")
+                    ? report.getInt("cases_passed") + " loader and dispatcher tests passed. Guest game services and rendering are still pending."
+                    : "Loader tests: " + report.optString("failures", report.getString("status"));
+            } catch (Throwable error) { message = result = "FAILED: " + error.getClass().getSimpleName(); }
+            final String report = result, status = message;
+            runOnUiThread(() -> { busy = false; coreButton.setEnabled(true); coreStatus.setText(status); coreReport = report; });
+        });
+    }
+
+    private void inspectGameModules() {
+        if (busy) return;
+        if (tree == null) { loaderStatus.setText("Select your local game folder first."); return; }
+        busy = true; loaderReport = "Not run"; loaderButton.setEnabled(false);
+        final Uri selection = tree;
+        worker.execute(() -> {
+            String result, message;
+            try {
+                result = GameFolder.inspectModules(this, selection, status -> runOnUiThread(() -> loaderStatus.setText(status)));
+                JSONObject report = new JSONObject(result);
+                message = report.getString("status").equals("PASS")
+                    ? report.getInt("modules_loaded") + " game modules mapped; " + report.getInt("relocations_checked") + " relocations analysed. " + report.getInt("deferred_tls_descriptors") + " TLS descriptors deferred to the guest linker. Mappings released. Game code was not executed; full engine integration is pending."
+                    : "Module loading failed: " + report.optString("error", report.getString("status"));
+            } catch (Exception error) { message = result = "FAILED: " + error.getMessage(); }
+            final String report = result, status = message;
+            runOnUiThread(() -> { busy = false; loaderButton.setEnabled(true); loaderStatus.setText(status); loaderReport = report; });
+        });
+    }
+
     private static boolean gamepad(InputDevice device) {
         return device != null && ((device.getSources() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
             || (device.getSources() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK);
@@ -234,6 +279,8 @@ public final class MainActivity extends Activity implements InputManager.InputDe
                     report.put("presentation", renderReport); report.put("modules_verified", verified);
                     report.put("target_fps", NativeBridge.TARGET_FPS);
                     report.put("runtime_memory", memoryReport);
+                    report.put("runtime_core", coreReport);
+                    report.put("game_module_loading", loaderReport);
                     report.put("game_runtime_available", false);
                     try (java.io.OutputStream stream = getContentResolver().openOutputStream(output, "wt")) {
                         if (stream == null) throw new java.io.IOException();

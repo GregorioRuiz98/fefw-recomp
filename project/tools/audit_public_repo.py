@@ -15,8 +15,12 @@ MAX_SOURCE_BYTES = 2 * 1024 * 1024
 ANDROID_SOURCE = re.compile(
     r'^android/(?:README\.md|build\.py|CMakeLists\.txt|AndroidManifest\.xml|'
     r'native/[A-Za-z0-9_]+\.(?:cpp|h)|'
-    r'runtime/(?:README\.md|include/nxrt/memory\.h|src/memory_android\.cpp|'
-    r'tests/(?:test_memory\.cpp|test_framework\.h|test_runner\.(?:cpp|h)))|'
+    r'runtime/(?:README\.md|'
+    r'include/nxrt/(?:memory|abi|module|dispatch|nxmodule|log|config|gauge|android_trap|android_session)\.h|'
+    r'include/nxrecomp/(?:ctx|cxx|cxx_fp|cxx_ldst|cxx_lse|cxx_neon1|cxx_neon2|fpexact|neon)\.h|'
+    r'src/(?:(?:memory_android|module|nso|nxmodule|dispatch_android|abi_dispatch_android|log_android|config|ini_merge|gauges_android|session_android)\.cpp|elf\.h)|'
+    r'tests/(?:test_(?:memory|nxmodule|loader|dispatch_android|nso_android)\.cpp|test_framework\.h|test_runner\.(?:cpp|h)|fixture\.c|prepare_fixtures\.py)|'
+    r'third_party/zbic/(?:README\.md|LICENSE|COPYING|zstd\.(?:c|h)|zstd_errors\.h))|'
     r'java/io/github/gregorioruiz98/fefw/[A-Za-z0-9_]+\.java|'
     r'res/values/[A-Za-z0-9_]+\.xml)$')
 
@@ -40,7 +44,9 @@ def check_name(name):
 
 def check_content(name, data):
     check_name(name)
-    if len(data) > MAX_SOURCE_BYTES or b'\x00' in data or data.startswith(b'MZ'):
+    # This one unmodified, pinned open-source amalgamation is slightly over 2 MiB.
+    pinned_decoder = name == 'android/runtime/third_party/zbic/zstd.c' and hashlib.sha256(data).hexdigest() == '6f8e89a93f760ab2e9e48f8bbac766e254aa748a343e495eaa896ac441772e1f'
+    if (len(data) > MAX_SOURCE_BYTES and not pinned_decoder) or b'\x00' in data or data.startswith(b'MZ'):
         raise ValueError('Binary or oversized content in public source: ' + name)
     if name in REPO_FILES or ANDROID_SOURCE.fullmatch(name):
         text = data.decode('utf-8-sig')

@@ -8,6 +8,8 @@ final class NativeBridge {
     static { System.loadLibrary("fefw_android"); }
     static native String probe();
     static native String runtimeMemoryTest();
+    static native String runtimeCoreTest();
+    static native String inspectModules(int[] descriptors);
     static native String renderTest(Surface surface, int targetFps);
     private NativeBridge() {}
 }

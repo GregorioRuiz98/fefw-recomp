@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 23130,
-      "sha256": "9133c8ec9f37663049647855729eb44bb8649533663d0c528bd644631e7ae5c8"
+      "bytes": 23282,
+      "sha256": "c0fc2dba91da607466e678fca0ad0d8cafbed4a9ce3a6b0efa4204ca1ec0acbd"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -59,38 +59,38 @@
     },
     {
       "path": "android/CMakeLists.txt",
-      "bytes": 1872,
-      "sha256": "ad370a58514bd47b9441c7bffa147181c7d98f162b89fc6b6f4ab01c674a64f6"
+      "bytes": 5177,
+      "sha256": "323686f1d0b6875e6d34a1d18bc7caeadb6a7d141746bc79e39c54a3f770ef36"
     },
     {
       "path": "android/README.md",
-      "bytes": 9153,
-      "sha256": "58e533972f75c3ea29ef8efc8bb6bc5b24f45d4d8738b82a6557227097dd0ea6"
+      "bytes": 10396,
+      "sha256": "93c54ec52f24edb2f7629688982c54231dfe01affb07aca5daa2f114b49e31da"
     },
     {
       "path": "android/build.py",
-      "bytes": 6873,
-      "sha256": "c5a63615cb3f59f72ded1098b10812d51e21e7043ec59933d8672d04f236a52f"
+      "bytes": 7238,
+      "sha256": "32f66607a4a8078f87bfeb5a89c140b932699d40aaaae800e1783b7dd3e11ed7"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/GameFolder.java",
-      "bytes": 5879,
-      "sha256": "e4c89d3cb1926866ad3a3ceccf019f8133be9bfa8bdb9139571e8a4eef179125"
+      "bytes": 7213,
+      "sha256": "f7c05e61b509c2e93b2df71e079a5854c8174ed6dc7cdc3a80ce895cbc9e23ca"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/MainActivity.java",
-      "bytes": 16272,
-      "sha256": "52f2052e7e3adb8b54dd7c13ce70a537ca10a6c8fc54a2f27d7aa640aac08230"
+      "bytes": 19639,
+      "sha256": "b9ec71dd159201d0eba1c9a782a18f2a97e767a4feaa855c8d3858de9d2e166f"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/NativeBridge.java",
-      "bytes": 412,
-      "sha256": "8f709f86cbd8cbb6bd34faab566c132ccde0fdacd227d8b2121272ae5f70b898"
+      "bytes": 516,
+      "sha256": "6cbc800d85b4bb8fdf8b74bfe7d5690c609f82dfacc534a66c50ff598370f719"
     },
     {
       "path": "android/java/io/github/gregorioruiz98/fefw/SmokeTest.java",
-      "bytes": 4873,
-      "sha256": "d77903bca53b28e7b88e296d3f8c035e82f9768570a5f8ce4f020ac4f3a0248a"
+      "bytes": 7589,
+      "sha256": "f5dcf0e7167325f432170f41859357c4dd4762bca4baa96ca56e6627c2be08f6"
     },
     {
       "path": "android/native/probe.cpp",
@@ -99,8 +99,8 @@
     },
     {
       "path": "android/native/runtime_test.cpp",
-      "bytes": 549,
-      "sha256": "b5bcb67b719a171b7035e7921de5bb7c9e8bf083daf796b83daa3c8d431405aa"
+      "bytes": 1809,
+      "sha256": "b741f1c11f739a0ba18ae3c42e07453979afb25bc3804e835851b1eab623e3ad"
     },
     {
       "path": "android/native/vulkan_test.cpp",
@@ -114,8 +114,88 @@
     },
     {
       "path": "android/runtime/README.md",
-      "bytes": 3743,
-      "sha256": "664a75a1412581d7fb95ac4c9a8a8293856e552bd194112c3cc725f8336f0168"
+      "bytes": 5604,
+      "sha256": "07fd401763576df71e456ea4bf1b619f7062787e8b0a1c1fae259787682199ad"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/ctx.h",
+      "bytes": 19180,
+      "sha256": "591df86c5818eae09813889f535b19ff527d8bc217e046d442f8fa9f42ec8742"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx.h",
+      "bytes": 23075,
+      "sha256": "6e09b1ee3f899da8d9c401f4d1929a55f4996e1c5249981e4088842aeac31a57"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx_fp.h",
+      "bytes": 5359,
+      "sha256": "0b0fbec240f0173acc68447689cbdbec40f87fb1a69683832f05a8f03804135b"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx_ldst.h",
+      "bytes": 2163,
+      "sha256": "486a3633f7caebaaa49931666ecc7082dd9b574dcc374dc0e1e9fa19d7f8d3b4"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx_lse.h",
+      "bytes": 233,
+      "sha256": "df84f3f6e25d1c3d9e414318b8780d3c8348256bf2486d5369a812a2bcb1c585"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx_neon1.h",
+      "bytes": 6357,
+      "sha256": "76d9eab30f5fe8e254b569cd00fcc25cd85ada650b1301a321dea09c76ada40f"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/cxx_neon2.h",
+      "bytes": 1198,
+      "sha256": "73f89db6dbcbc14bcd47b916aa53566f79a5f251e48727d45a1a2d60bebe248d"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/fpexact.h",
+      "bytes": 21197,
+      "sha256": "0153aa7d5a513875d88187c12ec6482dc3f5beacbbce4727312db7ab416f9d23"
+    },
+    {
+      "path": "android/runtime/include/nxrecomp/neon.h",
+      "bytes": 26352,
+      "sha256": "7859922b91df2ea764a88913226744f60eeeb22ccc5f348ce230a3734de9bc6e"
+    },
+    {
+      "path": "android/runtime/include/nxrt/abi.h",
+      "bytes": 1603,
+      "sha256": "690d062f48ab3cea09af2c91207d269a408ba779b88918b6173b58640374cd31"
+    },
+    {
+      "path": "android/runtime/include/nxrt/android_session.h",
+      "bytes": 574,
+      "sha256": "a0776bcdb9bbfad2d64082c5ef2185671133e0a997cd50f2f060ba231170dcd4"
+    },
+    {
+      "path": "android/runtime/include/nxrt/android_trap.h",
+      "bytes": 505,
+      "sha256": "1d5b00bfed782973f170be1673a16f7a4a560921fda64ee8549fd3b4b94acbf0"
+    },
+    {
+      "path": "android/runtime/include/nxrt/config.h",
+      "bytes": 3363,
+      "sha256": "3933769aca7d7f8c3ba1637dfb3a4e5ab51a609560bda875a22579166282f47c"
+    },
+    {
+      "path": "android/runtime/include/nxrt/dispatch.h",
+      "bytes": 3890,
+      "sha256": "c28979fe2833da4d9a93b1cd468c6976ae1af9b7f66d543c42085564487732d3"
+    },
+    {
+      "path": "android/runtime/include/nxrt/gauge.h",
+      "bytes": 8031,
+      "sha256": "1387ed2b9bfc9157e28064b4927a0af36381464252a1de82a6158ca3706ca086"
+    },
+    {
+      "path": "android/runtime/include/nxrt/log.h",
+      "bytes": 2891,
+      "sha256": "e5349c80f07ad9670b7f5fca349ae92bd020a30254a6fc9d2456f2ed300dfed6"
     },
     {
       "path": "android/runtime/include/nxrt/memory.h",
@@ -123,9 +203,89 @@
       "sha256": "85e840a118f8751ef66235e3aadc3a81d8ca958357a89ebd353fc0c5ca9dab55"
     },
     {
+      "path": "android/runtime/include/nxrt/module.h",
+      "bytes": 9919,
+      "sha256": "00500496cc5b802b2f1094acbcb931f7d59b72230c1b5eb37f5192d9ee764d59"
+    },
+    {
+      "path": "android/runtime/include/nxrt/nxmodule.h",
+      "bytes": 4944,
+      "sha256": "79cd03cc2d176f2e4101e996670fc622cc72add613d097a7a0ea151803501d96"
+    },
+    {
+      "path": "android/runtime/src/abi_dispatch_android.cpp",
+      "bytes": 1240,
+      "sha256": "052b92650096c41d6acede3e18e73d9850e9d01fe33a35eb66d118d66dcf18ee"
+    },
+    {
+      "path": "android/runtime/src/config.cpp",
+      "bytes": 12370,
+      "sha256": "b41a229a92ef57def83d60fd1aa97e6f7f53c19f7930c94e7b6ca786800212c3"
+    },
+    {
+      "path": "android/runtime/src/dispatch_android.cpp",
+      "bytes": 15264,
+      "sha256": "33b31711d47755ce688b424087519922e29db08ed8ccc483b718700907e13c3d"
+    },
+    {
+      "path": "android/runtime/src/elf.h",
+      "bytes": 2115,
+      "sha256": "b53d0de2de9150be373cabc6155688170e7d9d45f4327f072da8fa35defa52f0"
+    },
+    {
+      "path": "android/runtime/src/gauges_android.cpp",
+      "bytes": 1309,
+      "sha256": "0b1abe11d2c3dd39d953cdb31560e9611e70a33aa5e317bc5301561a722a9829"
+    },
+    {
+      "path": "android/runtime/src/ini_merge.cpp",
+      "bytes": 8646,
+      "sha256": "a0f483ee4d0f8cdcd6fb0a96d9e88b506d54eb3613ae09e4fd8059de8feee60f"
+    },
+    {
+      "path": "android/runtime/src/log_android.cpp",
+      "bytes": 8817,
+      "sha256": "426d083e320b9400655f92cfbcfbbccfb6dcef62e9da57e2cd0ea184dba2d748"
+    },
+    {
       "path": "android/runtime/src/memory_android.cpp",
       "bytes": 21505,
       "sha256": "d34f981baa7023c9053cc37712c2661723b9b11ecc603d6faf63ccaaccaa08cf"
+    },
+    {
+      "path": "android/runtime/src/module.cpp",
+      "bytes": 34643,
+      "sha256": "e65ee0fc72cf8e22c2744768127456de0d241db36b3de55a76ac521654591daa"
+    },
+    {
+      "path": "android/runtime/src/nso.cpp",
+      "bytes": 8962,
+      "sha256": "9720dd53f78c17c5506f223857ed5e5322bf966156931e92b708b10d1eff66ab"
+    },
+    {
+      "path": "android/runtime/src/nxmodule.cpp",
+      "bytes": 11892,
+      "sha256": "d7e22f3d08aa0d279cc718ec4e9ddbd5137f4a0a956f9cc3f98a892d5739c927"
+    },
+    {
+      "path": "android/runtime/src/session_android.cpp",
+      "bytes": 4587,
+      "sha256": "b58d54f2b8fdb4c5183021f40a7e95d08e24428e0a21b54f5bc7f0285a2a02dd"
+    },
+    {
+      "path": "android/runtime/tests/fixture.c",
+      "bytes": 2862,
+      "sha256": "f92ea2d7d4f6fed87dd1470dc3a5ff649415e01170ab116c5602a23f5f25de3a"
+    },
+    {
+      "path": "android/runtime/tests/prepare_fixtures.py",
+      "bytes": 2173,
+      "sha256": "1615bbc75d0ef3bfe4d161ab5872e7c1499b65ed60942181f7954392caf2bd6c"
+    },
+    {
+      "path": "android/runtime/tests/test_dispatch_android.cpp",
+      "bytes": 2910,
+      "sha256": "8e254a359a5cebfcfcbc9bc0f335771b8ef317e3d6cb502c1fbdf1faa0ef66d2"
     },
     {
       "path": "android/runtime/tests/test_framework.h",
@@ -133,19 +293,64 @@
       "sha256": "625f896275363c3374fe6e564ca888ee0b43a7bdba73b8e5f36b3112238953a9"
     },
     {
+      "path": "android/runtime/tests/test_loader.cpp",
+      "bytes": 17454,
+      "sha256": "15049023090851b2e5f7760df383927d8c964fd209d58a1cae597399354a1536"
+    },
+    {
       "path": "android/runtime/tests/test_memory.cpp",
       "bytes": 29270,
       "sha256": "8a98908d15117f2c30cfd841c1602b8015ce6648377e61f413d2586a842565cb"
     },
     {
+      "path": "android/runtime/tests/test_nso_android.cpp",
+      "bytes": 6622,
+      "sha256": "c68ec3ef40c9d148662b44c60114afa3332b5de3ea64678b7c7ddb691fe645e0"
+    },
+    {
+      "path": "android/runtime/tests/test_nxmodule.cpp",
+      "bytes": 18139,
+      "sha256": "c1a8694009bd4421cf3f3d3a3f1d2b43cf7a315acff79897ce58bca12096c126"
+    },
+    {
       "path": "android/runtime/tests/test_runner.cpp",
-      "bytes": 2258,
-      "sha256": "32dda0cafdacb81b6760096e0e1880935df4b77ef1cf5aa6c1f45b55c63a48fe"
+      "bytes": 3039,
+      "sha256": "d75a7747d317a4b7be2a1c97f262f934e81baa43ae5c15b2d8927cf7d8f38612"
     },
     {
       "path": "android/runtime/tests/test_runner.h",
-      "bytes": 129,
-      "sha256": "1e5a00ce95aab740a7fc5c5b313df772b7775820a282547c12208f21d27e9cdc"
+      "bytes": 159,
+      "sha256": "0402b9670fef12c794067c7115abc451e9d04e2ef0122fd7c9fc3d0b8f25542a"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/COPYING",
+      "bytes": 18092,
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/LICENSE",
+      "bytes": 1549,
+      "sha256": "7055266497633c9025b777c78eb7235af13922117480ed5c674677adc381c9d8"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/README.md",
+      "bytes": 1134,
+      "sha256": "03fd7b575b18e49e9524310be62d1854823e56033bd921126a5ce26c2cb7d43c"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/zstd.c",
+      "bytes": 2191643,
+      "sha256": "6f8e89a93f760ab2e9e48f8bbac766e254aa748a343e495eaa896ac441772e1f"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/zstd.h",
+      "bytes": 182019,
+      "sha256": "787f615a8d12e62811dc198c3003bccf035756da1a953ee5d182ca92849b276a"
+    },
+    {
+      "path": "android/runtime/third_party/zbic/zstd_errors.h",
+      "bytes": 4277,
+      "sha256": "8336c9edf7c11fa7e3730efb05895d4619148f215849a820705e2e3819238cb2"
     },
     {
       "path": "project/.gitignore",
@@ -204,8 +409,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 23130,
-      "sha256": "9133c8ec9f37663049647855729eb44bb8649533663d0c528bd644631e7ae5c8"
+      "bytes": 23282,
+      "sha256": "c0fc2dba91da607466e678fca0ad0d8cafbed4a9ce3a6b0efa4204ca1ec0acbd"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -694,8 +899,8 @@
     },
     {
       "path": "project/tests/test_public_repo.py",
-      "bytes": 5118,
-      "sha256": "e285ed8048923aa99aee9aadc98aca3e8b0c5813ecda0ef77841d35300e99df9"
+      "bytes": 6366,
+      "sha256": "c383eb810feb5823a5478e25ed098b15f067213feef6c9c467e10e67d66b6a57"
     },
     {
       "path": "project/tests/test_render_portability.cpp",
@@ -804,8 +1009,8 @@
     },
     {
       "path": "project/tools/audit_public_repo.py",
-      "bytes": 5989,
-      "sha256": "7b2283be79cfb25ddb514fcf2708073e367bf74365f1fbaba928fb83c21f0c04"
+      "bytes": 6766,
+      "sha256": "1456a8e199200d80305ad2dde6cba582827a88d05c8249c5b17322bc2a5e16dd"
     },
     {
       "path": "project/tools/bootstrap.py",

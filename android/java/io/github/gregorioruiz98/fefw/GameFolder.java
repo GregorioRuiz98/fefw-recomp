@@ -4,6 +4,7 @@ package io.github.gregorioruiz98.fefw;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.DocumentsContract;
 import org.json.JSONObject;
 import java.io.InputStream;
@@ -57,6 +58,11 @@ final class GameFolder {
     interface Progress { void update(String text); }
 
     static String validate(Context context, Uri tree, Progress progress) throws Exception {
+        verifiedModules(context, tree, progress);
+        return "PASS: all six ExeFS modules match update 131072; RomFS folder found. The Android game runtime is still being ported.";
+    }
+
+    private static Map<String, Document> verifiedModules(Context context, Uri tree, Progress progress) throws Exception {
         Uri root = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree));
         Map<String, Document> entries = children(context, tree, root);
         if (!entries.containsKey("exefs")) {
@@ -101,7 +107,27 @@ final class GameFolder {
                     throw new IOException("Module SHA-256 does not match the supported update: " + name);
             }
         }
-        return "PASS: all six ExeFS modules match update 131072; RomFS folder found. The Android game runtime is still being ported.";
+        return modules;
+    }
+
+    static String inspectModules(Context context, Uri tree, Progress progress) throws Exception {
+        Map<String, Document> modules = verifiedModules(context, tree, progress);
+        String[] names = {"main", "rtld", "sdk", "subsdk0", "subsdk1", "subsdk2"};
+        ParcelFileDescriptor[] opened = new ParcelFileDescriptor[6];
+        int[] descriptors = new int[6];
+        try {
+            for (int i = 0; i < names.length; ++i) {
+                opened[i] = context.getContentResolver().openFileDescriptor(modules.get(names[i]).uri, "r");
+                if (opened[i] == null) throw new IOException("Cannot open module " + names[i]);
+                descriptors[i] = opened[i].getFd();
+            }
+            progress.update("Mapping all six modules and analysing relocations in the Android runtime…");
+            return NativeBridge.inspectModules(descriptors);
+        } finally {
+            for (ParcelFileDescriptor descriptor : opened) if (descriptor != null) {
+                try { descriptor.close(); } catch (IOException ignored) { }
+            }
+        }
     }
     private GameFolder() {}
 }

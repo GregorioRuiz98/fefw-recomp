@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import struct
 import subprocess
+import sys
 import zipfile
 
 
@@ -42,7 +43,8 @@ def main():
     output=work/args.abi;output.mkdir(exist_ok=True)
     cmake=output/'native'
     run(['cmake','-S',source,'-B',cmake,'-G','Ninja',f'-DCMAKE_TOOLCHAIN_FILE={ndk}/build/cmake/android.toolchain.cmake',
-         f'-DANDROID_ABI={args.abi}','-DANDROID_PLATFORM=android-30','-DANDROID_STL=c++_static','-DCMAKE_BUILD_TYPE=Release'],env)
+         f'-DANDROID_ABI={args.abi}','-DANDROID_PLATFORM=android-30','-DANDROID_STL=c++_static','-DCMAKE_BUILD_TYPE=Release',
+         f'-DPython3_EXECUTABLE={sys.executable}'],env)
     run(['cmake','--build',cmake,'--parallel','2'],env)
     res=output/'res';res.mkdir(exist_ok=True)
     shutil.copytree(source/'res',res,dirs_exist_ok=True)
@@ -60,11 +62,14 @@ def main():
     shutil.copy2(project/'LICENSE',assets/'LICENSE.txt')
     shutil.copy2(ndk/'NOTICE',assets/'NDK-NOTICE.txt')
     shutil.copy2(ndk/'NOTICE.toolchain',assets/'NDK-TOOLCHAIN-NOTICE.txt')
+    dependency=source/'runtime/third_party/zbic'
+    (assets/'ZBIC-NOTICES.txt').write_text('\n\n'.join((dependency/name).read_text(encoding='utf-8')
+        for name in ['README.md','LICENSE','COPYING']),encoding='utf-8')
     run([tools/'aapt2.exe','compile','--dir',res,'-o',output/'resources.zip'],env)
     generated=output/'generated';generated.mkdir(exist_ok=True)
     unsigned=output/'unsigned.apk'
     run([tools/'aapt2.exe','link','-o',unsigned,'-I',android_jar,'--manifest',source/'AndroidManifest.xml',
-         '--java',generated,'-A',assets,'--version-code','3','--version-name','0.1.2-android-runtime-memory',
+         '--java',generated,'-A',assets,'--version-code','4','--version-name','0.1.3-android-module-loader',
          '--min-sdk-version','30','--target-sdk-version',str(args.api),output/'resources.zip'],env)
     classes=output/'classes';classes.mkdir(exist_ok=True)
     java_files=sorted((source/'java').rglob('*.java'))+sorted(generated.rglob('*.java'))
@@ -88,7 +93,7 @@ def main():
     if not key.exists():
         run([java/'keytool.exe','-genkeypair','-noprompt','-keystore',key,'-storetype','PKCS12','-storepass','android',
              '-alias','androiddebugkey','-keyalg','RSA','-keysize','2048','-validity','3650','-dname','CN=FEFW Android Diagnostics,O=Local Development,C=ES'],env)
-    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.2.apk'
+    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.3.apk'
     run([java/'java.exe','-jar',tools/'lib/apksigner.jar','sign','--ks',key,'--ks-key-alias','androiddebugkey',
          '--ks-pass','pass:android','--v1-signing-enabled','false','--v2-signing-enabled','true',
          '--v3-signing-enabled','true','--out',apk,aligned],env)
@@ -96,12 +101,13 @@ def main():
     run([tools/'zipalign.exe','-c','-P','16','4',apk],env)
     with zipfile.ZipFile(apk) as z:
         assert set(z.namelist())=={'AndroidManifest.xml','classes.dex','resources.arsc','res/drawable/app_icon.png',
-            'assets/supported-build.json','assets/LICENSE.txt','assets/NDK-NOTICE.txt','assets/NDK-TOOLCHAIN-NOTICE.txt',f'lib/{args.abi}/libfefw_android.so'}
+            'assets/supported-build.json','assets/LICENSE.txt','assets/NDK-NOTICE.txt','assets/NDK-TOOLCHAIN-NOTICE.txt',
+            'assets/ZBIC-NOTICES.txt',f'lib/{args.abi}/libfefw_android.so'}
     digest=hashlib.sha256(apk.read_bytes()).hexdigest()
     (apk.with_suffix('.apk.sha256')).write_text(digest+'  '+apk.name+'\n',encoding='utf-8')
     report={'kind':'android-platform-diagnostics-only','apk':str(apk),'sha256':digest,'abi':args.abi,
         'target_fps':30,'pacing_scope':'diagnostic-colour-test-only',
-        'memory_backend_available':True,'runtime_port_stage':'memory-only',
+        'memory_backend_available':True,'module_loader_available':True,'runtime_port_stage':'memory-loader-dispatch',
         'game_runtime_available':False,'game_files_included':False,'signed':True,'zip_alignment_16kb':True}
     (output/'build-report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report))

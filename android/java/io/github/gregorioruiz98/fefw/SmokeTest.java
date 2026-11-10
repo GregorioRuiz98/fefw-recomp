@@ -6,14 +6,21 @@ import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import java.io.File;
 import org.json.JSONObject;
 
 public final class SmokeTest extends Instrumentation {
     private int checks;
+    private boolean testLocalModules;
     private void check(boolean value, String label) {
         ++checks; if (!value) throw new AssertionError(label);
     }
-    @Override public void onCreate(Bundle arguments) { super.onCreate(arguments); start(); }
+    @Override public void onCreate(Bundle arguments) {
+        super.onCreate(arguments);
+        testLocalModules = arguments != null && "1".equals(arguments.getString("test_local_modules"));
+        start();
+    }
     @Override public void onStart() {
         Bundle result = new Bundle(); MainActivity activity = null;
         try {
@@ -41,6 +48,33 @@ public final class SmokeTest extends Instrumentation {
             check(memory.getBoolean("memory_backend_available") && memory.getInt("cases_passed")==33 && memory.getInt("cases_failed")==0,"all upstream and Android memory cases pass inside app sandbox");
             check(memory.getBoolean("cleanup_verified") && !memory.getBoolean("game_runtime_available"),"memory integration cleans up and does not claim a complete engine");
             waitForIdleSync();
+            runOnMainSync(() -> screen.coreButton.performClick());
+            for(int i=0;i<300 && screen.coreReport.equals("Not run");++i) Thread.sleep(100);
+            JSONObject core = new JSONObject(screen.coreReport);
+            check(core.getString("status").equals("PASS"),"Android module core: "+screen.coreReport);
+            check(core.getInt("abi_version")==3 && core.getInt("cases_passed")==49 && core.getInt("cases_failed")==0,"all loader, registry, NSO and dispatch cases pass in app sandbox");
+            check(core.getBoolean("cleanup_verified") && !core.getBoolean("game_runtime_available"),"module core does not claim a playable engine");
+            JSONObject missing = new JSONObject(NativeBridge.inspectModules(new int[]{-1,-1,-1,-1,-1,-1}));
+            check(missing.getString("status").equals("FAIL") && missing.getBoolean("cleanup_verified"),"invalid file descriptors fail with cleanup");
+            if (testLocalModules) {
+                // Opt-in local development test: files are supplied separately and never packaged.
+                File directory = new File(getTargetContext().getExternalFilesDir(null), "loader-inputs");
+                String[] names = {"main", "rtld", "sdk", "subsdk0", "subsdk1", "subsdk2"};
+                ParcelFileDescriptor[] opened = new ParcelFileDescriptor[6]; int[] descriptors = new int[6];
+                try {
+                    for (int i=0; i<names.length; ++i) {
+                        opened[i] = ParcelFileDescriptor.open(new File(directory, names[i]), ParcelFileDescriptor.MODE_READ_ONLY);
+                        descriptors[i] = opened[i].getFd();
+                    }
+                    String report = NativeBridge.inspectModules(descriptors);
+                    JSONObject loaded = new JSONObject(report);
+                    check(loaded.getString("status").equals("PASS") && loaded.getInt("modules_loaded")==6,"six real local modules: "+report);
+                    check(loaded.getBoolean("cleanup_verified"),"real module mappings released after test");
+                    check(!loaded.getBoolean("guest_code_executed") && !loaded.getBoolean("game_runtime_available"),"loading data is not game execution");
+                    result.putString("local_game_modules",report);
+                } finally { for(ParcelFileDescriptor descriptor:opened) if(descriptor!=null) descriptor.close(); }
+            }
+            waitForIdleSync();
             for(int i=0;i<100 && !screen.surface.getHolder().getSurface().isValid();++i) Thread.sleep(100);
             check(NativeBridge.renderTest(screen.surface.getHolder().getSurface(), 0).startsWith("FAILED:"),"zero FPS rejected before dividing or rendering");
             runOnMainSync(() -> screen.renderButton.performClick());
@@ -55,6 +89,7 @@ public final class SmokeTest extends Instrumentation {
             result.putString("status","PASS"); result.putInt("checks",checks);
             result.putString("native",probe.toString()); result.putString("presentation",screen.renderReport);
             result.putString("runtime_memory", screen.memoryReport);
+            result.putString("runtime_core", screen.coreReport);
             result.putBoolean("game_runtime_available",false);
             finish(Activity.RESULT_OK,result);
         } catch(Throwable error) {

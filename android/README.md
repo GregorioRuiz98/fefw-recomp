@@ -2,7 +2,7 @@
 
 **This APK does not run Fire Emblem yet.** It is the first installable Android porting milestone, built for `arm64-v8a` (the intended Galaxy S23 Ultra) with a separate `x86_64` build for emulator tests. No game executable, game code, shaders or assets are included. The Windows release remains separate.
 
-Version **0.1.2** now links the first ported runtime component: a real [Android `nxrt::mem` backend](runtime/README.md), with exact-address reservations, sparse heap, aliases, protection and Horizon VM records. **33 native contract cases pass inside the Android app**, alongside **19 application instrumentation checks**. This is more than the earlier platform probes, but it still does not provide game startup. The memory backend currently requires **4 KB host pages**; the ARM64 binary is built but physical Galaxy execution remains unverified.
+Version **0.1.3** links the [Android memory backend, ELF/NSO loader, ABI 3 module registry and dispatcher](runtime/README.md). Inside the app, **33 memory cases and 49 loader/core cases pass**. The normal instrumentation has **23 checks**; an opt-in local-copy run passes **26 checks**, mapping all six actual game modules and analysing **287,544 relocations**. One TLS descriptor is preserved for the game's own dynamic linker; that linker and game code are **not executed** in this milestone. The memory backend requires **4 KB host pages**. The ARM64 APK is built; physical Galaxy execution remains unverified.
 
 ## Implemented
 
@@ -11,6 +11,8 @@ Version **0.1.2** now links the first ported runtime component: a real [Android 
 - GPU/API/feature diagnostics, including buffer device addresses and host-memory import support.
 - Host page-size reporting, a real `memfd` shared-memory alias test and a non-destructive one-page probe at the guest main-module address.
 - Android's folder picker with persistent read permission. Validation streams SHA-256 and checks Build IDs for all six supported ExeFS modules, and checks that a RomFS folder exists. It does not extract, copy or modify game files.
+- **Test selected game modules** opens verified NSOs read-only through Android file descriptors, decompresses both LZ4 and ZBIC, maps the six original guest addresses and analyses relocations. It releases the mappings after testing. Final guest linking, guest services and rendering are still pending.
+- **Test loader and dispatcher** exercises real synthetic ELF/NSO loading, TLS data, RELA/RELR, imports, constructors, ABI refusal, function replacement/cache invalidation and cleanup. Unimplemented imports raise a reported engine error instead of returning a fake success value.
 - Controller discovery and hot-plug events, live axes/buttons and physical PlayStation button labels. Gameplay mappings still belong to the engine port that remains to be implemented.
 - Explicit report export without the selected folder URI, game content or device serial number. No internet permission, background downloads or automatic uploads.
 - The project's original Woven Shield icon and credits.
@@ -48,15 +50,15 @@ adb -s <TEST_DEVICE> install -r <APK>
 adb -s <TEST_DEVICE> shell am instrument -w io.github.gregorioruiz98.fefw/.SmokeTest
 ```
 
-Instrumentation uses synthetic NSO headers and the real native library/window; it does not use game content. Build success, emulator results and actual Galaxy results are separate checks. A compiled or signed APK is not evidence of full-game compatibility.
+Default instrumentation uses synthetic fixtures and the real native library/window; it does not require game content. An optional developer run with `-e test_local_modules 1` reads six separately supplied NSOs from the app's external `files/loader-inputs` folder. Those files are never packaged or uploaded. Build success, emulator results and actual Galaxy results are separate checks. A compiled or signed APK is not evidence of full-game compatibility.
 
 The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Android's frame-rate hint alone is not a limiter: the native loop also waits on absolute monotonic deadlines. Presentation semaphores are allocated per swapchain image, following [Khronos's synchronization guidance](https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html), rather than draining the entire queue on each frame. Once the game engine is ported, its simulation timing and renderer need their own integration and validation at the requested 30 FPS target.
 
 ## What remains before the game can boot
 
-1. Integrate the new memory backend with the module loader and remaining runtime; port lifted-code dispatch, guest thread scheduling, synchronization, exception handling, filesystems and audio. The graphics write tracker is not ported yet.
+1. Port guest thread scheduling, synchronization, SVC/services, guest exception handling, filesystems and audio. The memory backend, module loader and call/import dispatcher are integrated; the graphics write tracker is not ported yet.
 2. Implement guest sub-page permissions/aliases on 16 KB hosts. The memory backend currently refuses those hosts explicitly; 16 KB ELF alignment is a separate installation property. Its 4 KB-host contract results do not establish 16 KB-host compatibility.
-3. Cross-compile and link all six locally generated game modules for ARM64, with the original ABI and checked hooks. The current Windows executable cannot be loaded on Android.
+3. Finish linking the six locally generated ARM64 game modules with a complete Android runtime and checked hooks. A private archive compilation target is available using CMake `NXRT_ANDROID_LIFT_DIR` and target `nxrt_lifted_modules`; its outputs stay outside the diagnostics APK. An archive is not an executable game. The current Windows executable cannot be loaded on Android.
 4. Port SDL/game lifecycle integration and the game's NVN/Vulkan renderer, including mobile-driver feature limits and an appropriate path when host-memory import is unavailable.
 5. Prepare shaders and textures locally, integrate the movie/audio path, and test actual GPU memory use, input, saves and lifecycle on the Galaxy. Vulkan 1.3 alone does not guarantee all renderer features.
 
@@ -64,6 +66,6 @@ Android components are kept separate from the existing Windows runtime so that t
 
 ## Credits and licenses
 
-This project's game/runtime foundation comes from **Goldoire**, **drakolordx7**, **featureJosh** and their upstream contributors; **Kompas9** supplies the referenced patch work. This milestone includes the upstream nxrt memory API and adapted memory tests, an Android memory backend and platform diagnostics; it is not a completed port of the runtime. Exact provenance and test adaptations are recorded in [runtime/README.md](runtime/README.md). Android integration is maintained by **GregorioRuiz98**, with OpenAI Codex assistance. The Woven Shield icon was generated for this project without game/reference artwork.
+This project's game/runtime foundation comes from **Goldoire**, **drakolordx7**, **featureJosh** and their upstream contributors; **Kompas9** supplies the referenced patch work. This milestone includes adapted nxrt memory/loader/registry code and tests, an Android memory backend, Android dispatcher/platform adapters and diagnostics. The ZBIC decoder comes from **kinnay/zbic**, which credits **Atmosphere-NX**, and retains its **Meta Platforms/Zstandard** notices. It is not a completed port of the game runtime. Exact provenance and adaptations are recorded in [runtime/README.md](runtime/README.md) and [ZBIC notices](runtime/third_party/zbic/README.md). Android integration is maintained by **GregorioRuiz98**, with OpenAI Codex assistance. The Woven Shield icon was generated for this project without game/reference artwork.
 
-Project sources retain GPL-3.0-or-later notices. The APK carries the project GPL text and the NDK's original component/toolchain notices, covering the linked C++ runtime and its dependencies. Full upstream credits remain in the repository README and third-party notices. No rights to the commercial game are granted by these licenses.
+Project sources retain GPL-3.0-or-later notices. The APK carries the project GPL text, the NDK's component/toolchain notices and the ZBIC decoder's provenance/BSD/GPLv2 notices. Full upstream credits remain in the repository README and third-party notices. No rights to the commercial game are granted by these licenses.
