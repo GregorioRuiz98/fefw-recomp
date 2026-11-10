@@ -15,6 +15,8 @@ MAX_SOURCE_BYTES = 2 * 1024 * 1024
 ANDROID_SOURCE = re.compile(
     r'^android/(?:README\.md|build\.py|CMakeLists\.txt|AndroidManifest\.xml|'
     r'native/[A-Za-z0-9_]+\.(?:cpp|h)|'
+    r'runtime/(?:README\.md|include/nxrt/memory\.h|src/memory_android\.cpp|'
+    r'tests/(?:test_memory\.cpp|test_framework\.h|test_runner\.(?:cpp|h)))|'
     r'java/io/github/gregorioruiz98/fefw/[A-Za-z0-9_]+\.java|'
     r'res/values/[A-Za-z0-9_]+\.xml)$')
 

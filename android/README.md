@@ -2,6 +2,8 @@
 
 **This APK does not run Fire Emblem yet.** It is the first installable Android porting milestone, built for `arm64-v8a` (the intended Galaxy S23 Ultra) with a separate `x86_64` build for emulator tests. No game executable, game code, shaders or assets are included. The Windows release remains separate.
 
+Version **0.1.2** now links the first ported runtime component: a real [Android `nxrt::mem` backend](runtime/README.md), with exact-address reservations, sparse heap, aliases, protection and Horizon VM records. **33 native contract cases pass inside the Android app**, alongside **19 application instrumentation checks**. This is more than the earlier platform probes, but it still does not provide game startup. The memory backend currently requires **4 KB host pages**; the ARM64 binary is built but physical Galaxy execution remains unverified.
+
 ## Implemented
 
 - A native C++20 library, built with Android NDK r28c, and a small Android application without third-party Java dependencies.
@@ -13,13 +15,13 @@
 - Explicit report export without the selected folder URI, game content or device serial number. No internet permission, background downloads or automatic uploads.
 - The project's original Woven Shield icon and credits.
 
-## Verified milestone
+## Earlier emulator milestone (0.1.1)
 
 Version **0.1.1** installs and opens on a local **Android 15 x86_64 emulator using WHPX** with a Galaxy S23 Ultra-shaped profile. All **16 instrumentation checks** pass, including synthetic NSO header rejection, native shared-memory aliases, the application/JNI bridge, invalid frame-rate rejection and 120 paced Vulkan colour frames. One measured run reached **29.95 submissions/s**, with a mean interval of **33.39 ms** and a p95 interval of **45.89 ms**. The p95 shows timer jitter in the VM; this is not evidence of stable game performance.
 
 The profile has **12,288 MB RAM**, **1440 × 3088** pixels, a configured **120 Hz** display and a logical density of 560 dpi. Android reported about 11.7 GiB usable system RAM and the requested screen mode. Eight CPU cores were requested, but this emulator version supports at most six. It uses the host PC's **NVIDIA GPU through Vulkan 1.3**, not the Galaxy's Snapdragon/Adreno hardware or Samsung One UI. See Samsung's [S23 Ultra specifications](https://news.samsung.com/global/take-your-passions-further-with-the-new-samsung-galaxy-s23-series-designed-for-a-premium-experience-today-and-beyond) and Android's [AVD configuration guide](https://developer.android.com/studio/run/managing-avds).
 
-The separate `arm64-v8a` APK is for the physical Galaxy; the accelerated PC emulator uses the `x86_64` APK. A device profile does not make their CPU/GPU performance equivalent. The ARM64 APK's signature, architecture and 16 KB alignment pass static checks; installation, controller behavior, pacing and graphics on the physical Galaxy S23 Ultra remain unverified. The game engine is still absent from both APKs.
+The separate `arm64-v8a` APK is for the physical Galaxy; the accelerated PC emulator uses the `x86_64` APK. A device profile does not make their CPU/GPU performance equivalent. The ARM64 APK's signature, architecture and 16 KB alignment pass static checks; installation, controller behavior, pacing and graphics on the physical Galaxy S23 Ultra remain unverified. The complete game engine remains unavailable in both APKs.
 
 The earlier 0.1.0 diagnostics passed 10 checks using SwiftShader/Vulkan 1.2. Its folder-picker flow, persistent read permission after restart, rejection of an empty folder and sanitized report export were also checked through Android's actual system UI. Those checks did not run the game.
 
@@ -35,7 +37,7 @@ From this repository's root:
 python android/build.py --sdk <ANDROID_SDK> --ndk <ANDROID_NDK> --java-home <JDK> --project project --work work/android --abi arm64-v8a
 ```
 
-The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.1.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
+The output is `work/android/arm64-v8a/FEFW-Android-Diagnostics-arm64-v8a-0.1.2.apk`. The build checks its signature and 16 KB ZIP alignment. Native ELF load segments are also linked with 16 KB alignment. Development signing uses a local test key in `work/android/android-diagnostics.p12`; keep it private and reuse it for updates. This is a development APK, not a production-signed store release.
 
 The build follows the official [AAPT2](https://developer.android.com/tools/aapt2), [D8](https://developer.android.com/tools/d8), [apksigner](https://developer.android.com/tools/apksigner) and [16 KB page-size](https://developer.android.com/guide/practices/page-sizes) documentation. It does not require Gradle or Android Studio.
 
@@ -52,16 +54,16 @@ The 30 FPS setting currently controls **only the diagnostic Vulkan loop**. Andro
 
 ## What remains before the game can boot
 
-1. Port the Win32-dependent runtime: guest address reservations, shared/private aliases, thread scheduling, synchronization, exception handling, filesystems and audio.
-2. Account for Android host pages that may be 16 KB while the guest exposes 4 KB pages. Passing this APK's one-page memory test does not validate the full guest address space or alias semantics.
+1. Integrate the new memory backend with the module loader and remaining runtime; port lifted-code dispatch, guest thread scheduling, synchronization, exception handling, filesystems and audio. The graphics write tracker is not ported yet.
+2. Implement guest sub-page permissions/aliases on 16 KB hosts. The memory backend currently refuses those hosts explicitly; 16 KB ELF alignment is a separate installation property. Its 4 KB-host contract results do not establish 16 KB-host compatibility.
 3. Cross-compile and link all six locally generated game modules for ARM64, with the original ABI and checked hooks. The current Windows executable cannot be loaded on Android.
 4. Port SDL/game lifecycle integration and the game's NVN/Vulkan renderer, including mobile-driver feature limits and an appropriate path when host-memory import is unavailable.
 5. Prepare shaders and textures locally, integrate the movie/audio path, and test actual GPU memory use, input, saves and lifecycle on the Galaxy. Vulkan 1.3 alone does not guarantee all renderer features.
 
-Native probes are kept separate from the existing Windows runtime so that work on Android does not change the working desktop build.
+Android components are kept separate from the existing Windows runtime so that this port does not change the working desktop build. Memory contract tests compare real Android access behavior and kernel mappings; their success does not validate the unported systems above.
 
 ## Credits and licenses
 
-This project's game/runtime foundation comes from **Goldoire**, **drakolordx7**, **featureJosh** and their upstream contributors; **Kompas9** supplies the referenced patch work. This milestone contains independently written Android platform diagnostics, not a completed port of that runtime. Android integration is maintained by **GregorioRuiz98**, with OpenAI Codex assistance. The Woven Shield icon was generated for this project without game/reference artwork.
+This project's game/runtime foundation comes from **Goldoire**, **drakolordx7**, **featureJosh** and their upstream contributors; **Kompas9** supplies the referenced patch work. This milestone includes the upstream nxrt memory API and adapted memory tests, an Android memory backend and platform diagnostics; it is not a completed port of the runtime. Exact provenance and test adaptations are recorded in [runtime/README.md](runtime/README.md). Android integration is maintained by **GregorioRuiz98**, with OpenAI Codex assistance. The Woven Shield icon was generated for this project without game/reference artwork.
 
 Project sources retain GPL-3.0-or-later notices. The APK carries the project GPL text and the NDK's original component/toolchain notices, covering the linked C++ runtime and its dependencies. Full upstream credits remain in the repository README and third-party notices. No rights to the commercial game are granted by these licenses.

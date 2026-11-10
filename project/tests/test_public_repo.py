@@ -57,10 +57,16 @@ class PublicRepoTests(unittest.TestCase):
     def test_android_allows_reviewed_source_but_rejects_binaries_builds_and_paths(self):
         for name in ('android/README.md', 'android/build.py', 'android/AndroidManifest.xml',
                      'android/CMakeLists.txt', 'android/native/probe.cpp', 'android/res/values/styles.xml',
+                     'android/runtime/README.md', 'android/runtime/include/nxrt/memory.h',
+                     'android/runtime/src/memory_android.cpp', 'android/runtime/tests/test_memory.cpp',
+                     'android/runtime/tests/test_runner.h', 'android/runtime/tests/test_runner.cpp',
+                     'android/runtime/tests/test_framework.h',
                      'android/java/io/github/gregorioruiz98/fefw/MainActivity.java'):
             module.check_content(name, b'// synthetic original source\n')
         for name in ('android/game.apk', 'android/native/game.so', 'android/native/c_001.cpp',
                      'android/build/classes.dex', 'android/native/../secrets.cpp', 'android/romfs/file.cpp',
+                     'android/runtime/romfs/file.cpp', 'android/runtime/src/c_001.cpp',
+                     'android/runtime/src/game.so', 'android/runtime/keys/prod.keys',
                      'android/.env', 'android/native/key.p12'):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 module.check_content(name, b'not source')

@@ -34,6 +34,13 @@ public final class SmokeTest extends Instrumentation {
             for(int i=0;i<100 && screen.nativeReport.isEmpty();++i) Thread.sleep(100);
             check(!screen.nativeReport.isEmpty(),"activity loads JNI diagnostics");
             waitForIdleSync();
+            runOnMainSync(() -> screen.memoryButton.performClick());
+            for(int i=0;i<300 && screen.memoryReport.equals("Not run");++i) Thread.sleep(100);
+            JSONObject memory = new JSONObject(screen.memoryReport);
+            check(memory.getString("status").equals("PASS"),"Android runtime memory: "+screen.memoryReport);
+            check(memory.getBoolean("memory_backend_available") && memory.getInt("cases_passed")==33 && memory.getInt("cases_failed")==0,"all upstream and Android memory cases pass inside app sandbox");
+            check(memory.getBoolean("cleanup_verified") && !memory.getBoolean("game_runtime_available"),"memory integration cleans up and does not claim a complete engine");
+            waitForIdleSync();
             for(int i=0;i<100 && !screen.surface.getHolder().getSurface().isValid();++i) Thread.sleep(100);
             check(NativeBridge.renderTest(screen.surface.getHolder().getSurface(), 0).startsWith("FAILED:"),"zero FPS rejected before dividing or rendering");
             runOnMainSync(() -> screen.renderButton.performClick());
@@ -47,6 +54,7 @@ public final class SmokeTest extends Instrumentation {
             check(!pacing.getBoolean("game_runtime_available"),"colour-test timing is not advertised as gameplay");
             result.putString("status","PASS"); result.putInt("checks",checks);
             result.putString("native",probe.toString()); result.putString("presentation",screen.renderReport);
+            result.putString("runtime_memory", screen.memoryReport);
             result.putBoolean("game_runtime_available",false);
             finish(Activity.RESULT_OK,result);
         } catch(Throwable error) {

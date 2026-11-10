@@ -65,7 +65,7 @@ Java_io_github_gregorioruiz98_fefw_NativeBridge_probe(JNIEnv* env, jclass) {
     report << ",\"page_size\":" << page
            << ",\"shared_memory_alias\":" << (page > 0 && alias_test(page) ? "true" : "false")
            << ",\"main_address_page\":" << (page > 0 && fixed_address_test(page) ? "true" : "false")
-           << ",\"game_runtime_available\":false";
+           << ",\"memory_backend_available\":true,\"game_runtime_available\":false";
     VkApplicationInfo app{VK_STRUCTURE_TYPE_APPLICATION_INFO};
     app.pApplicationName = "FEFW Android diagnostics";
     app.apiVersion = VK_API_VERSION_1_1;

@@ -30,14 +30,17 @@ public final class MainActivity extends Activity implements InputManager.InputDe
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private TextView folderStatus, deviceStatus, controllerStatus, inputStatus;
     TextView renderStatus;
+    TextView memoryStatus;
     SurfaceView surface;
     Button renderButton;
+    Button memoryButton;
     private Uri tree;
     private InputManager inputs;
     private LinearLayout content;
     private boolean busy, verified;
     volatile String nativeReport = "";
     volatile String renderReport = "Not run";
+    volatile String memoryReport = "Not run";
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private TextView text(String value, int size, int color) {
@@ -60,7 +63,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom); return insets;
         });
         text("FEFW / ANDROID", 25, 0xfff2e8dc);
-        text("Native port • platform diagnostics 0.1.1", 14, 0xffb7c4d0);
+        text("Native port • runtime memory preview 0.1.2", 14, 0xffb7c4d0);
         text("This build tests Android files, controllers, memory and Vulkan. It does not run the game yet.", 16, 0xffe8b879);
         heading("Your game folder");
         String saved = getPreferences(MODE_PRIVATE).getString("tree", "");
@@ -86,8 +89,11 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         controllerStatus = text("Scanning…", 14, 0xffc9d3dc);
         inputStatus = text("Connect a USB or Bluetooth controller and press a button or move a stick.", 14, 0xffc9d3dc);
         button("Rescan controllers", v -> scanControllers());
+        heading("Android runtime memory");
+        memoryStatus = text("The real nxrt memory backend is linked. Test its fixed module addresses, sparse heap, shared aliases and protections. Full game startup is still pending; this backend currently requires 4 KB host pages.", 14, 0xffc9d3dc);
+        memoryButton = button("Test runtime memory", v -> testRuntimeMemory());
         heading("Development status and credits");
-        text("Next: port Win32 memory aliases, threads, filesystem, audio and the NVN/Vulkan game renderer; compile the lifted game for ARM64. A matching game folder does not make this build playable.", 14, 0xffc9d3dc);
+        text("Next: integrate the module loader and port guest threads, exception handling, filesystem, audio and the NVN/Vulkan game renderer; compile and link all lifted game modules for ARM64. A matching folder or passing memory tests does not make this build playable.", 14, 0xffc9d3dc);
         text("Runtime foundation: Goldoire, drakolordx7 and featureJosh. Patch reference: Kompas9. Android integration: GregorioRuiz98, with Codex assistance. Woven Shield is original project artwork. No game files are included.", 13, 0xffb7c4d0);
         button("Export device report", v -> {
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("application/json").putExtra(Intent.EXTRA_TITLE, "fefw-android-diagnostics.json");
@@ -149,6 +155,26 @@ public final class MainActivity extends Activity implements InputManager.InputDe
         });
     }
 
+    private void testRuntimeMemory() {
+        if (busy) return;
+        busy = true; memoryReport = "Not run"; memoryButton.setEnabled(false);
+        memoryStatus.setText("Running the nxrt Android memory contract tests…");
+        worker.execute(() -> {
+            String message, result;
+            try {
+                result = NativeBridge.runtimeMemoryTest();
+                JSONObject report = new JSONObject(result);
+                if (report.getString("status").equals("PASS"))
+                    message = report.getInt("cases_passed") + " runtime memory tests passed. Mappings released after testing. The game engine is not ready to boot yet.";
+                else if (report.getString("status").equals("BLOCKED_HOST_PAGE_SIZE"))
+                    message = "This memory backend currently requires 4 KB host pages. Sub-page handling on 16 KB devices remains to be implemented.";
+                else message = "Runtime memory test failed: " + report.optString("failures", "see exported report");
+            } catch (Throwable error) { message = result = "FAILED: " + error.getClass().getSimpleName(); }
+            final String status = message, report = result;
+            runOnUiThread(() -> { busy = false; memoryButton.setEnabled(true); memoryStatus.setText(status); memoryReport = report; });
+        });
+    }
+
     private static boolean gamepad(InputDevice device) {
         return device != null && ((device.getSources() & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
             || (device.getSources() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK);
@@ -207,6 +233,7 @@ public final class MainActivity extends Activity implements InputManager.InputDe
                     report.put("platform", nativeReport.isEmpty() ? JSONObject.NULL : new JSONObject(nativeReport));
                     report.put("presentation", renderReport); report.put("modules_verified", verified);
                     report.put("target_fps", NativeBridge.TARGET_FPS);
+                    report.put("runtime_memory", memoryReport);
                     report.put("game_runtime_available", false);
                     try (java.io.OutputStream stream = getContentResolver().openOutputStream(output, "wt")) {
                         if (stream == null) throw new java.io.IOException();

@@ -7,6 +7,7 @@ final class NativeBridge {
     static final int TARGET_FPS = 30;
     static { System.loadLibrary("fefw_android"); }
     static native String probe();
+    static native String runtimeMemoryTest();
     static native String renderTest(Surface surface, int targetFps);
     private NativeBridge() {}
 }

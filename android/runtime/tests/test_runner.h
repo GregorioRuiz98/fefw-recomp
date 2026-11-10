@@ -1,0 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#pragma once
+#include <string>
+namespace nxtest { std::string run_memory_tests(); }

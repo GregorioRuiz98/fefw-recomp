@@ -64,7 +64,7 @@ def main():
     generated=output/'generated';generated.mkdir(exist_ok=True)
     unsigned=output/'unsigned.apk'
     run([tools/'aapt2.exe','link','-o',unsigned,'-I',android_jar,'--manifest',source/'AndroidManifest.xml',
-         '--java',generated,'-A',assets,'--version-code','2','--version-name','0.1.1-android-diagnostics',
+         '--java',generated,'-A',assets,'--version-code','3','--version-name','0.1.2-android-runtime-memory',
          '--min-sdk-version','30','--target-sdk-version',str(args.api),output/'resources.zip'],env)
     classes=output/'classes';classes.mkdir(exist_ok=True)
     java_files=sorted((source/'java').rglob('*.java'))+sorted(generated.rglob('*.java'))
@@ -88,7 +88,7 @@ def main():
     if not key.exists():
         run([java/'keytool.exe','-genkeypair','-noprompt','-keystore',key,'-storetype','PKCS12','-storepass','android',
              '-alias','androiddebugkey','-keyalg','RSA','-keysize','2048','-validity','3650','-dname','CN=FEFW Android Diagnostics,O=Local Development,C=ES'],env)
-    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.1.apk'
+    apk=output/f'FEFW-Android-Diagnostics-{args.abi}-0.1.2.apk'
     run([java/'java.exe','-jar',tools/'lib/apksigner.jar','sign','--ks',key,'--ks-key-alias','androiddebugkey',
          '--ks-pass','pass:android','--v1-signing-enabled','false','--v2-signing-enabled','true',
          '--v3-signing-enabled','true','--out',apk,aligned],env)
@@ -101,6 +101,7 @@ def main():
     (apk.with_suffix('.apk.sha256')).write_text(digest+'  '+apk.name+'\n',encoding='utf-8')
     report={'kind':'android-platform-diagnostics-only','apk':str(apk),'sha256':digest,'abi':args.abi,
         'target_fps':30,'pacing_scope':'diagnostic-colour-test-only',
+        'memory_backend_available':True,'runtime_port_stage':'memory-only',
         'game_runtime_available':False,'game_files_included':False,'signed':True,'zip_alignment_16kb':True}
     (output/'build-report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(report))
