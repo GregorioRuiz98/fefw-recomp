@@ -44,7 +44,7 @@ void changed();
 void select_page(int p);
 void localize();
 s::Settings read_form();
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.13";
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.15";
 std::map<HWND,std::wstring> captions;
 std::map<HWND,std::vector<std::wstring>> combo_labels;
 std::unique_ptr<s::Controllers> controllers;
@@ -64,6 +64,8 @@ std::vector<fs::path> versions;
 std::vector<s::Language> langs;
 std::vector<std::pair<int, int>> sizes;
 HANDLE preparation{}, job{}, update_process{};
+bool importing_files = false;
+void prepare(bool importing = false);
 
 int px(int v) { return MulDiv(v, dpi, 96); }
 HWND item(int id) {
@@ -260,7 +262,7 @@ void refresh_folder(bool force = false) {
     }
     EnableWindow(item(Versions), !versions.empty()); refresh_languages();
 }
-void browse() {
+void browse_folder() {
     IFileOpenDialog* dialog{};
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&dialog)))) { error("Cannot open the folder picker."); return; }
     DWORD options{}; dialog->GetOptions(&options); dialog->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
@@ -280,6 +282,74 @@ void browse() {
     }
     dialog->Release();
 }
+std::string json_text(const std::wstring& input) {
+    const auto value=s::utf8(input); std::string result="\"";
+    for(unsigned char ch:value) {
+        if(ch=='"'||ch=='\\') { result+='\\'; result+=static_cast<char>(ch); }
+        else if(ch<32) { char escape[7]; std::snprintf(escape,sizeof escape,"\\u%04x",ch); result+=escape; }
+        else result+=static_cast<char>(ch);
+    }
+    return result+'"';
+}
+std::vector<fs::path> pick_files(const wchar_t* title,const wchar_t* filter,bool multiple) {
+    IFileOpenDialog* dialog{}; std::vector<fs::path> files;
+    if(FAILED(CoCreateInstance(CLSID_FileOpenDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&dialog)))) throw std::runtime_error("Cannot open the file picker.");
+    DWORD options{};dialog->GetOptions(&options);
+    dialog->SetOptions(options|FOS_FORCEFILESYSTEM|FOS_FILEMUSTEXIST|FOS_PATHMUSTEXIST|(multiple?FOS_ALLOWMULTISELECT:0));
+    const auto translated=ui::translate(title);
+    const COMDLG_FILTERSPEC types[]={{translated.c_str(),filter}};dialog->SetFileTypes(1,types);dialog->SetTitle(translated.c_str());
+    if(SUCCEEDED(dialog->Show(window))) {
+        IShellItemArray* items{};
+        if(SUCCEEDED(dialog->GetResults(&items))) {
+            DWORD count=0;items->GetCount(&count);
+            for(DWORD i=0;i<count;++i) {IShellItem* entry{};if(SUCCEEDED(items->GetItemAt(i,&entry))) {PWSTR path{};if(SUCCEEDED(entry->GetDisplayName(SIGDN_FILESYSPATH,&path))){files.emplace_back(path);CoTaskMemFree(path);}entry->Release();}}
+            items->Release();
+        }
+    }
+    dialog->Release();return files;
+}
+void browse_files() {
+    if(preparation||s::game_running(game_dir)) throw std::runtime_error("Close the game before importing files.");
+    const auto files=pick_files(L"Select the base game and update (NSP, XCI, NSZ, XCZ, NUP, NX, ZIP)",L"*.nsp;*.xci;*.nsz;*.xcz;*.nup;*.nx;*.zip",true);
+    if(files.empty())return;
+    if(files.size()>32)throw std::runtime_error("Select at most 32 input files.");
+    bool encrypted=false;
+    for(const auto& file:files)for(const auto* ext:{L".nsp",L".xci",L".nsz",L".xcz"})if(!_wcsicmp(file.extension().c_str(),ext))encrypted=true;
+    wchar_t profile[32768]{};GetEnvironmentVariableW(L"USERPROFILE",profile,32768);
+    fs::path keys=fs::path(profile)/L".switch/prod.keys", title_keys=fs::path(profile)/L".switch/title.keys";
+    const s::Ini key_profile(game_dir/L"import-keys.ini");
+    const auto custom_keys=key_profile.get("keys","prod");
+    if(!custom_keys.empty()){keys=s::wide(custom_keys);title_keys=keys.parent_path()/L"title.keys";}
+    if(encrypted&&!fs::is_regular_file(keys)) {
+        const auto selected=pick_files(L"Select your own prod.keys (not included)",L"*.keys",false);
+        if(selected.empty())return;
+        keys=selected.front();title_keys=keys.parent_path()/L"title.keys";
+        s::Ini saved(game_dir/L"import-keys.ini");saved.set("keys","prod",s::path_text(keys));saved.save(game_dir/L"import-keys.ini");
+    }
+    GUID guid{};if(FAILED(CoCreateGuid(&guid)))throw std::runtime_error("Cannot allocate an import folder.");
+    wchar_t id[40]{};StringFromGUID2(guid,id,40);
+    const auto work=game_dir/L"work";fs::create_directories(work);
+    const auto output=work/L"imports"/id;
+    std::string request="{\"inputs\":[";
+    for(size_t i=0;i<files.size();++i){if(i)request+=',';request+=json_text(files[i].wstring());}
+    request+="],\"output\":"+json_text(output.wstring())+",\"result\":"+json_text((work/L"import.result.ini").wstring())+
+        ",\"prodKeys\":"+json_text(keys.wstring())+",\"titleKeys\":"+json_text(title_keys.wstring())+",\"language\":"+json_text(ui::spanish?L"es":L"en")+"}";
+    std::ofstream file(work/L"import.request.json",std::ios::binary|std::ios::trunc);file<<request;file.close();
+    if(!file)throw std::runtime_error("Cannot write the import request.");
+    fs::remove(work/L"import.result.ini");
+    prepare(true);
+}
+void browse() {
+    HMENU menu=CreatePopupMenu();
+    AppendMenuW(menu,MF_STRING,1,ui::translate(L"Import game file(s)…").c_str());
+    AppendMenuW(menu,MF_STRING,2,ui::translate(L"Choose extracted folder…").c_str());
+    AppendMenuW(menu,MF_STRING,3,ui::translate(L"Choose own key file…").c_str());
+    RECT rect{};GetWindowRect(item(Browse),&rect);
+    const auto selected=TrackPopupMenu(menu,TPM_RETURNCMD|TPM_LEFTALIGN,rect.left,rect.bottom,0,window,nullptr);
+    DestroyMenu(menu);
+    if(selected==1)browse_files();else if(selected==2)browse_folder();
+    else if(selected==3){const auto keys=pick_files(L"Select your own prod.keys (not included)",L"*.keys",false);if(!keys.empty()){s::Ini saved(game_dir/L"import-keys.ini");saved.set("keys","prod",s::path_text(keys.front()));saved.save(game_dir/L"import-keys.ini");status(L"Key file selected. Keys remain on your computer.");}}
+}
 void launch_game() {
     const auto exe = game_dir / L"fefw.exe";
     std::wstring args = s::quote_arg(exe.wstring()) + L" --skip-setup --game " + s::quote_arg(game_dir.wstring());
@@ -292,13 +362,13 @@ void finish_save() {
     if (start_game) launch_game();
     DestroyWindow(window);
 }
-void prepare() {
-    const auto script = game_dir / L"tools/Prepare-Game.ps1";
+void prepare(bool importing) {
+    const auto script = game_dir / (importing?L"tools/Import-Game.ps1":L"tools/Prepare-Game.ps1");
     if (!fs::is_regular_file(script)) throw std::runtime_error("Local preparation tools are missing. Keep the tools folder next to the setup tool.");
     wchar_t system[MAX_PATH]{}; GetSystemDirectoryW(system, MAX_PATH);
     const fs::path ps = fs::path(system) / L"WindowsPowerShell/v1.0/powershell.exe";
     std::wstring args = s::quote_arg(ps.wstring()) + L" -NoProfile -ExecutionPolicy Bypass -File " + s::quote_arg(script.wstring()) +
-        L" -GameDirectory " + s::quote_arg(game_dir.wstring()) + L" -Source " + s::quote_arg(pending.source.wstring());
+        L" -GameDirectory " + s::quote_arg(game_dir.wstring()) + (importing?L" -Request "+s::quote_arg((game_dir/L"work/import.request.json").wstring()):L" -Source "+s::quote_arg(pending.source.wstring()));
     STARTUPINFOW si{sizeof si}; si.dwFlags = STARTF_USESHOWWINDOW; si.wShowWindow = SW_HIDE;
     PROCESS_INFORMATION pi{};
     job = CreateJobObjectW(nullptr, nullptr);
@@ -310,9 +380,10 @@ void prepare() {
     }
     if (!AssignProcessToJobObject(job, pi.hProcess)) { TerminateProcess(pi.hProcess, 3); CloseHandle(pi.hThread); CloseHandle(pi.hProcess); CloseHandle(job); job = nullptr; throw std::runtime_error("Could not isolate the preparation process."); }
     preparation = pi.hProcess; ResumeThread(pi.hThread); CloseHandle(pi.hThread);
+    importing_files=importing;
     EnableWindow(item(OpenLog), TRUE);
     enabled(false); ShowWindow(item(Progress), SW_SHOW); SendMessageW(item(Progress), PBM_SETMARQUEE, TRUE, 80);
-    state(L"Preparing your local copy"); SetWindowTextW(item(IDCANCEL), L"Stop preparation");
+    state(importing?L"Importing your game files":L"Preparing your local copy"); SetWindowTextW(item(IDCANCEL), L"Stop preparation");
     status(L"First preparation may take around 30–40 minutes. Completed build work is kept if you stop and resume later.");
     SetTimer(window, 1, 500, nullptr);
 }
@@ -552,7 +623,7 @@ void create_controls() {
     for(int i=0;i<page_count;++i) control(L"BUTTON",page_names[i],NavBase+i,12,140,180,42,WS_TABSTOP);
     creating_page = 0; parent = pages[0];
     heading(control(L"STATIC", L"Game files", 0, 0, 0, -1, 26));
-    control(L"STATIC", L"Choose the folder containing exefs and romfs, or the parent folder containing the supported update. Original game files are preserved.", 0, 0, 34, -1, 44);
+    control(L"STATIC", L"Import NSP, XCI, NSZ, XCZ, NUP, NX or ZIP, or select an extracted folder. Select the base game and update together. Originals are preserved.", 0, 0, 34, -1, 44);
     control(L"STATIC", L"Game &folder", 0, 0, 88, -1, 22);
     control(L"EDIT", settings.source.c_str(), Folder, 0, 114, -3, 30, WS_TABSTOP | ES_AUTOHSCROLL);
     folder_tip = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
@@ -980,7 +1051,18 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                         DWORD code = 1; GetExitCodeProcess(preparation, &code); CloseHandle(preparation); preparation = nullptr;
                         CloseHandle(job); job = nullptr; KillTimer(h, 1); SendMessageW(item(Progress), PBM_SETMARQUEE, FALSE, 0); enabled(true);
                         SetWindowTextW(item(IDCANCEL), L"Cancel"); ShowWindow(item(Progress), SW_HIDE);
-                        if (!code) { finish_save(); return 0; }
+                        if (!code) {
+                            if(importing_files) {
+                                importing_files=false;
+                                const s::Ini imported(game_dir/L"work/import.result.ini");
+                                const auto source=imported.get("import","source");
+                                if(source.empty())throw std::runtime_error("The import did not produce a complete game folder.");
+                                SetWindowTextW(item(Folder),s::wide(source).c_str());refresh_folder(true);
+                                apply(true);return 0;
+                            }
+                            finish_save(); return 0;
+                        }
+                        importing_files=false;
                         SendMessageW(item(Progress), PBM_SETPOS, 0, 0);
                         state(L"Preparation needs attention"); status(L"Use Open log to review the error, then retry. Your original files and saves are preserved.");
                         std::ifstream in(game_dir / L"preparation.status", std::ios::binary);

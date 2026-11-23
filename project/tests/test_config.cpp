@@ -41,6 +41,34 @@ int main() {
         { std::ofstream out(dir / L"exefs/main.npdm"); out << "META"; }
         check(!s::validate_source(dir).ok, "rejects truncated NPDM");
         check(!s::validate_prepared(dir / L"exefs").ok, "rejects missing prepared modules");
+        const auto romfs = dir / L"content á 漢字";
+        const wchar_t* required[] = {L"Fs.bin.zst", L"Shaders/Presets/Base.presetb",
+            L"Shaders/Presets/Chara.presetb", L"Shaders/Presets/Effect.presetb", L"Shaders/Presets/Map.presetb"};
+        check(!s::validate_content(romfs).ok, "rejects a missing content directory");
+        for (const auto* name : required) {
+            const auto file = romfs / name;
+            fs::create_directories(file.parent_path());
+            std::ofstream out(file, std::ios::binary); out << std::string(32, 'x');
+        }
+        check(s::validate_content(romfs).ok, "accepts readable startup resources under a Unicode path");
+        for (const auto* name : required) {
+            const auto file = romfs / name;
+            fs::remove(file);
+            auto missing = s::validate_content(romfs);
+            check(!missing.ok && missing.error.find(s::path_text(file)) != std::string::npos,
+                "identifies each missing startup resource");
+            { std::ofstream out(file, std::ios::binary); }
+            check(!s::validate_content(romfs).ok, "rejects an empty startup resource");
+            { std::ofstream out(file, std::ios::binary); out << std::string(15, 'x'); }
+            check(!s::validate_content(romfs).ok, "rejects an unreadable startup header");
+            { std::ofstream out(file, std::ios::binary); out << std::string(32, 'x'); }
+        }
+        check(s::validate_content(romfs).ok, "content validation leaves complete resources intact");
+        HANDLE resource_lock = CreateFileW((romfs / required[1]).c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+        check(resource_lock != INVALID_HANDLE_VALUE, "locks a startup resource exclusively");
+        check(!s::validate_content(romfs).ok, "rejects a startup resource that cannot be opened");
+        if (resource_lock != INVALID_HANDLE_VALUE) CloseHandle(resource_lock);
+        check(s::validate_content(romfs).ok, "content is accepted again once the external lock is released");
         const auto ls = s::available_languages(dir);
         check(ls.size() == 1 && std::string(ls[0].value) == "Spanish", "languages come from the selected resources");
         s::Settings edit; edit.source = dir; edit.language = "Spanish"; edit.width = 1600; edit.height = 900; edit.skip = false;
@@ -125,6 +153,13 @@ int main() {
         s::export_diagnostics(dir/L"diagnostics.ini",dir,prefs,1);
         {std::ifstream in(dir/L"diagnostics.ini");std::string contents((std::istreambuf_iterator<char>(in)),{});
          check(contents.find(s::path_text(dir))==std::string::npos&&contents.find("save_dir")==std::string::npos&&contents.find("controllers = 1")!=std::string::npos,"diagnostics reports hardware count without paths or saves");}
+        const auto resume=dir/L"resume-import", imported_source=resume/L"work/imports/complete";
+        fs::create_directories(imported_source/L"exefs");fs::create_directories(imported_source/L"romfs");
+        {std::ofstream file(imported_source/L"exefs/main");file<<"own fixture";}
+        s::Ini import_index(resume/L"work/import.result.ini");import_index.set("import","source",s::path_text(imported_source));import_index.save(resume/L"work/import.result.ini");
+        check(s::load(resume).source==imported_source,"reopening setup resumes completed import without extracting again");
+        s::Ini configured(resume/L"fefw.ini");configured.set("launcher","source_dir",s::path_text(dir));configured.save(resume/L"fefw.ini");
+        check(s::load(resume).source==dir,"import resume does not replace an existing configured source");
     } catch (const std::exception& e) { ++failed; std::printf("EXCEPTION: %s\n", e.what()); }
     std::printf("Config: %d checks, %d failed\n", checks, failed);
     return failed ? 1 : 0;

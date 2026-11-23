@@ -1,0 +1,69 @@
+diff --git a/runtime/src/gfx/nvn/nvn_shaders.cpp b/runtime/src/gfx/nvn/nvn_shaders.cpp
+index c1c9bb9..f858b06 100644
+--- a/runtime/src/gfx/nvn/nvn_shaders.cpp
++++ b/runtime/src/gfx/nvn/nvn_shaders.cpp
+@@ -490,7 +490,9 @@ bool reflect_spirv(const uint32_t* words, size_t count, ShaderReflection& out, s
+         };
+         if (auto it = dec.find(var_id); it != dec.end() && it->second.builtin >= 0) add(uint32_t(it->second.builtin));
+         // gl_PerVertex-style blocks, possibly arrays of them
++        size_t depth = 0;
+         for (const Type* t = type(pointee); t;) {
++            if (++depth > types.size()) return false; // damaged cache: cyclic array declarations
+             if (t->op == OpTypeArray && !t->w.empty()) {
+                 pointee = t->w[0];
+                 t = type(pointee);
+@@ -501,6 +503,7 @@ bool reflect_spirv(const uint32_t* words, size_t count, ShaderReflection& out, s
+                     for (uint32_t b : it->second.member_builtins) add(b);
+             break;
+         }
++        return true;
+     };
+ 
+     for (const Var& v : vars) {
+@@ -512,7 +515,7 @@ bool reflect_spirv(const uint32_t* words, size_t count, ShaderReflection& out, s
+ 
+         if (v.storage == ScInput || v.storage == ScOutput) {
+             auto& list = v.storage == ScInput ? out.builtins_in : out.builtins_out;
+-            builtins_of(v.id, pointee, list);
++            if (!builtins_of(v.id, pointee, list)) return fail("cyclic array type");
+             if (!d || d->location < 0 || d->builtin >= 0) continue;
+             ShaderIo io;
+             io.location = uint32_t(d->location);
+@@ -537,7 +540,9 @@ bool reflect_spirv(const uint32_t* words, size_t count, ShaderReflection& out, s
+         b.used = referenced.count(v.id) != 0;
+         if (auto it = names.find(v.id); it != names.end()) b.name = it->second;
+         uint32_t inner = pointee;
++        size_t array_depth = 0;
+         for (const Type* t = type(inner); t && (t->op == OpTypeArray || t->op == OpTypeRuntimeArray); t = type(inner)) {
++            if (++array_depth > types.size()) return fail("cyclic array type");
+             if (t->op == OpTypeRuntimeArray) b.count = 0;
+             else if (t->w.size() >= 2) b.count *= constants.count(t->w[1]) ? constants[t->w[1]] : 1;
+             inner = t->w.empty() ? 0 : t->w[0];
+@@ -596,7 +601,10 @@ bool reflect_spirv(const uint32_t* words, size_t count, ShaderReflection& out, s
+         if (!pt || pt->op != OpTypePointer || pt->w.size() < 2) continue;
+         uint32_t t_id = pt->w[1];
+         size_t depth = 0;
+-        for (const Type* t = type(t_id); t && t->op == OpTypeArray && !t->w.empty(); t = type(t_id)) t_id = t->w[0], ++depth;
++        for (const Type* t = type(t_id); t && t->op == OpTypeArray && !t->w.empty(); t = type(t_id)) {
++            if (++depth > types.size()) return fail("cyclic array type");
++            t_id = t->w[0];
++        }
+         const Type* st = type(t_id);
+         if (!st || st->op != OpTypeStruct || depth >= c.idx.size()) continue;
+         auto d = dec.find(t_id);
+diff --git a/runtime/src/gfx/nvn/nvn_texprep.cpp b/runtime/src/gfx/nvn/nvn_texprep.cpp
+index 9ba19d0..36d9d97 100644
+--- a/runtime/src/gfx/nvn/nvn_texprep.cpp
++++ b/runtime/src/gfx/nvn/nvn_texprep.cpp
+@@ -142,7 +142,10 @@ void schedule_locked(Texture* t) {
+     if (e.st == Entry::Queued) return;                // the job reads the generation when it starts
+     if (e.st == Entry::Running) { e.again = true; return; }
+     if (e.st == Entry::Waiting) { leave_waiting_locked(t); e.st = Entry::Idle; }
+-    if (e.st == Entry::Done) drop_result(e);          // its content is older than the new write
++    if (e.st == Entry::Done) {
++        drop_result(e);                              // its content is older than the new write
++        e.st = Entry::Idle;                          // do not evict the entry we are about to reuse
++    }
+     uint64_t est = std::min<uint64_t>(t->storage_size, 1ull << 30);
+     // [gfx] astc_quality = uncompressed: a job holds the texture as RGBA8, 4 bytes a texel against 16 per ASTC block
+     if (t->fmt && t->fmt->astc && !S().caps.astc && astc_quality() == AstcQuality::Uncompressed) est = std::min<uint64_t>(est * t->fmt->block_w * t->fmt->block_h / 4, 1ull << 30);

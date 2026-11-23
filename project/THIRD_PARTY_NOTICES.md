@@ -32,3 +32,7 @@ Copies of that revision's runtime and texture notices are included in `project/l
 ## Android application services and RomFS (0.1.7)
 
 Android service adapters derive from Goldoire nxrt at a538375a80070e8a6bf5476b03b3dd877a13ea9d: am.cpp, common.cpp, time.cpp, timezone.cpp, selected network.cpp/misc.cpp contracts, fs.cpp and fs_romfs.cpp. Existing SPDX and source-specific credits are retained. Their lineage includes ScarletNX (GPL-3.0-or-later), Ryujinx/Ryubing (MIT) and SuperMarioWonderRecomp (MIT). The RomFS layout/builder also credits yuzu fsmitm_romfsbuild (GPL-2.0-or-later), as stated in its source. Android replaces host platform operations; this attribution does not claim full Android game/rendering compatibility. No commercial game code, game files or extracted shaders are part of these adaptations.
+
+## File importer
+
+NxExtractor extraction/NUP/NCZ adapters: siriusgoldsmith, MIT, commit 9cd476ee21fcb5b9bc4f91c869a7363c52187238. See licenses/NxExtractor-LICENSE.txt and project/tools/importer/UPSTREAM.md. LibHac 0.19.0 (MIT) and ZstdSharp.Port 0.8.8 (MIT) are pinned NuGet dependencies. NXFormat 1.0.4 (MIT) supplies the native NX reader; see licenses/NXFormat-LICENSE.txt. The reader requires the standard Microsoft Visual C++ x64 runtime provided by the required Build Tools; that runtime is not redistributed here. No firmware patching component is compiled or shipped.

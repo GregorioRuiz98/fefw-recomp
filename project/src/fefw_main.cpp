@@ -91,6 +91,7 @@ const GameModule kModules[] = {
 
 std::unique_ptr<nxrt::gfx::Device> g_gfx_device;
 std::unique_ptr<nxrt::gfx::Renderer> g_gfx_renderer;
+bool g_error_dialog = true;
 
 [[noreturn]] void die(const char* fmt, const char* a = "", const char* b = "") {
     NXLOG_E("boot", fmt, a, b);
@@ -101,7 +102,7 @@ std::unique_ptr<nxrt::gfx::Renderer> g_gfx_renderer;
 #ifdef FEFW_GUI_SUBSYSTEM
     char msg[1024];     // a double-clicked exe has no console: say what is wrong in a box
     std::snprintf(msg, sizeof msg, fmt, a, b);
-    MessageBoxA(nullptr, msg, nxrt::game::info().title, MB_OK | MB_ICONERROR);
+    if (g_error_dialog) MessageBoxA(nullptr, msg, nxrt::game::info().title, MB_OK | MB_ICONERROR);
 #endif
     TerminateProcess(GetCurrentProcess(), 1);
     for (;;) {}
@@ -312,6 +313,8 @@ int main(int argc, char** argv) {
         else { std::fprintf(stderr, "fefw: unknown argument %s\n", argv[i]); return 2; }
     }
 
+    // Diagnostic runs must not block unattended checks on a modal error box.
+    g_error_dialog = !headless_requested;
     // Installed layout: work from the game folder (see the file comment).
     // Diagnostics with an explicit ini/headless mode bypass the interactive
     // wizard. The configurator returns through a one-launch bypass, so choosing
@@ -384,6 +387,8 @@ int main(int argc, char** argv) {
         // image ring: tests and scripted runs; also the default when [gfx] headless / NXRT_GFX_HEADLESS is set) | none (keep the logging stubs).
         const std::string gfxmode = nxrt::config_get_str("boot", "gfx", nxrt::config_get_bool("gfx", "headless", false) ? "headless" : "window");
         if (gfxmode != "none") {
+            const auto content = fefw::setup::validate_content(fefw::setup::wide(nxrt::config_get_str("fs", "romfs", "romfs")));
+            if (!content.ok) die("%s", content.error.c_str());
             const bool headless = gfxmode != "window";
             nxrt::play::DisplayConfig disp;
             if (!headless) {

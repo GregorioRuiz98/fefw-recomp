@@ -6,7 +6,7 @@ This distribution contains tools and modifications for preparing a local recompi
 
 You must have a lawfully obtained copy and the rights required for the specific copying, extraction, transformation and use you perform in your jurisdiction. Buying or owning a game is not a blanket authorization for extraction, circumvention of technical measures or redistribution. The project does not determine whether a particular dump meets those requirements.
 
-The tools accept an already extracted folder containing `exefs` and `romfs`. They provide no ROMs, keys, firmware, proprietary SDKs, game updates, game download links or instructions for circumventing technical protection measures.
+The tools accept an extracted folder containing `exefs` and `romfs`, or import compatible user-supplied containers. Encrypted containers require keys provided by the user; the project supplies or downloads no keys, ROMs, firmware, proprietary SDKs or game updates. The importer does not include firmware patching. Import support does not determine whether a particular use is authorized in the user's jurisdiction.
 
 The repository, releases, issues and CI artifacts must not include:
 

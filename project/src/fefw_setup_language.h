@@ -7,6 +7,14 @@ inline bool spanish=false;
 inline std::wstring translate(const std::wstring& v) {
     if(!spanish) return v;
     static const std::map<std::wstring,std::wstring> words={
+        {L"Import game file(s)…",L"Importar archivo(s) del juego…"},
+        {L"Choose extracted folder…",L"Elegir carpeta extraída…"},
+        {L"Choose own key file…",L"Elegir archivo de claves propio…"},
+        {L"Select your own prod.keys (not included)",L"Selecciona tu propio prod.keys (no incluido)"},
+        {L"Select the base game and update (NSP, XCI, NSZ, XCZ, NUP, NX, ZIP)",L"Selecciona el juego base y la actualización (NSP, XCI, NSZ, XCZ, NUP, NX, ZIP)"},
+        {L"Key file selected. Keys remain on your computer.",L"Archivo de claves seleccionado. Las claves permanecen en tu equipo."},
+        {L"Importing your game files",L"Importando los archivos del juego"},
+        {L"Import NSP, XCI, NSZ, XCZ, NUP, NX or ZIP, or select an extracted folder. Select the base game and update together. Originals are preserved.",L"Importa NSP, XCI, NSZ, XCZ, NUP, NX o ZIP, o elige una carpeta extraída. Selecciona juntos el juego base y la actualización. Los originales se conservan."},
         {L"Game files",L"Archivos del juego"},{L"Picture",L"Imagen"},{L"Startup",L"Inicio"},{L"Updates",L"Actualizaciones"},
         {L"Performance",L"Rendimiento"},{L"Window",L"Ventana"},{L"Controllers",L"Mandos"},{L"Audio",L"Audio"},{L"Tools",L"Herramientas"},
         {L"Connect your extracted copy and choose its language.",L"Selecciona tu copia extraída y el idioma del juego."},

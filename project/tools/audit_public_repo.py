@@ -34,6 +34,8 @@ def check_name(name):
         raise ValueError('Invalid source filename')
     if name == 'fefw_setup.exe':
         raise ValueError('The Git repository is source-only; keep the configurator in its reviewed release ZIP')
+    if name.startswith('importer/'):
+        raise ValueError('Importer binaries belong to the audited release, not the source repository')
     if name not in REPO_FILES and not ANDROID_SOURCE.fullmatch(name):
         audit_name(name)
     if name == 'public-manifest.json':

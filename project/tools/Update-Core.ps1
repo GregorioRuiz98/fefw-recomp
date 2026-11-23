@@ -44,11 +44,12 @@ function Assert-UpdatePath([string]$Name) {
     # Never allow an update to name a local game, profile, save, cache or build artifact.
     if (!$Name -or $Name -match '[\\:\x00-\x1f]' -or $Name.StartsWith('/') -or @($Name.Split('/') | Where-Object { $_ -in @('', '.', '..') }).Count) { throw "Unsafe update path: $Name" }
     if ($Name -cin @('fefw_setup.exe','README.md','.gitignore','public-manifest.json','LICENSE','LEGAL.md','NOTICE.md','THIRD_PARTY_NOTICES.md','CONTRIBUTING.md','GITHUB-PUBLISH.md')) { return }
-    if ($Name -cin @('tools/Prepare-Game.ps1','tools/Prepare-Dependencies.ps1')) { return }
+    if ($Name -cin @('tools/Prepare-Game.ps1','tools/Prepare-Dependencies.ps1','tools/Import-Game.ps1')) { return }
+    if ($Name -cin @('importer/FEFW.Importer.dll','importer/FEFW.Importer.deps.json','importer/FEFW.Importer.runtimeconfig.json','importer/LibHac.dll','importer/ZstdSharp.dll','importer/native/nxformat.dll')) { return }
     if ($Name -notmatch '^project/(?:src|tools|tests|licenses|patches)/' -and
-        $Name -cnotin @('project/CMakeLists.txt','project/config.py','project/requirements.txt','project/supported-build.json','project/LICENSE','project/DEPENDENCIAS.md','project/CONTROLES-MANDO.md','project/INCIDENCIAS-Y-CONFIGURADOR.md','project/.gitignore','project/FireEmblemRecomp.ps1','project/PUBLIC-README.md','project/LEGAL.md','project/NOTICE.md','project/THIRD_PARTY_NOTICES.md','project/CONTRIBUTING.md','project/GITHUB-PUBLISH.md','project/UPSTREAM-INTEGRATION.md')) { throw "File is outside update allowlist: $Name" }
+        $Name -cnotin @('project/CMakeLists.txt','project/config.py','project/requirements.txt','project/supported-build.json','project/LICENSE','project/DEPENDENCIAS.md','project/CONTROLES-MANDO.md','project/INCIDENCIAS-Y-CONFIGURADOR.md','project/.gitignore','project/FireEmblemRecomp.ps1','project/PUBLIC-README.md','project/LEGAL.md','project/NOTICE.md','project/THIRD_PARTY_NOTICES.md','project/CONTRIBUTING.md','project/GITHUB-PUBLISH.md','project/UPSTREAM-INTEGRATION.md','project/PC-STABILITY.md')) { throw "File is outside update allowlist: $Name" }
     if ($Name -notmatch '^project/(?:src|tools|tests|licenses|patches)/') { return }
-    if ([IO.Path]::GetExtension($Name) -cnotin @('.cpp','.h','.in','.rc','.manifest','.py','.ps1','.md','.txt','.json','.patch','.tt','.comp','.vert','.frag','.glsl','.spvasm','.sites') -and $Name -cne 'project/.gitignore') { throw "Unsupported update file: $Name" }
+    if ([IO.Path]::GetExtension($Name) -cnotin @('.cpp','.h','.in','.rc','.manifest','.py','.ps1','.md','.txt','.json','.patch','.tt','.comp','.vert','.frag','.glsl','.spvasm','.sites','.cs','.csproj') -and $Name -cne 'project/.gitignore') { throw "Unsupported update file: $Name" }
     if ($Name -match '(?i)(?:^|/)(?:exefs|romfs|lift|shader_cache|save|work|prepared|reports|\.git)(?:/|$)' -or $Name -match '(?i)(?:^|/)(?:c_\d+|module_(?:main|sdk|rtld|subsdk\d+))\.cpp$') { throw "Private data in update: $Name" }
 }
 function Expand-VerifiedUpdate([string]$Archive, [string]$Digest, [string]$Destination) {

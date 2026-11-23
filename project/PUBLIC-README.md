@@ -14,17 +14,31 @@ The game and setup tool use the project's original **Woven Shield** application 
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.13](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.13/FEFW-Recomp-Windows-x64-v0.1.0-preview.13.zip)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.13)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.15](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.15/FEFW-Recomp-Windows-x64-v0.1.0-preview.15.exe)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.15)
 
-Extract **the entire ZIP** and open `fefw_setup.exe`. That download includes the compiled setup tool. GitHub’s **Code → Download ZIP** and **Source code** archives contain source files only.
+Download and run **FEFW-Recomp-Windows-x64-v0.1.0-preview.15.exe** from the release assets. This small launcher installs the reviewed setup, importer and sources in `%LOCALAPPDATA%/FEFW-Recomp`. It contains no game or commercial shaders. The ZIP remains available for a portable installation: extract the complete ZIP and open `fefw_setup.exe`.
 
-Select either the parent folder containing `updates/131072`, or `updates/131072` itself if it contains `exefs` and `romfs`. The selector detects the supported update and available languages. You do not need to move or rename the original game files to match the package.
+1. Open **Browse → Import game file(s)** and select the base game together with its update, or choose **Browse → Choose extracted folder**.
+2. Inputs: **NSP, XCI, NSZ, XCZ, NUP, NX and ZIP**, plus extracted folders containing `exefs` and `romfs`. ZIP archives must contain an extracted folder or supported container files. Only the supported title/build listed below is accepted; a file extension alone does not prove compatibility.
+3. NSP/XCI/NSZ/XCZ require your own `prod.keys`; setup detects `%USERPROFILE%/.switch/prod.keys` or asks you to select it. An optional `title.keys` is read from the same folder. NUP/NX and extracted folders do not require keys. No keys are supplied or downloaded. Encrypted game-container end-to-end compatibility has not been validated with a real input in this release; missing-key handling is tested.
+4. Import runs locally into a separate work folder, then setup verifies the title and supported build before preparing code and shaders. Imported files continue automatically to preparation and play. For an extracted folder, press **Save and play**.
+5. Later starts reuse the generated executable and caches. Settings and saves remain in the installation; there is no first-run recompilation every time.
 
-Initial preparation requires the tools listed below and compiles `fefw.exe` and the shaders on your PC. **Selecting a folder does not make a new installation immediately ready to play.** Once preparation finishes, **Save and play** starts the game. You can then open `fefw.exe` directly if **Skip setup on startup** is enabled; `fefw_setup.exe` remains available to change your settings.
+**A lightweight download is not a complete precompiled game.** The first preparation still requires Windows x64, Vulkan 1.3, the development tools listed below, disk space and an internet connection. It can take around 30–40 minutes or more depending on the PC and caches. The launcher prepares the shared .NET SDK locally when required; it does not silently install Visual C++ Build Tools or the Windows SDK. If a prerequisite is absent, Open log explains what must be installed.
 
-**First launch: allow around 30–40 minutes for initial preparation.** This is a user-reported estimate; time varies with your PC, storage, internet connection and existing caches. Dependencies, game code and shaders are prepared locally. Keep setup open and use **Open log** to follow progress. Later launches reuse the generated executable and caches; updates or missing files may require preparation again.
+The importer is an integration of [NxExtractor](https://github.com/siriusgoldsmith/NxExtractor/tree/9cd476ee21fcb5b9bc4f91c869a7363c52187238), using LibHac, ZstdSharp and NXFormat. Firmware patching and the converter GUI are not included. ZIP/NUP/NX import roundtrips use synthetic fixtures; original encrypted game containers are not represented as tested.
+
+Preview.15 also fixes the update package allowlist so its stability document and importer files can be installed. When upgrading from preview.13 or earlier, download this release manually: the older updater cannot accept the new package layout. For an existing portable installation, extract the complete ZIP into the same folder after closing the game and setup; retain your existing saves, configuration and work folder. The single EXE uses its own stable AppData installation by default. The current public ZIP is tested through the actual standalone launcher, including preservation of game builds, saves and settings during installation and reinstallation. This does not certify compatibility with every future game/runtime version.
 
 ## Graphics runtime replacement
+
+### Windows stability follow-up (preview.14 source)
+
+The startup check now rejects missing, empty, very short or unreadable required startup resources before entering the game, including when setup is skipped. An incomplete RomFS copy could previously close the process with an access violation instead of explaining which file was missing. This is a limited startup check, not a complete integrity scan of the game.
+
+Fresh preparation can also recover when the original Goldoire repository is unavailable. It tries [metrist38's mirror](https://github.com/metrist38/fefw-recomp) and [may22es's mirror](https://github.com/may22es/fefw-recomp), requires the same original commit `a538375a80070e8a6bf5476b03b3dd877a13ea9d`, and installs the checkout only after verification. Existing checkouts are preserved. The mirrors do not change the runtime's authorship or attribution.
+
+These fixes do not establish full-game stability or resolve every crash report. For an unexpected closure, preserve `fefw.log` and `fefw_crash.txt` before launching again, and report the tools version, GPU/driver, selected options and exact scene. Review logs for personal paths before sharing them. See [PC stability notes](project/PC-STABILITY.md).
 
 Preview.10 uses Goldoire’s complete v0.1.5 graphics and memory implementation, matching ASTC/BC7 converter, shader extractor and shader translator. The standalone configurator, controller-only gameplay, reconnection support and local settings workflow remain ours. This replaces the earlier collection of individual graphics patches.
 
@@ -38,7 +52,7 @@ An upgrade requires a local rebuild and a new shader cache. Preparation writes i
 - Title configuration, preparation scripts and a patch for a pinned revision of the open-source engine.
 - Original synthetic tests, publication checks and license notices.
 
-The package does not distribute ROMs, keys, firmware, proprietary SDKs, game updates, audiovisual assets, commercial shaders, generated game C++ or the recompiled game executable. It provides no game download links or instructions for circumventing technical protection measures. The tools accept an already extracted folder and download only the declared development dependencies.
+The package does not distribute ROMs, keys, firmware, proprietary SDKs, game updates, audiovisual assets, commercial shaders, generated game C++ or the recompiled game executable. It provides no game download links or instructions for circumventing technical protection measures. The tools import supported user-supplied files or accept an extracted folder, and download only the declared development dependencies.
 
 ## Status
 
@@ -57,7 +71,7 @@ These checks do not establish complete playability or equivalence with the conso
 - Visual C++ Build Tools and the Windows SDK installed beforehand.
 - A connection for preparing dependencies and space for generated code, objects and caches.
 - A controller recognized by Windows and SDL.
-- A compatible folder already extracted with the necessary rights, containing `exefs` and `romfs`.
+- A supported user-supplied game container, or a compatible extracted folder containing `exefs` and `romfs`. Encrypted containers require user-supplied keys.
 
 If .NET SDK 10 is unavailable, version 10.0.403 is prepared locally and its SHA-512 is verified. No services are installed and the permanent PATH is not changed. Initial preparation can take a considerable amount of time.
 

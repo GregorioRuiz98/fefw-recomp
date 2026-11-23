@@ -46,6 +46,8 @@ struct Settings {
 struct Validation { bool ok = false; std::string error; };
 Settings load(const fs::path& dir);
 std::vector<fs::path> candidates(const fs::path& selected);
+// Cheap startup check, not a full RomFS integrity scan.
+Validation validate_content(const fs::path& romfs);
 Validation validate_source(const fs::path& source, bool hashes = true);
 Validation validate_prepared(const fs::path& exefs);
 Validation validate_ready(const fs::path& dir, const Settings& settings, bool hashes = false);

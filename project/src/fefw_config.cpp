@@ -180,6 +180,14 @@ Settings load(const fs::path& dir) {
     Ini ini(dir / L"fefw.ini"), controls(dir / L"controls.ini"); Settings s;
     s.romfs = resolved(dir, ini.get("fs", "romfs", "romfs"));
     s.source = resolved(dir, ini.get("launcher", "source_dir", path_text(s.romfs.parent_path())));
+    if (ini.get("launcher", "source_dir").empty() && ini.get("fs", "romfs").empty()) {
+        const Ini imported(dir / L"work/import.result.ini");
+        const auto previous=imported.get("import", "source");
+        if(!previous.empty()) {
+            const auto path=resolved(dir,previous);
+            if(fs::is_regular_file(path/L"exefs/main")&&fs::is_directory(path/L"romfs")) {s.source=path;s.romfs=path/L"romfs";}
+        }
+    }
     s.exefs = resolved(dir, ini.get("fs", "exefs", "exefs"));
     s.shaders = resolved(dir, ini.get("nvn", "shader_cache", "shader_cache/goldoire-v015"));
     if (s.shaders.lexically_normal() == (dir / L"shader_cache" / L"spirv").lexically_normal())
@@ -215,6 +223,23 @@ std::vector<fs::path> candidates(const fs::path& selected) {
             if (p.is_directory() && fs::is_regular_file(p.path() / L"exefs/main")) out.push_back(p.path());
     return out;
 }
+Validation validate_content(const fs::path& romfs) {
+    try {
+        // The guest assumes these startup resources exist and dereferences a
+        // null pointer when a partial copy omits a preset. Check before entry,
+        // including launches that deliberately bypass the setup wizard.
+        for (const auto* name : {L"Fs.bin.zst", L"Shaders/Presets/Base.presetb",
+                L"Shaders/Presets/Chara.presetb", L"Shaders/Presets/Effect.presetb",
+                L"Shaders/Presets/Map.presetb"}) {
+            const auto path = romfs / name;
+            if (!fs::is_regular_file(path) || header(path, 16).empty())
+                return invalid("Game content is incomplete: cannot read " + path_text(path) +
+                    ". Select a complete extracted base game with update 131072 in setup."
+                    " Shader caches do not replace original game files.");
+        }
+        return {true, {}};
+    } catch (const std::exception& e) { return invalid("Game content is incomplete: " + std::string(e.what())); }
+}
 Validation validate_source(const fs::path& source, bool hashes) {
     try {
         if (!fs::is_directory(source / L"romfs")) return invalid("The selected version is missing its romfs folder.");
@@ -233,6 +258,7 @@ Validation validate_source(const fs::path& source, bool hashes) {
             if (hashes && sha(path) != lower(m.sha)) return invalid(std::string(m.name) + ": content does not match the supported build.");
         }
         if (available_languages(source).empty()) return invalid("Language resources were not found in romfs/Msg. Check that the base game and update are complete.");
+        if (const auto v = validate_content(source / L"romfs"); !v.ok) return v;
         return {true, {}};
     } catch (const std::exception& e) { return invalid(e.what()); }
 }

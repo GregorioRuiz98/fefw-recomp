@@ -11,11 +11,13 @@ ROOT_FILES = {
     'CMakeLists.txt', 'config.py', 'requirements.txt', 'supported-build.json',
     'LICENSE', 'DEPENDENCIAS.md', 'CONTROLES-MANDO.md', 'INCIDENCIAS-Y-CONFIGURADOR.md', '.gitignore',
     'FireEmblemRecomp.ps1', 'PUBLIC-README.md', 'LEGAL.md', 'NOTICE.md',
-    'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md', 'UPSTREAM-INTEGRATION.md',
+    'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md', 'UPSTREAM-INTEGRATION.md', 'PC-STABILITY.md',
 }
 PUBLIC_ROOT_DOCUMENTS = {'LICENSE', 'LEGAL.md', 'NOTICE.md', 'THIRD_PARTY_NOTICES.md', 'CONTRIBUTING.md', 'GITHUB-PUBLISH.md'}
 ROOT_DIRS = {'src', 'tools', 'tests', 'licenses', 'patches'}
-SUFFIXES = {'.cpp', '.h', '.in', '.rc', '.manifest', '.py', '.ps1', '.md', '.txt', '.json', '.patch', '.tt', '.comp', '.vert', '.frag', '.glsl', '.spvasm', '.sites'}
+SUFFIXES = {'.cpp', '.h', '.in', '.rc', '.manifest', '.py', '.ps1', '.md', '.txt', '.json', '.patch', '.tt', '.comp', '.vert', '.frag', '.glsl', '.spvasm', '.sites', '.cs', '.csproj'}
+IMPORTER_FILES = {'FEFW.Importer.dll', 'FEFW.Importer.deps.json', 'FEFW.Importer.runtimeconfig.json', 'LibHac.dll', 'ZstdSharp.dll', 'native/nxformat.dll'}
+ROOT_TOOLS = {'Prepare-Game.ps1', 'Prepare-Dependencies.ps1', 'Import-Game.ps1'}
 SKIP_DIRS = {'__pycache__', 'bin', 'obj', 'build', '.venv', '.git'}
 DENIED_PARTS = {'exefs', 'romfs', 'lift', 'shader_cache', 'corpus', 'corpus-expanded', 'save', 'reports', 'prepared'}
 DENIED_SUFFIXES = {'.nsp', '.nca', '.nso', '.xci', '.nsz', '.xcz', '.spv', '.bin', '.png', '.jpg', '.webm', '.wav', '.ogg', '.lib', '.obj', '.pdb', '.dll', '.exe', '.bmp', '.keys', '.pem', '.key', '.7z', '.rar'}
@@ -40,13 +42,15 @@ def audit_name(name):
         raise ValueError(f'Unsafe public path: {name}')
     if name == 'fefw_setup.exe':
         return
+    if name.startswith('importer/') and name[len('importer/'):] in IMPORTER_FILES:
+        return
     if any(part.lower() in DENIED_PARTS for part in p.parts):
         raise ValueError(f'Private directory in public package: {name}')
     if p.suffix.lower() in DENIED_SUFFIXES or re.match(r'^(c_\d+|module_(main|sdk|rtld|subsdk\d+))\.cpp$', p.name):
         raise ValueError(f'Private/generated artifact in public package: {name}')
     if name in {'README.md', '.gitignore', 'public-manifest.json'} | PUBLIC_ROOT_DOCUMENTS:
         return
-    if name in {'tools/Prepare-Game.ps1', 'tools/Prepare-Dependencies.ps1'}:
+    if name in {'tools/' + tool for tool in ROOT_TOOLS}:
         return
     if len(p.parts) < 2 or p.parts[0] != 'project' or not allowed_source(Path(*p.parts[1:])):
         raise ValueError(f'File is not on the public allowlist: {name}')
@@ -54,6 +58,10 @@ def audit_name(name):
 
 def audit_payload(name, payload):
     audit_name(name)
+    if name.startswith('importer/') and name.endswith('.dll'):
+        if not payload.startswith(b'MZ') or len(payload) > 8 * 1024 * 1024:
+            raise ValueError('Invalid open-source importer binary: ' + name)
+        return
     if name == 'fefw_setup.exe':
         if not payload.startswith(b'MZ') or len(payload) > 10 * 1024 * 1024:
             raise ValueError('The standalone configurator must be a small independent Windows executable')
@@ -66,7 +74,7 @@ def audit_payload(name, payload):
         raise ValueError(f'Personal absolute path in public source: {name}')
 
 
-def create(source, setup_exe, destination):
+def create(source, setup_exe, destination, importer=None):
     source = source.resolve()
     destination = destination.resolve()
     if destination == source or destination.is_relative_to(source):
@@ -91,11 +99,14 @@ def create(source, setup_exe, destination):
         if (source / name).is_file():
             files[name] = (source / name).read_bytes()
     files['fefw_setup.exe'] = setup_exe.read_bytes()
-    for name in ('Prepare-Game.ps1', 'Prepare-Dependencies.ps1'):
+    for name in ROOT_TOOLS:
         path = source / 'tools' / name
         if path.is_file():
             files['tools/' + name] = path.read_text(encoding='utf-8-sig').encode('utf-8-sig')
-    files['.gitignore'] = b'/work/\n/exefs/\n/romfs/\n/shader_cache/\n/save/\n/fefw.exe\n/fefw_setup.exe\n/fefw.map\n/fefw.pdb\n/fefw.ini\n/fefw.features\n/controls.ini\n/controller-profiles/\n/fefw-settings.ini\n/fefw-diagnostics.ini\n/preparation.*\n**/__pycache__/\n*.pyc\n*.log\n*.spv\n*.keys\n*.nsp\n*.nca\n*.nso\n*.xci\n*.nsz\n*.xcz\n*.dll\n*.pdb\n*.obj\n*.lib\n*.zip\n*.7z\n*.rar\n.env\n.env.*\n'
+    if importer:
+        for name in IMPORTER_FILES:
+            files['importer/' + name] = (Path(importer) / name).read_bytes()
+    files['.gitignore'] = b'/work/\n/exefs/\n/romfs/\n/shader_cache/\n/save/\n/fefw.exe\n/fefw_setup.exe\n/fefw.map\n/fefw.pdb\n/fefw.ini\n/fefw.features\n/controls.ini\n/import-keys.ini\n/controller-profiles/\n/fefw-settings.ini\n/fefw-diagnostics.ini\n/preparation.*\n**/__pycache__/\n*.pyc\n*.log\n*.spv\n*.keys\n*.nsp\n*.nca\n*.nso\n*.xci\n*.nsz\n*.xcz\n*.dll\n*.pdb\n*.obj\n*.lib\n*.zip\n*.7z\n*.rar\n.env\n.env.*\n'
     for name, data in files.items():
         audit_payload(name, data)
     manifest = {
@@ -131,6 +142,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('--source', type=Path, default=Path(__file__).resolve().parents[1])
     p.add_argument('--setup-exe', type=Path)
+    p.add_argument('--importer', type=Path)
     p.add_argument('--out', type=Path, required=True)
     p.add_argument('--verify-only', action='store_true')
     p.add_argument('--zip', type=Path)
@@ -138,7 +150,7 @@ def main():
     if not a.verify_only:
         if not a.setup_exe:
             p.error('--setup-exe is required when creating a package')
-        create(a.source, a.setup_exe, a.out)
+        create(a.source, a.setup_exe, a.out, a.importer)
     manifest = verify(a.out)
     if a.zip:
         if a.zip.resolve().is_relative_to(a.out.resolve()):
