@@ -14,8 +14,8 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 355,
-      "sha256": "8d04c439259d609855dab15a3d1cd83855dfdaf08d8e2562ad68997da66a27a6"
+      "bytes": 385,
+      "sha256": "58df98870e8995c956dca09833fcff964989b69794be0045bde844173262bf56"
     },
     {
       "path": "CONTRIBUTING.md",
@@ -44,8 +44,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 26512,
-      "sha256": "536055dacb2b39a08a54c4248c2c63e7388c50b7d895848fdf0f7696e86c4c5f"
+      "bytes": 27615,
+      "sha256": "7c05ecc856825b5bf51bd192243c0621fd42d4129d76c17467fbe4e540ce09d4"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -624,13 +624,13 @@
     },
     {
       "path": "project/.gitignore",
-      "bytes": 223,
-      "sha256": "2216b2852a37c15ad03d1b80f9c9e9c15bbf046a4f2beccdb5821dcce7743803"
+      "bytes": 254,
+      "sha256": "c1853ef24034d484b2e9f3c9dad2ff1596f3b0cc87779764fe256c72ecceea29"
     },
     {
       "path": "project/CMakeLists.txt",
-      "bytes": 17606,
-      "sha256": "a27e3fc3f8dfcac2581d77b8cd83dfc30fc10f626b8aff746a6d12b140a89c9a"
+      "bytes": 17826,
+      "sha256": "1aa6a659900c185f35251369bb4406baafd6167b5caa528f9f710af680470560"
     },
     {
       "path": "project/CONTRIBUTING.md",
@@ -684,8 +684,8 @@
     },
     {
       "path": "project/PUBLIC-README.md",
-      "bytes": 26512,
-      "sha256": "536055dacb2b39a08a54c4248c2c63e7388c50b7d895848fdf0f7696e86c4c5f"
+      "bytes": 27615,
+      "sha256": "7c05ecc856825b5bf51bd192243c0621fd42d4129d76c17467fbe4e540ce09d4"
     },
     {
       "path": "project/THIRD_PARTY_NOTICES.md",
@@ -958,9 +958,19 @@
       "sha256": "c35f824383a2f73e0ec517f2affc168c7499ce58401376cf4dfc9fc30c1d22e8"
     },
     {
+      "path": "project/src/fefw_saves.cpp",
+      "bytes": 6638,
+      "sha256": "d0604a6a093011eec420c591487b3cbadd0fb4b8cd28e46aa5b783349acb5377"
+    },
+    {
+      "path": "project/src/fefw_saves.h",
+      "bytes": 383,
+      "sha256": "9fb3cd56d345c9b2a44f915c82b274cdbd64c9693cd9715f5e5e042eb8b2a84a"
+    },
+    {
       "path": "project/src/fefw_setup.cpp",
-      "bytes": 91275,
-      "sha256": "39eaf993e023133467dbc214162ac07a187e78ae1c18e4066c033dbba168295d"
+      "bytes": 94540,
+      "sha256": "54d7947539d2dd03aeb9084cd5790439f0951440ba35ecc3a3f69dcd977fc554"
     },
     {
       "path": "project/src/fefw_setup.manifest",
@@ -974,8 +984,8 @@
     },
     {
       "path": "project/src/fefw_setup_language.h",
-      "bytes": 14994,
-      "sha256": "2d12ae4df1220bdf7f50f46ee757e5b562d8827ccc88ed4fc9cb32ef9c3332de"
+      "bytes": 16247,
+      "sha256": "2eeb8ec9b6bfef327a5c9768e123bbd52b6b4854fefa6690e25b9941e1114dbb"
     },
     {
       "path": "project/src/fefw_setup_theme.h",
@@ -1238,6 +1248,11 @@
       "sha256": "e161e4db83dc35477558a8588dd6445bacb2574cbabf75cef2ec0f2579d4ce6c"
     },
     {
+      "path": "project/tests/test_save_import.cpp",
+      "bytes": 6378,
+      "sha256": "22de6cce47ef3cc81922208e3f6d349d31c221b81c879bc980a347cbd29f15ed"
+    },
+    {
       "path": "project/tests/test_save_reset.cpp",
       "bytes": 2820,
       "sha256": "d003b248875ec03b997c6d1c44b0c730a4b43607133f62cb4abd856fb3011c38"
@@ -1345,7 +1360,7 @@
     {
       "path": "project/tools/Update-Release.ps1",
       "bytes": 3251,
-      "sha256": "697e341ea26d99910e0e0f5d80351c87bb70dd496a955f0b3eb98154639c8992"
+      "sha256": "0f0853bb7bcf426c224e14a3c0b3f1684bc3fa68c29d8295cb060686eee92190"
     },
     {
       "path": "project/tools/Write-AppIcon.ps1",
@@ -1444,8 +1459,8 @@
     },
     {
       "path": "project/tools/package_public.py",
-      "bytes": 8667,
-      "sha256": "3ec358b6bf4636bfdefa8c7b5a8bdc272494c9373e74fa6474c8bc04c7726d8e"
+      "bytes": 8699,
+      "sha256": "da8d75ec265b125bae3864132f482a6668ea5e28263a2a0b4b87038ebed8f8a2"
     },
     {
       "path": "project/tools/prepare.py",

@@ -14,9 +14,9 @@ The game and setup tool use the project's original **Woven Shield** application 
 
 ## Download and open the setup tool
 
-**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.15](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.15/FEFW-Recomp-Windows-x64-v0.1.0-preview.15.exe)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.15)
+**[Download FEFW Recomp for Windows x64 — v0.1.0-preview.16](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.16/FEFW-Recomp-Windows-x64-v0.1.0-preview.16.exe)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.16)
 
-Download and run **FEFW-Recomp-Windows-x64-v0.1.0-preview.15.exe** from the release assets. This small launcher installs the reviewed setup, importer and sources in `%LOCALAPPDATA%/FEFW-Recomp`. It contains no game or commercial shaders. The ZIP remains available for a portable installation: extract the complete ZIP and open `fefw_setup.exe`.
+Download and run **FEFW-Recomp-Windows-x64-v0.1.0-preview.16.exe** from the release assets. This small launcher installs the reviewed setup, importer and sources in `%LOCALAPPDATA%/FEFW-Recomp`. It contains no game or commercial shaders. The ZIP remains available for a portable installation: extract the complete ZIP and open `fefw_setup.exe`.
 
 1. Open **Browse → Import game file(s)** and select the base game together with its update, or choose **Browse → Choose extracted folder**.
 2. Inputs: **NSP, XCI, NSZ, XCZ, NUP, NX and ZIP**, plus extracted folders containing `exefs` and `romfs`. ZIP archives must contain an extracted folder or supported container files. Only the supported title/build listed below is accepted; a file extension alone does not prove compatibility.
@@ -29,6 +29,14 @@ Download and run **FEFW-Recomp-Windows-x64-v0.1.0-preview.15.exe** from the rele
 The importer is an integration of [NxExtractor](https://github.com/siriusgoldsmith/NxExtractor/tree/9cd476ee21fcb5b9bc4f91c869a7363c52187238), using LibHac, ZstdSharp and NXFormat. Firmware patching and the converter GUI are not included. ZIP/NUP/NX import roundtrips use synthetic fixtures; original encrypted game containers are not represented as tested.
 
 Preview.15 also fixes the update package allowlist so its stability document and importer files can be installed. When upgrading from preview.13 or earlier, download this release manually: the older updater cannot accept the new package layout. For an existing portable installation, extract the complete ZIP into the same folder after closing the game and setup; retain your existing saves, configuration and work folder. The single EXE uses its own stable AppData installation by default. The current public ZIP is tested through the actual standalone launcher, including preservation of game builds, saves and settings during installation and reinstallation. This does not certify compatibility with every future game/runtime version.
+
+## Saved games from another build (preview.16)
+
+In **Game files → Saved games → Import save from another build**, choose the other installation folder or its complete `save` folder. The importer reads the other build's configured `save_dir`, including custom paths, and copies all accounts, slots and metadata. Selecting one `Auto` file alone is insufficient.
+
+Both games must be closed. The current saves and INI are backed up under `save-backups`; an independent imported copy goes under `save-imports` and becomes active only after verification. The source build is never modified. **Save and play** then continues using that copy. **Open active saved-game folder** shows its location. Future progress in the two builds is independent; importing does not synchronize them.
+
+The game runtime and its cache marker remain unchanged from preview.15, so this save selector does not require a shader rebuild. Tests cover custom/relative paths, complete metadata, existing-save backups, atomic failure and long Windows paths. These checks do not guarantee compatibility with every future game version.
 
 ## Graphics runtime replacement
 

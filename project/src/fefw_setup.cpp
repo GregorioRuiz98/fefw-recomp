@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "fefw_config.h"
 #include "fefw_preferences.h"
+#include "fefw_saves.h"
 #include "fefw_controllers.h"
 #include "fefw_resources.h"
 #include <windows.h>
@@ -23,7 +24,7 @@ namespace fs = std::filesystem;
 namespace {
 enum { Folder = 100, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Status, Progress, Vsync, Fps60, OpenLog, Upscaler,
     Tabs, Title, Subtitle, StatusTitle, UpscalerHelp, Recommended, OpenInstall, GameOutput, RenderRatio, CheckUpdates, InstallUpdate, UpdateNotes, UpdateText, AutoCheck, Revert, Dirty, RenderPreview, FrameHelp, Brand, BrandSub, BuildLabel,
-    Pads, Rescan, PadState, PadValues, Deadzone, RightDeadzone, SavePad, LoadPad, Volume, Mute, UiLanguage, Export, Import, Diagnostics, Preset, ApplyPreset, ResetSection, Stages, NavBase = 300 };
+    Pads, Rescan, PadState, PadValues, Deadzone, RightDeadzone, SavePad, LoadPad, Volume, Mute, UiLanguage, Export, Import, Diagnostics, Preset, ApplyPreset, ResetSection, Stages, ImportSave, OpenSaves, NavBase = 300 };
 fs::path game_dir;
 s::Settings settings, pending;
 HWND window{};
@@ -44,7 +45,7 @@ void changed();
 void select_page(int p);
 void localize();
 s::Settings read_form();
-constexpr const wchar_t* tools_version = L"v0.1.0-preview.15";
+constexpr const wchar_t* tools_version = L"v0.1.0-preview.16";
 std::map<HWND,std::wstring> captions;
 std::map<HWND,std::vector<std::wstring>> combo_labels;
 std::unique_ptr<s::Controllers> controllers;
@@ -93,7 +94,7 @@ void add(HWND h, const std::wstring& v) {
 }
 void enabled(bool on) {
     for (int id : {Folder, Browse, Versions, Resolution, Mode, Lang, Skip, Save, SavePlay, Vsync, Fps60, Upscaler, GameOutput, RenderRatio, AutoCheck, CheckUpdates,
-        Deadzone,RightDeadzone,Volume,Mute,UiLanguage,Export,Import,Diagnostics,SavePad,LoadPad,Preset,ApplyPreset,ResetSection}) EnableWindow(item(id), on);
+        Deadzone,RightDeadzone,Volume,Mute,UiLanguage,Export,Import,Diagnostics,SavePad,LoadPad,Preset,ApplyPreset,ResetSection,ImportSave}) EnableWindow(item(id), on);
     if (on) EnableWindow(item(Resolution), selection(Mode) == 0);
     EnableWindow(item(Save), on && !versions.empty() && !langs.empty());
     EnableWindow(item(SavePlay), on && !versions.empty() && !langs.empty());
@@ -338,6 +339,22 @@ void browse_files() {
     if(!file)throw std::runtime_error("Cannot write the import request.");
     fs::remove(work/L"import.result.ini");
     prepare(true);
+}
+void import_save() {
+    if(preparation||s::game_running(game_dir))throw std::runtime_error("Close the game before importing a saved game.");
+    IFileOpenDialog* dialog{};
+    if(FAILED(CoCreateInstance(CLSID_FileOpenDialog,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&dialog))))throw std::runtime_error("Cannot open the folder picker.");
+    DWORD options{};dialog->GetOptions(&options);dialog->SetOptions(options|FOS_PICKFOLDERS|FOS_FORCEFILESYSTEM|FOS_PATHMUSTEXIST);
+    const auto title=ui::translate(L"Choose the other build's folder or its save folder");dialog->SetTitle(title.c_str());
+    fs::path selected;
+    if(SUCCEEDED(dialog->Show(window))) {IShellItem* entry{};if(SUCCEEDED(dialog->GetResult(&entry))){PWSTR value{};if(SUCCEEDED(entry->GetDisplayName(SIGDN_FILESYSPATH,&value))){selected=value;CoTaskMemFree(value);}entry->Release();}}
+    dialog->Release();if(selected.empty())return;
+    const auto found=s::inspect_saved_game(selected);
+    const auto prompt=ui::translate(L"Import a copy of this saved game? The other build stays unchanged. Your current saves and configuration will be backed up.")+L"\n\n"+found.root.wstring();
+    if(MessageBoxW(window,prompt.c_str(),ui::translate(L"Import saved game").c_str(),MB_OKCANCEL|MB_ICONINFORMATION)!=IDOK)return;
+    const auto copied=s::import_saved_game(game_dir,selected);
+    state(L"Saved game imported");
+    status(ui::translate(L"The imported copy is active. Save and play to continue. Backup:")+L" "+copied.backup.wstring());
 }
 void browse() {
     HMENU menu=CreatePopupMenu();
@@ -769,8 +786,12 @@ void create_controls() {
     hint(control(L"STATIC",L"Exports tool version, readiness, graphics choices and hardware IDs. No game files, saves, logs, personal paths or controller serial numbers. Review the report before sharing it.",0,0,396,-1,64));
 
     creating_page=0; parent=pages[0];
-    heading(control(L"STATIC",L"Preparation stages",0,0,344,-1,28));
-    hint(control(L"STATIC",L"No preparation running. Existing completed build work is reused on the next attempt.",Stages,0,384,-1,110));
+    heading(control(L"STATIC",L"Saved games",0,0,344,-1,28));
+    control(L"BUTTON",L"Import save from another build…",ImportSave,0,384,-1,36,WS_TABSTOP);
+    hint(control(L"STATIC",L"Select the other build or its save folder. A complete copy is imported, including account metadata. Your current saves are backed up; the original build is preserved.",0,0,432,-1,76));
+    control(L"BUTTON",L"Open active saved-game folder",OpenSaves,0,520,-1,34,WS_TABSTOP);
+    heading(control(L"STATIC",L"Preparation stages",0,0,586,-1,28));
+    hint(control(L"STATIC",L"No preparation running. Existing completed build work is reused on the next attempt.",Stages,0,626,-1,110));
 
     creating_page = -1; parent = nullptr;
     control(L"BUTTON",L"Reset section",ResetSection,18,600,168,34,WS_TABSTOP);
@@ -820,6 +841,7 @@ bool check_ui() {
     check(!versions.empty() && !langs.empty() && selection(Versions) >= 0 && selection(Lang) >= 0, "folder and language choices");
     check(selection(Mode) >= 0 && selection(Resolution) >= 0 && IsWindowEnabled(item(Save)), "initial graphics and save state");
     check(selection(Upscaler) == (settings.upscaler == "bilinear" ? 1 : 0), "stored reconstruction mode");
+    check(item(ImportSave)&&IsWindowEnabled(item(ImportSave))&&item(OpenSaves),"saved-game import and active-folder controls are available");
     check(folder_tip && SendMessageW(folder_tip, TTM_GETTOOLCOUNT, 0, 0) == 1, "long folder path tooltip registered");
     check(LOWORD(SendMessageW(window, DM_GETDEFID, 0, 0)) == SavePlay, "keyboard default action");
     check(SendMessageW(item(Skip), BM_GETCHECK, 0, 0) == (settings.skip ? BST_CHECKED : BST_UNCHECKED), "stored startup preference");
@@ -831,6 +853,7 @@ bool check_ui() {
     check(dirty&&read_form().volume==test_volume&&read_form().mute_unfocused&&read_form().deadzone==0.20&&read_form().right_deadzone==0.25,"audio and controller controls feed runtime settings");
     revert_form(); check(!dirty&&read_form().volume==original.volume&&read_form().deadzone==original.deadzone,"revert restores audio and deadzones");
     SetWindowTextW(item(GameOutput),L"2048x1152"); choose(item(UiLanguage),1); localize();
+    check(text(item(ImportSave))==L"Importar partida de otra build…","saved-game import action is translated into Spanish");
     check(ui::spanish&&text(item(NavBase+6))==L"Mandos"&&text(item(SavePlay))==L"Guardar y &jugar","Spanish interface is applied to native navigation and actions");
     check(text(item(Folder))==original_folder&&text(item(GameOutput))==L"2048x1152"&&selection(Lang)==original_language,"language switch preserves custom output, folder and game language");
     select_page(8); check(capture_ui(L"setup-ui-spanish.bmp"),"capture Spanish tools page");
@@ -924,7 +947,7 @@ bool check_ui() {
     check(text(item(Stages)).find(L"3 / 9")!=std::wstring::npos&&text(item(Stages)).find(L"5")!=std::wstring::npos,"preparation shows completed and remaining stages without a time percentage");
     status(L"First preparation may take around 30–40 minutes. Open log shows the current stage.");
     ShowWindow(item(Progress), SW_SHOW);
-    check(!IsWindowEnabled(item(Save)) && !IsWindowEnabled(item(Recommended)) && IsWindowEnabled(item(IDCANCEL)), "preparation blocks edits and allows stopping");
+    check(!IsWindowEnabled(item(Save)) && !IsWindowEnabled(item(Recommended)) && !IsWindowEnabled(item(ImportSave)) && IsWindowEnabled(item(IDCANCEL)), "preparation blocks edits and allows stopping");
     check(capture_ui(L"setup-ui-preparing.bmp"), "capture preparing state fixture");
     enabled(true); ShowWindow(item(Progress), SW_HIDE); refresh_folder(true); tab(0);
     check(capture_ui(L"setup-ui.bmp"), "capture main settings compatibility filename");
@@ -1009,6 +1032,13 @@ LRESULT CALLBACK proc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                         if(LOWORD(w)==Import) {put_form(s::import_preferences(path,value)); status(L"Settings imported. Review the choices and Save to apply them.");}
                         else if(LOWORD(w)==Export) {s::export_preferences(path,value);status(L"Settings exported without game folders or saves.");}
                         else {s::export_diagnostics(path,game_dir,value,static_cast<int>(pads.size()));status(L"Diagnostics exported. Review the report before sharing.");} return 0;
+                    }
+                    case ImportSave: import_save(); return 0;
+                    case OpenSaves: {
+                        s::Ini ini(game_dir/L"fefw.ini");fs::path path=s::wide(ini.get("fs","save_dir","save"));if(path.is_relative())path=game_dir/path;
+                        fs::create_directories(path);
+                        if(reinterpret_cast<INT_PTR>(ShellExecuteW(h,L"open",path.c_str(),nullptr,nullptr,SW_SHOWNORMAL))<=32)throw std::runtime_error("Cannot open the saved-game folder.");
+                        return 0;
                     }
                     case Browse: browse(); return 0;
                     case Folder: if (HIWORD(w) == EN_KILLFOCUS) refresh_folder(); return 0;
@@ -1107,6 +1137,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         int argc = 0; LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
         game_dir = s::executable_dir(); fs::path source;
         bool validate = false, apply_cli = false, status_cli = false, probe=false, controller_test=false;
+        fs::path import_save_cli;
         int width = 0, height = 0; std::string language, upscaler; int skip = -1, vsync = -1, fps60 = -1, fps = -1;
         std::string window_mode, output; double ratio = -1;
         std::string interface_language;std::optional<double> volume,left_deadzone,right_deadzone;int mute=-1;
@@ -1116,6 +1147,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             if (arg == L"--game") game_dir = fs::absolute(next());
             else if (arg == L"--source") source = fs::absolute(next());
             else if (arg == L"--launch") start_game = true;
+            else if (arg == L"--import-save") import_save_cli = fs::absolute(next());
             else if (arg == L"--validate") { validate = true; source = fs::absolute(next()); }
             else if (arg == L"--status") status_cli = true;
             else if (arg == L"--apply") apply_cli = true;
@@ -1160,6 +1192,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
             std::printf("detected=%d opened=%d input=%d disconnected=%d reconnected=%d controller_valid=%d\n",detected,opened,input,disconnected,reconnected,ok); return ok?0:2;
         }
         if (validate) { const auto v = s::validate_source(source, true); std::printf("%s\n", v.ok ? "VALID" : v.error.c_str()); return v.ok ? 0 : 2; }
+        if(!import_save_cli.empty()){const auto copied=s::import_saved_game(game_dir,import_save_cli);std::printf("IMPORTED files=%zu\nbackup=%s\n",copied.files,s::path_text(copied.backup).c_str());return 0;}
         settings = s::load(game_dir); if (!source.empty()) { settings.source = source; settings.romfs = source / L"romfs"; }
         if (width) settings.width = width; if (height) settings.height = height;
         if (!language.empty()) settings.language = language; if (skip >= 0) settings.skip = skip != 0;
@@ -1224,7 +1257,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
         std::fprintf(stderr, "%s\n", e.what());
         // CLI validation/preparation is unattended and communicates through its exit status.
         const std::wstring cmd(GetCommandLineW());
-        const bool cli = cmd.find(L"--validate") != std::wstring::npos || cmd.find(L"--apply") != std::wstring::npos || cmd.find(L"--status") != std::wstring::npos || cmd.find(L"--test-ui") != std::wstring::npos || cmd.find(L"--probe-controllers")!=std::wstring::npos || cmd.find(L"--test-controllers")!=std::wstring::npos;
+        const bool cli = cmd.find(L"--import-save") != std::wstring::npos || cmd.find(L"--validate") != std::wstring::npos || cmd.find(L"--apply") != std::wstring::npos || cmd.find(L"--status") != std::wstring::npos || cmd.find(L"--test-ui") != std::wstring::npos || cmd.find(L"--probe-controllers")!=std::wstring::npos || cmd.find(L"--test-controllers")!=std::wstring::npos;
         if (!cli) MessageBoxW(nullptr, s::wide(e.what()).c_str(), L"Fire Emblem Recomp", MB_OK | MB_ICONERROR);
         return 2;
     }

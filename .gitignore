@@ -3,6 +3,8 @@
 /romfs/
 /shader_cache/
 /save/
+/save-imports/
+/save-backups/
 /fefw.exe
 /fefw_setup.exe
 /fefw.map

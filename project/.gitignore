@@ -13,3 +13,6 @@ shader_cache/
 /controller-profiles/
 /fefw-settings.ini
 /fefw-diagnostics.ini
+
+/save-imports/
+/save-backups/

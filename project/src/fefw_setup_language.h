@@ -7,6 +7,15 @@ inline bool spanish=false;
 inline std::wstring translate(const std::wstring& v) {
     if(!spanish) return v;
     static const std::map<std::wstring,std::wstring> words={
+        {L"Saved games",L"Partidas guardadas"},
+        {L"Import save from another build…",L"Importar partida de otra build…"},
+        {L"Open active saved-game folder",L"Abrir carpeta de la partida activa"},
+        {L"Choose the other build's folder or its save folder",L"Elige la carpeta de la otra build o su carpeta save"},
+        {L"Import saved game",L"Importar partida guardada"},
+        {L"Import a copy of this saved game? The other build stays unchanged. Your current saves and configuration will be backed up.",L"¿Importar una copia de esta partida? La otra build se conserva. Se hará una copia de seguridad de las partidas y la configuración actuales."},
+        {L"Select the other build or its save folder. A complete copy is imported, including account metadata. Your current saves are backed up; the original build is preserved.",L"Elige la otra build o su carpeta save. Se importa una copia completa, incluidos los metadatos de cuenta. Las partidas actuales se respaldan y la build original se conserva."},
+        {L"Saved game imported",L"Partida importada"},
+        {L"The imported copy is active. Save and play to continue. Backup:",L"La copia importada está activa. Pulsa Guardar y jugar para continuar. Respaldo:"},
         {L"Import game file(s)…",L"Importar archivo(s) del juego…"},
         {L"Choose extracted folder…",L"Elegir carpeta extraída…"},
         {L"Choose own key file…",L"Elegir archivo de claves propio…"},

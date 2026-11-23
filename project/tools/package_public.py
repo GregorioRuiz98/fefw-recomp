@@ -106,7 +106,7 @@ def create(source, setup_exe, destination, importer=None):
     if importer:
         for name in IMPORTER_FILES:
             files['importer/' + name] = (Path(importer) / name).read_bytes()
-    files['.gitignore'] = b'/work/\n/exefs/\n/romfs/\n/shader_cache/\n/save/\n/fefw.exe\n/fefw_setup.exe\n/fefw.map\n/fefw.pdb\n/fefw.ini\n/fefw.features\n/controls.ini\n/import-keys.ini\n/controller-profiles/\n/fefw-settings.ini\n/fefw-diagnostics.ini\n/preparation.*\n**/__pycache__/\n*.pyc\n*.log\n*.spv\n*.keys\n*.nsp\n*.nca\n*.nso\n*.xci\n*.nsz\n*.xcz\n*.dll\n*.pdb\n*.obj\n*.lib\n*.zip\n*.7z\n*.rar\n.env\n.env.*\n'
+    files['.gitignore'] = b'/work/\n/exefs/\n/romfs/\n/shader_cache/\n/save/\n/save-imports/\n/save-backups/\n/fefw.exe\n/fefw_setup.exe\n/fefw.map\n/fefw.pdb\n/fefw.ini\n/fefw.features\n/controls.ini\n/import-keys.ini\n/controller-profiles/\n/fefw-settings.ini\n/fefw-diagnostics.ini\n/preparation.*\n**/__pycache__/\n*.pyc\n*.log\n*.spv\n*.keys\n*.nsp\n*.nca\n*.nso\n*.xci\n*.nsz\n*.xcz\n*.dll\n*.pdb\n*.obj\n*.lib\n*.zip\n*.7z\n*.rar\n.env\n.env.*\n'
     for name, data in files.items():
         audit_payload(name, data)
     manifest = {
