@@ -12,6 +12,17 @@ The game and setup tool use the project's original **Woven Shield** application 
 
 **Android development:** the separate [Android diagnostics app](https://github.com/GregorioRuiz98/fefw-recomp/tree/codex/public-release/android) now integrates application services, Android focus events, clocks, coherent shared memory and read-only RomFS storage. **33 memory tests and 253 core tests pass**. A private six-module run completes SDK startup and reaches the game's actual `nnMain`, then stops at filesystem mounting. **The APK does not run the playable game yet**: selected-folder integration, saves, audio and game rendering remain pending. No game code or files are included; the Windows download below is separate.
 
+## Mejoras recientes — preview.15 y preview.16
+
+- **Lanzador ligero:** descarga de unos **5,15 MB** para Windows x64. La preparación del juego y sus dependencias ocupa espacio adicional; los requisitos siguen indicados abajo.
+- **Selector de archivos del juego:** NSP, XCI, NSZ, XCZ, NUP, NX, ZIP o carpetas extraídas, con comprobación de la versión compatible. Los formatos cifrados necesitan tus propias claves.
+- **Partidas de otra build:** importa una copia completa de cuentas, metadatos, autoguardados y capítulos. También localiza guardados en una ruta personalizada del `fefw.ini` anterior.
+- **Respaldo antes de cambiar de partida:** conserva los guardados y el INI actuales, verifica la copia y activa la nueva ubicación al terminar. La instalación de origen sigue guardando por separado.
+- **Rutas largas y Unicode:** correcciones para copiar partidas y respaldos en carpetas con rutas largas o caracteres como tildes.
+- **Correcciones del motor incluidas en preview.15:** cola de preparación de texturas y acceso concurrente a la caché de shaders, con pruebas de regresión. La actualización de herramientas conserva el ejecutable local, los ajustes, las partidas y las cachés.
+
+Preview.16 añade el selector de partidas sobre el runtime de preview.15; ese cambio no exige regenerar el juego ni sus shaders ya preparados. Sigue siendo una **preview**: no hay una medición que acredite una mejora de FPS, falta la prueba de estrés en la ciudad principal y la importación completa de contenedores cifrados reales continúa sin validar.
+
 ## Download and open the setup tool
 
 **[Download FEFW Recomp for Windows x64 — v0.1.0-preview.16](https://github.com/GregorioRuiz98/fefw-recomp/releases/download/v0.1.0-preview.16/FEFW-Recomp-Windows-x64-v0.1.0-preview.16.exe)** · [Release notes and downloads](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.16)
@@ -30,13 +41,34 @@ The importer is an integration of [NxExtractor](https://github.com/siriusgoldsmi
 
 Preview.15 also fixes the update package allowlist so its stability document and importer files can be installed. When upgrading from preview.13 or earlier, download this release manually: the older updater cannot accept the new package layout. For an existing portable installation, extract the complete ZIP into the same folder after closing the game and setup; retain your existing saves, configuration and work folder. The single EXE uses its own stable AppData installation by default. The current public ZIP is tested through the actual standalone launcher, including preservation of game builds, saves and settings during installation and reinstallation. This does not certify compatibility with every future game/runtime version.
 
-## Saved games from another build (preview.16)
+## Jugar si vienes de otra build
 
-In **Game files → Saved games → Import save from another build**, choose the other installation folder or its complete `save` folder. The importer reads the other build's configured `save_dir`, including custom paths, and copies all accounts, slots and metadata. Selecting one `Auto` file alone is insufficient.
+Este recorrido conserva la instalación anterior e importa una copia de su partida. Los pasos se refieren a **preview.16**. Los nombres entre paréntesis corresponden a la interfaz en inglés.
 
-Both games must be closed. The current saves and INI are backed up under `save-backups`; an independent imported copy goes under `save-imports` and becomes active only after verification. The source build is never modified. **Save and play** then continues using that copy. **Open active saved-game folder** shows its location. Future progress in the two builds is independent; importing does not synchronize them.
+1. **Cierra el juego en ambas builds.** Conserva la carpeta anterior y una copia de sus guardados mientras compruebas la migración.
+2. **Abre la versión nueva en su propia carpeta.** Descarga el ZIP desde [la release de preview.16](https://github.com/GregorioRuiz98/fefw-recomp/releases/tag/v0.1.0-preview.16), extráelo en una carpeta nueva y ejecuta `fefw_setup.exe`. Así mantienes la build anterior separada. El EXE ligero utiliza `%LOCALAPPDATA%/FEFW-Recomp`: si tu build anterior ya está instalada allí, abrir el EXE actualizará esa misma instalación. Puedes poner el configurador en español desde **Herramientas → Idioma del configurador** (*Tools → Interface language*).
+3. **Importa primero tu partida.** En **Archivos del juego → Partidas guardadas → Importar partida de otra build** (*Game files → Saved games → Import save from another build*), selecciona la carpeta de la build anterior y confirma. El configurador consulta su `fefw.ini` para localizar `save_dir`. También puedes seleccionar directamente la carpeta completa de guardados, normalmente `save`. Incluye la carpeta `account`, los archivos de metadatos `.meta`, `Global` y los autoguardados/capítulos: seleccionar solo un archivo `Auto` no basta.
+4. **Selecciona tu copia del juego.** En **Examinar** (*Browse*), elige la carpeta original extraída con `exefs` y `romfs`, o importa los archivos base y actualización compatibles. Si no recuerdas la carpeta original, consulta `[launcher] source_dir` en el `fefw.ini` de la build anterior. El ejecutable de esa build y su guardado no sustituyen los archivos originales del juego. Los contenedores cifrados requieren tus propias claves; no se proporcionan ni descargan.
+5. **Prepara y juega.** Elige el idioma del juego y los ajustes, y pulsa **Guardar y jugar** (*Save and play*). Si acabas de importar contenedores del juego, la preparación y el arranque continúan automáticamente. En una instalación nueva se necesitan las herramientas de desarrollo de [Requirements](#requirements) y la primera preparación puede tardar 30–40 minutos o más. **Ver registro** (*Open log*) muestra el trabajo realizado. Después continúa desde el guardado importado en el menú del juego.
+6. **Comprueba tu progreso.** Usa **Abrir carpeta de la partida activa** (*Open active saved-game folder*) para localizar la copia que está utilizando esta instalación. Los avances nuevos se guardarán en esa copia. La partida de la build anterior conserva su propio progreso; ambas builds no se sincronizan automáticamente.
 
-The game runtime and its cache marker remain unchanged from preview.15, so this save selector does not require a shader rebuild. Tests cover custom/relative paths, complete metadata, existing-save backups, atomic failure and long Windows paths. These checks do not guarantee compatibility with every future game version.
+La importación guarda la copia activa bajo `save-imports` y el respaldo de los datos anteriores de destino bajo `save-backups`. La ubicación activa se registra en `[fs] save_dir` del INI de la instalación nueva. Se han comprobado copias completas, metadatos, respaldos, fallos de escritura y conservación de originales; esto no garantiza compatibilidad con cualquier versión futura del juego o del runtime.
+
+### Actualizar una build que ya usas en la misma carpeta
+
+Si quieres actualizar esa instalación, cierra el juego y el configurador y extrae el **ZIP completo** en su misma carpeta. Conserva `work`, las carpetas de partidas y cachés, `fefw.ini` y `controls.ini`. La actualización de herramientas mantiene esos datos: no necesitas volver a importar una partida que ya está activa allí. Las versiones **preview.13 y anteriores** requieren esta actualización manual porque su actualizador rechaza la estructura nueva del paquete.
+
+Desde preview.15, el selector de preview.16 reutiliza el runtime y la caché existentes. Si vienes de un runtime anterior, puede ser necesaria una preparación local al cambiar de motor. Una instalación en una carpeta nueva también necesita preparar sus recursos; importar la partida solo traslada los guardados.
+
+### Dudas al migrar
+
+| Lo que ocurre | Qué hacer |
+| --- | --- |
+| El configurador indica que la partida está incompleta. | Selecciona la carpeta de la build anterior o el conjunto completo de guardados, incluidos los metadatos de cuenta y `Global`. Un `Auto` suelto no contiene todo lo necesario. |
+| El INI anterior apunta a una carpeta que has movido. | Selecciona directamente la carpeta completa de guardados en su ubicación actual. |
+| Quieres recuperar la partida que tenía la instalación de destino antes de importar. | Usa el mismo selector para importar `save-backups/<respaldo>/save`. Esa carpeta existe si había una carpeta de guardados anterior; el respaldo también conserva su INI. |
+| Al abrir el lanzador aparecen otros ajustes o una partida distinta. | Abre el `fefw_setup.exe` de la carpeta que quieres usar. El EXE ligero abre su instalación de AppData; una instalación ZIP tiene su propia carpeta. Comprueba la ubicación con **Abrir carpeta de la partida activa**. |
+| La copia está importada, pero el juego no muestra el progreso esperado. | Comprueba la carpeta activa y el guardado elegido dentro del juego. Conserva la build anterior y el respaldo para comparar; las pruebas de copia no acreditan compatibilidad con todos los cambios futuros del juego. |
 
 ## Graphics runtime replacement
 
@@ -52,7 +84,7 @@ Preview.10 uses Goldoire’s complete v0.1.5 graphics and memory implementation,
 
 **Preview.11 fixes the crash before the opening battle cinematic when starting a new game.** The host AV1 decoder now receives CPU-backed frames, and the player allocates all four buffers before registering them. Existing installations rebuild the local executable once; the shader cache and saves are reused.
 
-An upgrade requires a local rebuild and a new shader cache. Preparation writes it to `shader_cache/goldoire-v015`; the older cache is preserved. The first run can still pause while textures and driver pipelines are prepared. Full-game rendering compatibility has not been established by this project. See [integration details](project/UPSTREAM-INTEGRATION.md).
+Switching from the earlier graphics runtime to the Goldoire v0.1.5 runtime requires a local rebuild and a new shader cache. Preparation writes it to `shader_cache/goldoire-v015`; the older cache is preserved. The first run can still pause while textures and driver pipelines are prepared. Full-game rendering compatibility has not been established by this project. See [integration details](project/UPSTREAM-INTEGRATION.md).
 
 ## Package contents
 
